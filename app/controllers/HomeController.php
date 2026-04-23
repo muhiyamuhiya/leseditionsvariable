@@ -1,7 +1,7 @@
 <?php
 namespace App\Controllers;
 
-use App\Lib\Database;
+use App\Models\Category;
 
 /**
  * Contrôleur de la page d'accueil
@@ -9,31 +9,24 @@ use App\Lib\Database;
 class HomeController extends BaseController
 {
     /**
-     * Afficher la homepage avec test de connexion à la base de données
+     * Afficher la homepage
      */
     public function index(): void
     {
-        $dbStatus = '';
-        $dbOk = false;
+        // Récupérer les catégories actives
+        $categories = Category::findActive();
 
-        try {
-            $db = Database::getInstance();
-            $result = $db->fetch("SELECT COUNT(*) as total FROM categories");
-
-            if ($result !== false) {
-                $dbOk = true;
-                $dbStatus = $result->total . ' catégories trouvées';
-            } else {
-                $dbStatus = 'La requête a échoué (vérifiez que les tables existent)';
-            }
-        } catch (\Throwable $e) {
-            $dbStatus = $e->getMessage();
-        }
+        // Statistiques du hero (valeurs en dur pour l'instant)
+        $statsHero = [
+            'books'     => 50,
+            'authors'   => 15,
+            'countries' => 10,
+        ];
 
         $this->view('home/index', [
-            'titre'    => 'Accueil',
-            'dbOk'     => $dbOk,
-            'dbStatus' => $dbStatus,
+            'titre'      => 'Accueil',
+            'categories' => $categories,
+            'statsHero'  => $statsHero,
         ]);
     }
 }
