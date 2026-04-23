@@ -4,29 +4,23 @@ namespace App\Models;
 use App\Lib\Database;
 
 /**
- * Modèle de base
+ * Modèle de base — Pattern Active Record simplifié
  * Classe abstraite parente de tous les modèles de l'application
- * Fournit les opérations CRUD communes
+ * Toutes les méthodes CRUD sont statiques
  */
 abstract class BaseModel
 {
-    protected Database $db;
-
-    /** @var string Nom de la table en base de données */
-    protected string $table;
-
-    public function __construct()
-    {
-        $this->db = Database::getInstance();
-    }
+    /** @var string Nom de la table — à définir dans chaque classe fille */
+    protected static string $table;
 
     /**
      * Trouver un enregistrement par son ID
      */
-    public function findById(int $id): object|false
+    public static function find(int $id): object|false
     {
-        return $this->db->fetch(
-            "SELECT * FROM {$this->table} WHERE id = ?",
+        $db = Database::getInstance();
+        return $db->fetch(
+            "SELECT * FROM " . static::$table . " WHERE id = ?",
             [$id]
         );
     }
@@ -34,44 +28,49 @@ abstract class BaseModel
     /**
      * Récupérer tous les enregistrements
      */
-    public function findAll(string $orderBy = 'id DESC'): array
+    public static function findAll(string $orderBy = 'id DESC'): array
     {
-        return $this->db->fetchAll(
-            "SELECT * FROM {$this->table} ORDER BY {$orderBy}"
+        $db = Database::getInstance();
+        return $db->fetchAll(
+            "SELECT * FROM " . static::$table . " ORDER BY {$orderBy}"
         );
     }
 
     /**
      * Créer un enregistrement — retourne l'ID inséré
      */
-    public function create(array $data): int|false
+    public static function create(array $data): int|false
     {
-        return $this->db->insert($this->table, $data);
+        $db = Database::getInstance();
+        return $db->insert(static::$table, $data);
     }
 
     /**
      * Mettre à jour un enregistrement par son ID
      */
-    public function update(int $id, array $data): int|false
+    public static function update(int $id, array $data): int|false
     {
-        return $this->db->update($this->table, $data, 'id = ?', [$id]);
+        $db = Database::getInstance();
+        return $db->update(static::$table, $data, 'id = ?', [$id]);
     }
 
     /**
      * Supprimer un enregistrement par son ID
      */
-    public function delete(int $id): int|false
+    public static function delete(int $id): int|false
     {
-        return $this->db->delete($this->table, 'id = ?', [$id]);
+        $db = Database::getInstance();
+        return $db->delete(static::$table, 'id = ?', [$id]);
     }
 
     /**
      * Compter les enregistrements selon une condition
      */
-    public function count(string $where = '1=1', array $params = []): int
+    public static function count(string $where = '1=1', array $params = []): int
     {
-        $result = $this->db->fetch(
-            "SELECT COUNT(*) as total FROM {$this->table} WHERE {$where}",
+        $db = Database::getInstance();
+        $result = $db->fetch(
+            "SELECT COUNT(*) as total FROM " . static::$table . " WHERE {$where}",
             $params
         );
         return $result ? (int) $result->total : 0;

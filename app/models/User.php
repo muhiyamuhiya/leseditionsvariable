@@ -9,16 +9,16 @@ use App\Lib\Database;
  */
 class User extends BaseModel
 {
-    protected string $table = 'users';
+    protected static string $table = 'users';
 
     /**
      * Trouver un utilisateur par son ID
+     * Retourne l'objet user ou null
      */
-    public static function find(int $id): ?object
+    public static function find(int $id): object|false
     {
         $db = Database::getInstance();
-        $user = $db->fetch("SELECT * FROM users WHERE id = ?", [$id]);
-        return $user ?: null;
+        return $db->fetch("SELECT * FROM users WHERE id = ?", [$id]);
     }
 
     /**

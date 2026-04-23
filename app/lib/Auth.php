@@ -93,7 +93,8 @@ class Auth
         }
 
         if (self::$cachedUser === null) {
-            self::$cachedUser = User::find(Session::get('user_id'));
+            $user = User::find((int) Session::get('user_id'));
+            self::$cachedUser = $user ?: null;
         }
 
         return self::$cachedUser;
