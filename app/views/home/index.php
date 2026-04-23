@@ -1,5 +1,5 @@
 <?php
-// Couleurs de catégories pour la section grille
+// Couleurs de catégories
 $catColors = [
     'biographies-memoires'     => 'from-blue-800 to-blue-950',
     'developpement-personnel'  => 'from-teal-800 to-teal-950',
@@ -13,27 +13,22 @@ $catColors = [
     'jeunesse-education'       => 'from-cyan-800 to-cyan-950',
 ];
 
-// Emojis de catégories
-$catEmojis = [
-    'biographies-memoires'     => '&#x1F464;',
-    'developpement-personnel'  => '&#x1F4C8;',
-    'spiritualite-religion'    => '&#x1F54A;',
-    'roman-fiction'            => '&#x1F4D6;',
-    'essais-societe'           => '&#x1F4DC;',
-    'histoire-afrique'         => '&#x1F30D;',
-    'poesie-theatre'           => '&#x270D;',
-    'business-entrepreneuriat' => '&#x1F4BC;',
-    'sante-bien-etre'          => '&#x2764;',
-    'jeunesse-education'       => '&#x1F393;',
+// Icônes SVG Heroicons par rangée
+$icones = [
+    'tendances' => '<path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.468 5.99 5.99 0 00-1.925 3.547 5.975 5.975 0 01-2.133-1.001A3.75 3.75 0 0012 18z"/>',
+    'nouveautes' => '<path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>',
+    'afrique' => '<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>',
+    'business' => '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/>',
+    'recommandes' => '<path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>',
 ];
 
 // Rangées de carrousels
 $rangees = [
-    ['titre' => '&#x1F525; Tendances cette semaine',   'livres' => array_slice($livresFactices, 0, 10)],
-    ['titre' => '&#x2728; Nouveautés',                  'livres' => array_merge(array_slice($livresFactices, 3), array_slice($livresFactices, 0, 3))],
-    ['titre' => '&#x1F30D; Voix d\'Afrique centrale',   'livres' => array_merge(array_slice($livresFactices, 5), array_slice($livresFactices, 0, 5))],
-    ['titre' => '&#x1F4BC; Business & Entrepreneuriat', 'livres' => array_merge(array_slice($livresFactices, 1), array_slice($livresFactices, 6, 4))],
-    ['titre' => '&#x2764;&#xFE0F; Recommandés pour toi','livres' => array_merge(array_slice($livresFactices, 7), array_slice($livresFactices, 0, 7))],
+    ['key' => 'tendances',   'titre' => 'Tendances cette semaine',   'livres' => array_slice($livresFactices, 0, 10)],
+    ['key' => 'nouveautes',  'titre' => 'Nouveautés',                'livres' => array_merge(array_slice($livresFactices, 3), array_slice($livresFactices, 0, 3))],
+    ['key' => 'afrique',     'titre' => 'Voix d\'Afrique francophone','livres' => array_merge(array_slice($livresFactices, 5), array_slice($livresFactices, 0, 5))],
+    ['key' => 'business',    'titre' => 'Business & Entrepreneuriat','livres' => array_merge(array_slice($livresFactices, 1), array_slice($livresFactices, 6, 4))],
+    ['key' => 'recommandes', 'titre' => 'Recommandés pour vous',     'livres' => array_merge(array_slice($livresFactices, 7), array_slice($livresFactices, 0, 7))],
 ];
 ?>
 
@@ -41,14 +36,12 @@ $rangees = [
      SECTION 1 : HERO IMMERSIF
      ============================================================ -->
 <section class="relative h-[50vh] sm:h-[60vh] md:h-[70vh] flex items-end overflow-hidden">
-    <!-- Fond dégradé -->
     <div class="absolute inset-0 bg-gradient-to-br from-amber-950 via-red-950 to-bg"></div>
-    <!-- Overlay bas -->
     <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent"></div>
 
     <div class="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 w-full pb-8 sm:pb-12 md:pb-16">
-        <p class="text-[10px] sm:text-xs font-display font-600 tracking-widest uppercase text-accent mb-3">Livre du mois</p>
-        <h1 class="font-display font-800 text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] max-w-2xl">
+        <p class="text-[10px] sm:text-xs font-display font-semibold tracking-widest uppercase text-accent mb-3">Livre du mois</p>
+        <h1 class="font-display font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] max-w-2xl">
             <?= e($livreDuMois->titre) ?>
         </h1>
         <p class="text-text-muted text-sm sm:text-base md:text-lg mt-2 sm:mt-3"><?= e($livreDuMois->auteur) ?></p>
@@ -69,12 +62,13 @@ $rangees = [
      SECTION 2 : CARROUSELS DE LIVRES
      ============================================================ -->
 <section class="py-6 sm:py-10">
-    <?php foreach ($rangees as $i => $rangee): ?>
+    <?php foreach ($rangees as $rangee): ?>
     <div class="mb-8 sm:mb-10">
-        <!-- Titre rangée -->
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center justify-between mb-3 sm:mb-4">
-            <h2 class="font-display font-600 text-lg sm:text-xl md:text-2xl text-white"><?= $rangee['titre'] ?></h2>
-            <a href="/catalogue" class="btn-ghost text-xs sm:text-sm">Voir tout <span class="ml-1">&rarr;</span></a>
+        <!-- Titre avec icône SVG -->
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 flex items-center gap-3 mb-3 sm:mb-4">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><?= $icones[$rangee['key']] ?></svg>
+            <h2 class="font-display font-semibold text-lg sm:text-xl md:text-2xl text-white"><?= $rangee['titre'] ?></h2>
+            <a href="/catalogue" class="ml-auto text-accent text-xs sm:text-sm font-medium hover:text-accent-hover transition-colors whitespace-nowrap">Voir tout &rarr;</a>
         </div>
 
         <!-- Carrousel -->
@@ -85,12 +79,12 @@ $rangees = [
             </button>
 
             <div class="carousel-container max-w-[1400px] mx-auto px-4 sm:px-6">
-                <?php foreach ($rangee['livres'] as $j => $livre): ?>
-                <div class="card-book" style="width: 140px; min-width: 140px;">
+                <?php foreach ($rangee['livres'] as $livre): ?>
+                <div class="card-book" style="width:140px;min-width:140px;">
                     <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= $livre['couleur'] ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
                         <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre['categorie']) ?></p>
-                        <p class="font-display font-600 text-white text-center text-sm sm:text-[15px] leading-snug px-1"><?= e($livre['titre']) ?></p>
-                        <p class="text-white/40 text-[10px]">&nbsp;</p>
+                        <p class="font-display font-semibold text-white text-center text-sm sm:text-[15px] leading-snug px-1"><?= e($livre['titre']) ?></p>
+                        <span></span>
                     </div>
                     <div class="mt-2 px-0.5">
                         <p class="text-white text-[13px] font-medium leading-snug truncate"><?= e($livre['titre']) ?></p>
@@ -115,23 +109,22 @@ $rangees = [
 <section class="bg-surface py-12 sm:py-16 md:py-20">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <!-- Texte -->
             <div>
-                <h2 class="font-display font-800 text-3xl sm:text-4xl md:text-5xl text-white leading-tight">Lis sans limite.</h2>
+                <h2 class="font-display font-extrabold text-3xl sm:text-4xl md:text-5xl text-white leading-tight">Lis sans limite.</h2>
                 <p class="text-text-muted text-base sm:text-lg mt-4 max-w-md leading-relaxed">
                     Pour 3&nbsp;$/mois, accède à tout notre catalogue sur tous tes appareils. Annule quand tu veux.
                 </p>
                 <ul class="mt-6 space-y-3">
                     <li class="flex items-center gap-3 text-sm sm:text-base text-white">
-                        <span class="text-accent text-lg">&#x2713;</span>
+                        <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                         Catalogue complet en illimité
                     </li>
                     <li class="flex items-center gap-3 text-sm sm:text-base text-white">
-                        <span class="text-accent text-lg">&#x2713;</span>
+                        <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                         Liseuse en ligne, progression sauvegardée
                     </li>
                     <li class="flex items-center gap-3 text-sm sm:text-base text-white">
-                        <span class="text-accent text-lg">&#x2713;</span>
+                        <svg class="w-5 h-5 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                         Chaque page lue rémunère l'auteur
                     </li>
                 </ul>
@@ -143,14 +136,11 @@ $rangees = [
             <!-- Mockup téléphone -->
             <div class="hidden lg:flex justify-center">
                 <div class="relative w-[240px]">
-                    <!-- Corps du téléphone -->
                     <div class="bg-surface-2 rounded-[2rem] p-3 border border-border shadow-2xl">
                         <div class="bg-bg rounded-[1.4rem] overflow-hidden aspect-[9/16] flex flex-col">
-                            <!-- Barre statut simulée -->
                             <div class="h-6 bg-surface-2 flex items-center justify-center">
                                 <div class="w-16 h-1 bg-border rounded-full"></div>
                             </div>
-                            <!-- Contenu liseuse simulé -->
                             <div class="flex-grow p-5 flex flex-col">
                                 <p class="text-accent text-[10px] font-medium uppercase tracking-wider mb-3">Chapitre 1</p>
                                 <p class="text-white/90 text-[11px] leading-relaxed">
@@ -180,14 +170,13 @@ $rangees = [
      ============================================================ -->
 <section class="py-12 sm:py-16">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6">
-        <h2 class="font-display font-700 text-2xl sm:text-3xl text-white mb-6 sm:mb-8">Explorer par catégorie</h2>
+        <h2 class="font-display font-bold text-2xl sm:text-3xl text-white mb-6 sm:mb-8">Explorer par catégorie</h2>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             <?php foreach ($categories as $cat): ?>
             <a href="/catalogue?categorie=<?= e($cat->slug) ?>"
                class="card-category relative h-28 sm:h-32 bg-gradient-to-br <?= $catColors[$cat->slug] ?? 'from-gray-800 to-gray-900' ?> flex flex-col justify-end p-3 sm:p-4">
-                <span class="absolute top-3 right-3 text-2xl sm:text-3xl opacity-60"><?= $catEmojis[$cat->slug] ?? '&#x1F4DA;' ?></span>
-                <p class="font-display font-700 text-white text-sm sm:text-base leading-snug relative z-10"><?= e($cat->nom) ?></p>
+                <p class="font-display font-bold text-white text-sm sm:text-base leading-snug relative z-10"><?= e($cat->nom) ?></p>
             </a>
             <?php endforeach; ?>
         </div>

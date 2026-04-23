@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="fr_FR">
 
-    <link rel="icon" type="image/jpeg" href="/assets/images/logo.jpg">
+    <link rel="icon" type="image/png" href="/assets/images/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
