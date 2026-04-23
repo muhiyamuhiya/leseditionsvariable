@@ -1,0 +1,17 @@
+# ============================================
+# Les éditions Variable — Réécriture d'URL
+# ============================================
+
+RewriteEngine On
+
+# Forcer HTTPS en production (décommenter en prod)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Si le fichier ou dossier existe physiquement, le servir directement
+# (assets CSS, JS, images, etc.)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Tout le reste passe par index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
