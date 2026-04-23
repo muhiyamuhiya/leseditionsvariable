@@ -17,6 +17,22 @@ $router = new App\Lib\Router();
 // Page d'accueil
 $router->get('/', 'HomeController@index');
 
+// Authentification
+$router->get('/connexion', 'AuthController@showLogin');
+$router->post('/connexion', 'AuthController@processLogin');
+$router->get('/inscription', 'AuthController@showRegister');
+$router->post('/inscription', 'AuthController@processRegister');
+$router->post('/deconnexion', 'AuthController@logout');
+
+// Vérification email
+$router->get('/verifier-email/:token', 'AuthController@verifyEmail');
+
+// Mot de passe oublié / réinitialisation
+$router->get('/mot-de-passe-oublie', 'AuthController@showForgotPassword');
+$router->post('/mot-de-passe-oublie', 'AuthController@processForgotPassword');
+$router->get('/reset-password/:token', 'AuthController@showResetPassword');
+$router->post('/reset-password/:token', 'AuthController@processResetPassword');
+
 // ============================================
 // Dispatcher la requête
 // ============================================
