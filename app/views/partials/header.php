@@ -2,9 +2,11 @@
 
 <header x-data="{ menuOpen: false, searchOpen: false }"
         x-init="$watch('menuOpen', v => document.body.classList.toggle('overflow-hidden', v))"
-        class="fixed top-0 left-0 right-0 z-50 h-14 sm:h-16 bg-bg/90 backdrop-blur-md border-b border-transparent transition-colors"
+        class="fixed top-0 left-0 right-0 z-50 bg-bg/90 backdrop-blur-md border-b border-transparent transition-colors"
         @scroll.window="$el.classList.toggle('border-border', window.scrollY > 10)">
-    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+
+    <!-- Barre header -->
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
 
         <!-- Logo + marque -->
         <a href="/" class="flex items-center gap-2.5 flex-shrink-0">
@@ -78,62 +80,44 @@
 
             <!-- Burger mobile -->
             <button @click="menuOpen = !menuOpen" class="md:hidden text-white hover:text-accent transition-colors p-1">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+                <svg x-show="!menuOpen" class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+                <svg x-show="menuOpen" x-cloak class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
     </div>
-</header>
 
-<!-- Menu mobile fullscreen overlay -->
-<div x-data x-show="$store?.menuOpen ?? false" class="hidden"><!-- placeholder pour éviter erreur si pas d'Alpine --></div>
-<template x-teleport="body">
+    <!-- Menu mobile fullscreen (DANS le scope Alpine du header) -->
     <div x-show="menuOpen"
          x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
+         x-transition:enter-start="opacity-0 -translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
          x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-4"
          @keydown.escape.window="menuOpen = false"
-         class="fixed inset-0 z-[60] bg-bg/[0.98] backdrop-blur-xl flex flex-col"
-         style="display: none;">
+         x-cloak
+         class="md:hidden fixed inset-0 top-14 sm:top-16 z-[60] bg-bg flex flex-col overflow-y-auto">
 
-        <!-- Top bar du menu -->
-        <div class="h-14 flex items-center justify-between px-5 flex-shrink-0">
-            <!-- Logo -->
-            <a href="/" @click="menuOpen = false" class="flex items-center gap-2.5">
-                <img src="<?= asset('images/logo.png') ?>" alt="Les éditions Variable" class="h-7 w-7 object-contain">
-                <div class="flex flex-col leading-tight">
-                    <span class="font-display text-white text-[11px] font-bold tracking-wider uppercase">Les éditions</span>
-                    <span class="font-display text-accent text-[10px] font-semibold tracking-[0.2em] uppercase">Variable</span>
-                </div>
-            </a>
-            <!-- Bouton fermer -->
-            <button @click="menuOpen = false" class="text-white/60 hover:text-accent transition-colors p-1">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <!-- Navigation principale -->
-        <nav class="flex-grow flex flex-col justify-center px-8">
-            <a href="/" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border transition-all hover:translate-x-1">
-                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        <!-- Navigation -->
+        <nav class="flex-grow flex flex-col justify-center px-8 py-6">
+            <a href="/" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">
+                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
                 <span class="font-display font-medium text-2xl text-white group-hover:text-accent transition-colors">Accueil</span>
             </a>
-            <a href="/catalogue" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border transition-all hover:translate-x-1">
-                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+            <a href="/catalogue" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">
+                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
                 <span class="font-display font-medium text-2xl text-white group-hover:text-accent transition-colors">Catalogue</span>
             </a>
-            <a href="/ma-bibliotheque" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border transition-all hover:translate-x-1">
-                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"/></svg>
+            <a href="/ma-bibliotheque" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">
+                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"/></svg>
                 <span class="font-display font-medium text-2xl text-white group-hover:text-accent transition-colors">Mes livres</span>
             </a>
-            <a href="/catalogue?tri=nouveautes" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border transition-all hover:translate-x-1">
-                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
+            <a href="/catalogue?tri=nouveautes" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">
+                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>
                 <span class="font-display font-medium text-2xl text-white group-hover:text-accent transition-colors">Nouveautés</span>
             </a>
             <a href="/abonnement" @click="menuOpen = false" class="group flex items-center gap-4 py-5 transition-all hover:translate-x-1">
-                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+                <svg class="w-5 h-5 text-text-dim group-hover:text-accent transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
                 <span class="font-display font-medium text-2xl text-white group-hover:text-accent transition-colors">Abonnement</span>
             </a>
         </nav>
@@ -156,7 +140,7 @@
             <?php endif; ?>
 
             <!-- Réseaux sociaux -->
-            <div class="flex items-center justify-center gap-6">
+            <div class="flex items-center justify-center gap-6 pt-4">
                 <a href="#" class="text-text-dim hover:text-accent transition-colors" aria-label="Facebook"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
                 <a href="#" class="text-text-dim hover:text-accent transition-colors" aria-label="Instagram"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
                 <a href="#" class="text-text-dim hover:text-accent transition-colors" aria-label="X"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
@@ -164,7 +148,7 @@
             </div>
         </div>
     </div>
-</template>
+</header>
 
 <!-- Spacer pour le header fixe -->
 <div class="h-14 sm:h-16"></div>
