@@ -1,7 +1,7 @@
 <?php $currentUser = App\Lib\Auth::user(); ?>
 
 <!-- Barre annonce -->
-<div class="bg-ink text-white/70 text-[11px] tracking-wider uppercase font-sans font-medium py-2 text-center hidden sm:block">
+<div class="bg-ink text-white/70 text-[10px] sm:text-[11px] tracking-wider uppercase font-sans font-medium py-1.5 text-center">
     Livraison Premium dans 15 pays francophones
 </div>
 
@@ -9,14 +9,14 @@
 <header x-data="{ mobileOpen: false, searchOpen: false }"
         class="bg-paper/95 backdrop-blur-md border-b border-subtle sticky top-0 z-50">
     <div class="container-editorial">
-        <div class="flex items-center justify-between h-20">
+        <div class="flex items-center justify-between h-14 sm:h-16 lg:h-20">
 
-            <!-- Logo -->
+            <!-- Logo horizontal -->
             <a href="/" class="flex-shrink-0">
-                <img src="<?= asset('images/logo.jpg') ?>" alt="Les éditions Variable" class="h-10 w-auto">
+                <img src="<?= asset('images/logo-horizontal.jpg') ?>" alt="Les éditions Variable" class="h-9 sm:h-10 lg:h-12 w-auto">
             </a>
 
-            <!-- Navigation centrale -->
+            <!-- Navigation centrale (desktop) -->
             <nav class="hidden lg:flex items-center gap-10">
                 <a href="/catalogue" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">Catalogue</a>
                 <a href="/abonnement" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">Abonnement</a>
@@ -25,15 +25,15 @@
             </nav>
 
             <!-- Droite -->
-            <div class="flex items-center gap-5">
+            <div class="flex items-center gap-4 sm:gap-5">
 
-                <!-- Recherche -->
-                <div class="relative">
+                <!-- Recherche (desktop) -->
+                <div class="relative hidden sm:block">
                     <button @click="searchOpen = !searchOpen" class="text-muted hover:text-ink transition-colors">
                         <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </button>
                     <div x-show="searchOpen" x-transition @click.outside="searchOpen = false"
-                         class="absolute right-0 top-full mt-3 w-80 bg-white border border-subtle shadow-xl p-4 z-50">
+                         class="absolute right-0 top-full mt-3 w-72 sm:w-80 bg-white border border-subtle shadow-xl p-4 z-50">
                         <form action="/recherche" method="GET">
                             <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
                                    class="w-full px-0 py-2 border-0 border-b border-subtle text-sm focus:border-ink focus:ring-0 outline-none bg-transparent placeholder:text-muted/50"
@@ -87,7 +87,7 @@
                 <?php endif; ?>
 
                 <!-- Burger mobile -->
-                <button @click="mobileOpen = !mobileOpen" class="lg:hidden text-ink">
+                <button @click="mobileOpen = !mobileOpen" class="lg:hidden text-ink p-1">
                     <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
                     <svg x-show="mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -103,17 +103,29 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="lg:hidden fixed inset-0 top-20 bg-ink z-40 flex flex-col items-center justify-center gap-8">
-        <a href="/catalogue" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Catalogue</a>
-        <a href="/abonnement" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Abonnement</a>
-        <a href="/auteurs" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Auteurs</a>
-        <a href="/a-propos" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">À propos</a>
-        <div class="w-12 h-px bg-gold/40 my-2"></div>
-        <?php if ($currentUser): ?>
-            <a href="/mon-compte" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">Mon compte</a>
-        <?php else: ?>
-            <a href="/connexion" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">Se connecter</a>
-            <a href="/inscription" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">S'inscrire</a>
-        <?php endif; ?>
+         class="lg:hidden fixed inset-0 top-[calc(3.5rem+1.5rem)] sm:top-[calc(4rem+1.5rem)] bg-ink z-40">
+        <!-- Bouton X en haut à droite -->
+        <button @click="mobileOpen = false" class="absolute top-6 right-6 text-white/60 hover:text-white">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="flex flex-col items-center justify-center h-full gap-7">
+            <a href="/catalogue" @click="mobileOpen = false" class="font-display italic text-3xl text-white/90 hover:text-gold transition-colors">Catalogue</a>
+            <a href="/abonnement" @click="mobileOpen = false" class="font-display italic text-3xl text-white/90 hover:text-gold transition-colors">Abonnement</a>
+            <a href="/auteurs" @click="mobileOpen = false" class="font-display italic text-3xl text-white/90 hover:text-gold transition-colors">Auteurs</a>
+            <a href="/a-propos" @click="mobileOpen = false" class="font-display italic text-3xl text-white/90 hover:text-gold transition-colors">À propos</a>
+            <div class="w-10 h-px bg-gold/40 my-1"></div>
+            <?php if ($currentUser): ?>
+                <a href="/mon-compte" @click="mobileOpen = false" class="text-base text-white/50 hover:text-white transition-colors">Mon compte</a>
+                <a href="/ma-bibliotheque" @click="mobileOpen = false" class="text-base text-white/50 hover:text-white transition-colors">Ma bibliothèque</a>
+            <?php else: ?>
+                <a href="/connexion" @click="mobileOpen = false" class="text-base text-white/50 hover:text-white transition-colors">Connexion</a>
+                <a href="/inscription" @click="mobileOpen = false" class="text-base text-white/50 hover:text-white transition-colors">Inscription</a>
+            <?php endif; ?>
+            <!-- Recherche mobile -->
+            <form action="/recherche" method="GET" class="mt-2 w-64">
+                <input type="text" name="q" placeholder="Rechercher..."
+                       class="w-full bg-transparent border-b border-white/20 text-white text-sm py-2 px-0 outline-none placeholder:text-white/30 focus:border-gold transition-colors">
+            </form>
+        </div>
     </div>
 </header>

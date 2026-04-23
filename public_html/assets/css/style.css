@@ -32,26 +32,16 @@ body {
     font-style: italic;
 }
 
-/* --- Couleurs utilitaires --- */
-.text-ink { color: var(--color-ink); }
-.text-gold { color: var(--color-gold); }
-.text-gold-light { color: var(--color-gold-light); }
-.text-muted { color: var(--color-muted); }
-.bg-paper { background-color: var(--color-paper); }
-.bg-soft { background-color: var(--color-soft); }
-.bg-ink { background-color: var(--color-ink); }
-.border-subtle { border-color: var(--color-border); }
-
 /* --- Sections --- */
 .section-padding {
-    padding-top: 60px;
-    padding-bottom: 60px;
+    padding-top: 40px;
+    padding-bottom: 40px;
 }
 
 @media (min-width: 768px) {
     .section-padding {
-        padding-top: 120px;
-        padding-bottom: 120px;
+        padding-top: 80px;
+        padding-bottom: 80px;
     }
 }
 
@@ -59,8 +49,15 @@ body {
     max-width: 1280px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+@media (min-width: 640px) {
+    .container-editorial {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
 }
 
 /* --- Boutons --- */
@@ -69,12 +66,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 1rem 2.5rem;
+    padding: 0.875rem 2rem;
     background-color: var(--color-ink);
     color: #fff;
     font-family: 'Inter', sans-serif;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     border: 1px solid var(--color-ink);
@@ -92,12 +89,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 1rem 2.5rem;
+    padding: 0.875rem 2rem;
     background-color: transparent;
     color: var(--color-ink);
     font-family: 'Inter', sans-serif;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     border: 1px solid var(--color-ink);
@@ -114,12 +111,12 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 1rem 2.5rem;
+    padding: 0.875rem 2rem;
     background-color: transparent;
     color: #fff;
     font-family: 'Inter', sans-serif;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     border: 1px solid rgba(255, 255, 255, 0.4);
@@ -130,6 +127,30 @@ body {
     background-color: #fff;
     color: var(--color-ink);
     border-color: #fff;
+}
+
+/* --- Cartes livres couverture --- */
+.book-cover {
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.book-cover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.book-cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    transition: border-color 0.3s ease;
+    pointer-events: none;
+}
+
+.book-cover:hover::after {
+    border-color: var(--color-gold);
 }
 
 /* --- Barre de défilement --- */

@@ -13,7 +13,7 @@
     <meta property="og:locale" content="fr_FR">
 
     <!-- Favicon -->
-    <link rel="icon" href="<?= asset('images/logo.jpg') ?>" type="image/jpeg">
+    <link rel="icon" type="image/jpeg" href="/assets/images/logo.jpg">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
