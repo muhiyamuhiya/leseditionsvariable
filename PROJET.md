@@ -10,4 +10,14 @@ Le projet repose sur une architecture PHP 8.2+ pure (sans framework) suivant un 
 
 ## Cible et modèle économique
 
-La plateforme cible les lecteurs d'Afrique francophone et de la diaspora. Le modèle économique repose sur trois piliers : la vente unitaire d'ebooks, un système d'abonnement donnant accès à un catalogue élargi, et des services aux auteurs (mise en page, correction, accompagnement éditorial). Les paiements sont gérés via Money Fusion pour la RDC et Stripe pour les transactions internationales.
+La plateforme cible les lecteurs d'Afrique francophone et de la diaspora (RDC en priorité, puis Sénégal, Côte d'Ivoire, Mali, Burkina, Cameroun, France, Belgique, Canada). Le modèle économique repose sur plusieurs sources de revenus combinées :
+
+1. **Vente unitaire d'ebooks** : prix libre fixé par l'auteur. Variable prélève 20% de commission, l'auteur garde 80%.
+
+2. **Abonnement lecteur** : 3 $/mois ou 30 $/an pour un accès illimité au catalogue. Un abonnement Premium à 8 $/mois inclut en plus un livre physique livré chaque trimestre en RDC.
+
+3. **Pool de redistribution aux auteurs** : 50% des revenus d'abonnement sont redistribués aux auteurs chaque mois, au prorata des pages lues de leurs livres par les abonnés. Formule : revenu auteur = pool mensuel × (pages lues de ses livres / pages lues totales plateforme).
+
+4. **Services payants aux auteurs** : mise en page, correction, conception de couverture, packs promotion (150 $ à 500 $ selon le pack).
+
+Les paiements sont gérés via Money Fusion pour la RDC et les pays utilisant Mobile Money, et via Stripe pour les transactions internationales par carte. Les versements aux auteurs sont effectués trimestriellement avec un seuil minimum de 20 $ accumulés.
