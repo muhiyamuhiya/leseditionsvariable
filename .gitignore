@@ -1,0 +1,37 @@
+# Environnement
+.env
+.env.local
+
+# Dépendances PHP
+/vendor/
+
+# Logs
+/logs/*.log
+
+# Fichiers uploadés (stockage)
+/storage/books/*
+/storage/covers/*
+/storage/uploads/*
+
+# Garder les dossiers storage vides dans Git
+!/storage/books/.gitkeep
+!/storage/covers/.gitkeep
+!/storage/uploads/.gitkeep
+
+# macOS
+.DS_Store
+
+# Node
+/node_modules/
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Cache et fichiers temporaires
+/cache/*
+!/cache/.gitkeep
+*.cache
