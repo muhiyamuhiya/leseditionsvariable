@@ -1,63 +1,25 @@
 /* ============================================
-   Les éditions Variable — Direction artistique premium
-   Palette : noir / blanc cassé / or mat
+   Les éditions Variable — Style Netflix/Streaming
    ============================================ */
 
 :root {
-    --color-ink: #0A0A0A;
-    --color-paper: #FAFAF7;
-    --color-gold: #B8935A;
-    --color-gold-light: #D4A574;
-    --color-muted: #4A4A4A;
-    --color-border: #E5E5E0;
-    --color-soft: #F2F0EA;
+    --color-bg: #0B0B0F;
+    --color-surface: #141419;
+    --color-surface-2: #1C1C24;
+    --color-border: #2A2A35;
+    --color-text: #FFFFFF;
+    --color-text-muted: #A0A0B0;
+    --color-text-dim: #6B6B7D;
+    --color-accent: #F59E0B;
+    --color-accent-hover: #FBBF24;
+    --color-danger: #DC2626;
+    --color-success: #10B981;
 }
 
-/* --- Base --- */
 body {
     font-family: 'Inter', sans-serif;
-    color: var(--color-ink);
-    background-color: var(--color-paper);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* --- Polices utilitaires --- */
-.font-display {
-    font-family: 'Playfair Display', serif;
-}
-
-.font-accent {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-}
-
-/* --- Sections --- */
-.section-padding {
-    padding-top: 40px;
-    padding-bottom: 40px;
-}
-
-@media (min-width: 768px) {
-    .section-padding {
-        padding-top: 80px;
-        padding-bottom: 80px;
-    }
-}
-
-.container-editorial {
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 20px;
-    padding-right: 20px;
-}
-
-@media (min-width: 640px) {
-    .container-editorial {
-        padding-left: 24px;
-        padding-right: 24px;
-    }
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 /* --- Boutons --- */
@@ -66,101 +28,168 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background-color: var(--color-ink);
-    color: #fff;
+    padding: 0.75rem 1.75rem;
+    background-color: var(--color-accent);
+    color: #000;
     font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.8125rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid var(--color-ink);
-    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .btn-primary:hover {
-    background-color: var(--color-gold);
-    border-color: var(--color-gold);
+    background-color: var(--color-accent-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    background-color: rgba(255,255,255,0.08);
     color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.4);
 }
 
 .btn-ghost {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background-color: transparent;
-    color: var(--color-ink);
-    font-family: 'Inter', sans-serif;
+    gap: 0.375rem;
+    color: var(--color-text-muted);
     font-weight: 500;
-    font-size: 0.8125rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid var(--color-ink);
-    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
 }
 
 .btn-ghost:hover {
-    background-color: var(--color-ink);
-    color: #fff;
+    color: var(--color-accent);
 }
 
-.btn-ghost-white {
-    display: inline-flex;
+/* --- Cartes livres --- */
+.card-book {
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .card-book:hover {
+        transform: scale(1.08);
+        z-index: 10;
+    }
+    .card-book:hover .card-book-cover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        border-color: var(--color-accent);
+    }
+}
+
+.card-book-cover {
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* --- Carrousels --- */
+.carousel-container {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+
+.carousel-container::-webkit-scrollbar {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .carousel-container {
+        gap: 1rem;
+    }
+}
+
+/* --- Carrousel flèches --- */
+.carousel-arrow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background-color: transparent;
-    color: #fff;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.8125rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    transition: all 0.3s ease;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: white;
 }
 
-.btn-ghost-white:hover {
-    background-color: #fff;
-    color: var(--color-ink);
-    border-color: #fff;
+.carousel-wrapper:hover .carousel-arrow {
+    opacity: 1;
 }
 
-/* --- Cartes livres couverture --- */
-.book-cover {
-    position: relative;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+.carousel-arrow-left {
+    left: 0;
+    background: linear-gradient(to right, var(--color-bg), transparent);
 }
 
-.book-cover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+.carousel-arrow-right {
+    right: 0;
+    background: linear-gradient(to left, var(--color-bg), transparent);
 }
 
-.book-cover::after {
-    content: '';
-    position: absolute;
-    inset: 0;
+@media (hover: none) {
+    .carousel-arrow { display: none; }
+}
+
+/* --- Cartes catégories --- */
+.card-category {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease;
     border: 1px solid transparent;
-    transition: border-color 0.3s ease;
-    pointer-events: none;
+    cursor: pointer;
 }
 
-.book-cover:hover::after {
-    border-color: var(--color-gold);
+@media (hover: hover) {
+    .card-category:hover {
+        transform: scale(1.03);
+        border-color: var(--color-accent);
+    }
 }
 
-/* --- Barre de défilement --- */
+/* --- Scrollbar global --- */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-paper); }
+::-webkit-scrollbar-track { background: var(--color-bg); }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-dim); }
 
-/* --- Sélection texte --- */
 ::selection {
-    background-color: var(--color-gold);
-    color: #fff;
+    background-color: var(--color-accent);
+    color: #000;
 }
