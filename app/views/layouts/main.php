@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($titre ?? 'Accueil') ?> — Les éditions Variable</title>
-    <meta name="description" content="<?= e($description ?? 'Plateforme de lecture numérique pour auteurs africains francophones. Ebooks, abonnements et services aux auteurs.') ?>">
+    <meta name="description" content="<?= e($description ?? 'Maison d\'édition numérique dédiée aux voix d\'Afrique francophone et de la diaspora.') ?>">
 
     <!-- Open Graph -->
     <meta property="og:title" content="<?= e($titre ?? 'Les éditions Variable') ?>">
-    <meta property="og:description" content="<?= e($description ?? 'Plateforme de lecture numérique pour auteurs africains francophones.') ?>">
+    <meta property="og:description" content="<?= e($description ?? 'Maison d\'édition numérique dédiée aux voix d\'Afrique francophone et de la diaspora.') ?>">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="<?= e(url()) ?>">
     <meta property="og:locale" content="fr_FR">
 
     <!-- Favicon -->
     <link rel="icon" href="<?= asset('images/logo.jpg') ?>" type="image/jpeg">
 
-    <!-- Google Fonts : Inter (texte) + Lora (titres) -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,14 +28,17 @@
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
-                        serif: ['Lora', 'serif'],
+                        display: ['Playfair Display', 'serif'],
+                        accent: ['Cormorant Garamond', 'serif'],
                     },
                     colors: {
-                        brand: {
-                            dark: '#0F172A',
-                            indigo: '#4F46E5',
-                            amber: '#F59E0B',
-                        }
+                        ink: '#0A0A0A',
+                        paper: '#FAFAF7',
+                        gold: '#B8935A',
+                        'gold-light': '#D4A574',
+                        muted: '#4A4A4A',
+                        subtle: '#E5E5E0',
+                        soft: '#F2F0EA',
                     }
                 }
             }
@@ -46,10 +48,10 @@
     <!-- Alpine.js -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Styles personnalisés -->
+    <!-- Styles -->
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
 </head>
-<body class="min-h-screen flex flex-col bg-white text-gray-800 font-sans">
+<body class="min-h-screen flex flex-col bg-paper text-ink font-sans antialiased">
 
     <?php require BASE_PATH . '/app/views/partials/header.php'; ?>
 
@@ -59,6 +61,5 @@
 
     <?php require BASE_PATH . '/app/views/partials/footer.php'; ?>
 
-    <script src="<?= asset('js/app.js') ?>"></script>
 </body>
 </html>

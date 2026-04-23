@@ -1,130 +1,119 @@
 <?php $currentUser = App\Lib\Auth::user(); ?>
 
-<!-- Barre supérieure -->
-<div class="bg-brand-dark text-gray-300 text-xs py-2 hidden sm:block">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        &#x1F4D6; Plateforme de lecture numérique africaine francophone | Livraison gratuite en RDC pour les abonnés Premium
-    </div>
+<!-- Barre annonce -->
+<div class="bg-ink text-white/70 text-[11px] tracking-wider uppercase font-sans font-medium py-2 text-center hidden sm:block">
+    Livraison Premium dans 15 pays francophones
 </div>
 
 <!-- Header principal -->
-<header x-data="{ mobileOpen: false, searchOpen: false }" class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16 lg:h-20">
+<header x-data="{ mobileOpen: false, searchOpen: false }"
+        class="bg-paper/95 backdrop-blur-md border-b border-subtle sticky top-0 z-50">
+    <div class="container-editorial">
+        <div class="flex items-center justify-between h-20">
 
             <!-- Logo -->
             <a href="/" class="flex-shrink-0">
-                <img src="<?= asset('images/logo.jpg') ?>" alt="Les éditions Variable" class="h-10 lg:h-12 w-auto">
+                <img src="<?= asset('images/logo.jpg') ?>" alt="Les éditions Variable" class="h-10 w-auto">
             </a>
 
-            <!-- Navigation centrale (desktop) -->
-            <nav class="hidden lg:flex items-center gap-8">
-                <a href="/catalogue" class="text-sm font-medium text-gray-600 hover:text-brand-indigo transition">Catalogue</a>
-                <a href="/abonnement" class="text-sm font-medium text-gray-600 hover:text-brand-indigo transition">Abonnement</a>
-                <a href="/auteurs" class="text-sm font-medium text-gray-600 hover:text-brand-indigo transition">Auteurs</a>
-                <a href="/blog" class="text-sm font-medium text-gray-600 hover:text-brand-indigo transition">Blog</a>
-                <a href="/a-propos" class="text-sm font-medium text-gray-600 hover:text-brand-indigo transition">À propos</a>
+            <!-- Navigation centrale -->
+            <nav class="hidden lg:flex items-center gap-10">
+                <a href="/catalogue" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">Catalogue</a>
+                <a href="/abonnement" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">Abonnement</a>
+                <a href="/auteurs" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">Auteurs</a>
+                <a href="/a-propos" class="text-[13px] font-medium tracking-[0.12em] uppercase text-muted hover:text-ink transition-colors">À propos</a>
             </nav>
 
-            <!-- Droite : recherche + auth -->
-            <div class="flex items-center gap-3">
+            <!-- Droite -->
+            <div class="flex items-center gap-5">
 
                 <!-- Recherche -->
-                <div class="relative hidden sm:block">
-                    <button @click="searchOpen = !searchOpen" class="p-2 text-gray-500 hover:text-brand-indigo transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div class="relative">
+                    <button @click="searchOpen = !searchOpen" class="text-muted hover:text-ink transition-colors">
+                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </button>
                     <div x-show="searchOpen" x-transition @click.outside="searchOpen = false"
-                         class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50">
+                         class="absolute right-0 top-full mt-3 w-80 bg-white border border-subtle shadow-xl p-4 z-50">
                         <form action="/recherche" method="GET">
                             <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-indigo focus:border-brand-indigo outline-none"
+                                   class="w-full px-0 py-2 border-0 border-b border-subtle text-sm focus:border-ink focus:ring-0 outline-none bg-transparent placeholder:text-muted/50"
                                    autofocus>
                         </form>
                     </div>
                 </div>
 
                 <?php if ($currentUser): ?>
-                    <!-- Utilisateur connecté -->
+                    <!-- Connecté -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" @click.outside="open = false"
-                                class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition">
-                            <span class="bg-brand-indigo w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                                <?= e(mb_strtoupper(mb_substr($currentUser->prenom, 0, 1))) ?>
+                                class="flex items-center gap-2 text-muted hover:text-ink transition-colors">
+                            <span class="w-8 h-8 rounded-full bg-ink text-white flex items-center justify-center text-[11px] font-semibold tracking-wide">
+                                <?= e(mb_strtoupper(mb_substr($currentUser->prenom, 0, 1) . mb_substr($currentUser->nom, 0, 1))) ?>
                             </span>
-                            <span class="hidden md:inline font-medium"><?= e($currentUser->prenom) ?></span>
-                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
                         </button>
-
                         <div x-show="open"
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="opacity-100 scale-100"
-                             x-transition:leave-end="opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                            <div class="px-4 py-2 border-b border-gray-100">
-                                <p class="text-sm font-semibold text-gray-800"><?= e($currentUser->prenom . ' ' . $currentUser->nom) ?></p>
-                                <p class="text-xs text-gray-400"><?= e($currentUser->email) ?></p>
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute right-0 mt-3 w-56 bg-white border border-subtle shadow-xl py-2 z-50">
+                            <div class="px-4 py-3 border-b border-subtle">
+                                <p class="text-sm font-medium text-ink"><?= e($currentUser->prenom . ' ' . $currentUser->nom) ?></p>
+                                <p class="text-xs text-muted mt-0.5"><?= e($currentUser->email) ?></p>
                             </div>
-                            <a href="/mon-compte" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Mon compte</a>
-                            <a href="/ma-bibliotheque" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Ma bibliothèque</a>
+                            <a href="/mon-compte" class="block px-4 py-2.5 text-sm text-muted hover:text-ink hover:bg-soft transition-colors">Mon compte</a>
+                            <a href="/ma-bibliotheque" class="block px-4 py-2.5 text-sm text-muted hover:text-ink hover:bg-soft transition-colors">Ma bibliothèque</a>
                             <?php if ($currentUser->role === 'auteur'): ?>
-                                <a href="/auteur/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Espace auteur</a>
+                                <a href="/auteur/dashboard" class="block px-4 py-2.5 text-sm text-muted hover:text-ink hover:bg-soft transition-colors">Espace auteur</a>
                             <?php endif; ?>
                             <?php if ($currentUser->role === 'admin'): ?>
-                                <a href="/admin" class="flex items-center gap-2 px-4 py-2 text-sm text-brand-indigo font-medium hover:bg-indigo-50">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-                                    Administration
-                                    <span class="ml-auto text-xs bg-indigo-100 text-brand-indigo px-1.5 py-0.5 rounded">Admin</span>
-                                </a>
+                                <a href="/admin" class="block px-4 py-2.5 text-sm text-gold font-medium hover:bg-soft transition-colors">Administration</a>
                             <?php endif; ?>
-                            <hr class="my-1 border-gray-100">
-                            <form action="/deconnexion" method="POST">
-                                <?= csrf_field() ?>
-                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Déconnexion</button>
-                            </form>
+                            <div class="border-t border-subtle mt-1 pt-1">
+                                <form action="/deconnexion" method="POST">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="block w-full text-left px-4 py-2.5 text-sm text-muted hover:text-ink hover:bg-soft transition-colors">Déconnexion</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 <?php else: ?>
-                    <a href="/connexion" class="hidden sm:inline text-sm font-medium text-gray-600 hover:text-brand-indigo transition">Se connecter</a>
-                    <a href="/inscription" class="btn-primary text-sm !py-2 !px-4">S'inscrire</a>
+                    <!-- Non connecté -->
+                    <a href="/connexion" class="text-muted hover:text-ink transition-colors">
+                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                    </a>
                 <?php endif; ?>
 
                 <!-- Burger mobile -->
-                <button @click="mobileOpen = !mobileOpen" class="lg:hidden p-2 text-gray-600 hover:text-brand-indigo">
-                    <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg x-show="mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button @click="mobileOpen = !mobileOpen" class="lg:hidden text-ink">
+                    <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
+                    <svg x-show="mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Menu mobile (drawer) -->
-    <div x-show="mobileOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
-         class="lg:hidden bg-white border-t border-gray-100 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-4 space-y-1">
-            <!-- Recherche mobile -->
-            <form action="/recherche" method="GET" class="mb-3">
-                <input type="text" name="q" placeholder="Rechercher..."
-                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-indigo focus:border-brand-indigo outline-none">
-            </form>
-            <a href="/catalogue" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Catalogue</a>
-            <a href="/abonnement" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Abonnement</a>
-            <a href="/auteurs" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Auteurs</a>
-            <a href="/blog" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Blog</a>
-            <a href="/a-propos" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">À propos</a>
-            <?php if (!$currentUser): ?>
-                <hr class="my-2 border-gray-200">
-                <a href="/connexion" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Se connecter</a>
-                <a href="/inscription" class="block px-3 py-2.5 text-sm font-medium text-white bg-brand-indigo hover:bg-indigo-700 rounded-lg text-center">S'inscrire</a>
-            <?php endif; ?>
-        </div>
+    <!-- Menu mobile fullscreen -->
+    <div x-show="mobileOpen"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="lg:hidden fixed inset-0 top-20 bg-ink z-40 flex flex-col items-center justify-center gap-8">
+        <a href="/catalogue" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Catalogue</a>
+        <a href="/abonnement" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Abonnement</a>
+        <a href="/auteurs" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">Auteurs</a>
+        <a href="/a-propos" @click="mobileOpen = false" class="font-display text-3xl text-white/90 hover:text-gold transition-colors">À propos</a>
+        <div class="w-12 h-px bg-gold/40 my-2"></div>
+        <?php if ($currentUser): ?>
+            <a href="/mon-compte" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">Mon compte</a>
+        <?php else: ?>
+            <a href="/connexion" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">Se connecter</a>
+            <a href="/inscription" @click="mobileOpen = false" class="text-lg text-white/60 hover:text-white transition-colors">S'inscrire</a>
+        <?php endif; ?>
     </div>
 </header>

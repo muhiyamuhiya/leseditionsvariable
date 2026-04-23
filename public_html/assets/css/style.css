@@ -1,14 +1,66 @@
 /* ============================================
-   Les éditions Variable — Styles personnalisés
+   Les éditions Variable — Direction artistique premium
+   Palette : noir / blanc cassé / or mat
    ============================================ */
 
-/* --- Polices --- */
-body {
-    font-family: 'Inter', sans-serif;
+:root {
+    --color-ink: #0A0A0A;
+    --color-paper: #FAFAF7;
+    --color-gold: #B8935A;
+    --color-gold-light: #D4A574;
+    --color-muted: #4A4A4A;
+    --color-border: #E5E5E0;
+    --color-soft: #F2F0EA;
 }
 
-.font-lora {
-    font-family: 'Lora', serif;
+/* --- Base --- */
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--color-ink);
+    background-color: var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Polices utilitaires --- */
+.font-display {
+    font-family: 'Playfair Display', serif;
+}
+
+.font-accent {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+}
+
+/* --- Couleurs utilitaires --- */
+.text-ink { color: var(--color-ink); }
+.text-gold { color: var(--color-gold); }
+.text-gold-light { color: var(--color-gold-light); }
+.text-muted { color: var(--color-muted); }
+.bg-paper { background-color: var(--color-paper); }
+.bg-soft { background-color: var(--color-soft); }
+.bg-ink { background-color: var(--color-ink); }
+.border-subtle { border-color: var(--color-border); }
+
+/* --- Sections --- */
+.section-padding {
+    padding-top: 60px;
+    padding-bottom: 60px;
+}
+
+@media (min-width: 768px) {
+    .section-padding {
+        padding-top: 120px;
+        padding-bottom: 120px;
+    }
+}
+
+.container-editorial {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 24px;
+    padding-right: 24px;
 }
 
 /* --- Boutons --- */
@@ -17,114 +69,77 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.75rem;
-    background-color: #4F46E5;
+    padding: 1rem 2.5rem;
+    background-color: var(--color-ink);
     color: #fff;
-    font-weight: 600;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid var(--color-ink);
+    transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-    background-color: #4338CA;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    background-color: var(--color-gold);
+    border-color: var(--color-gold);
+    color: #fff;
 }
 
-.btn-secondary {
+.btn-ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.75rem;
+    padding: 1rem 2.5rem;
     background-color: transparent;
-    color: #4F46E5;
-    font-weight: 600;
-    border: 2px solid #4F46E5;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
+    color: var(--color-ink);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid var(--color-ink);
+    transition: all 0.3s ease;
 }
 
-.btn-secondary:hover {
-    background-color: #4F46E5;
+.btn-ghost:hover {
+    background-color: var(--color-ink);
     color: #fff;
-    transform: translateY(-1px);
 }
 
-/* --- Cartes de livres --- */
-.card-book {
-    background: #fff;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: all 0.25s ease;
+.btn-ghost-white {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2.5rem;
+    background-color: transparent;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
 }
 
-.card-book:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+.btn-ghost-white:hover {
+    background-color: #fff;
+    color: var(--color-ink);
+    border-color: #fff;
 }
 
-/* --- Titres de section --- */
-.section-title {
-    font-family: 'Lora', serif;
-    font-weight: 700;
-    color: #0F172A;
-    font-size: 2rem;
-    line-height: 1.2;
-}
+/* --- Barre de défilement --- */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-paper); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
 
-@media (min-width: 768px) {
-    .section-title {
-        font-size: 2.5rem;
-    }
-}
-
-/* --- Cartes catégories --- */
-.card-category {
-    background: #fff;
-    border: 1px solid #E5E7EB;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.25s ease;
-}
-
-.card-category:hover {
-    border-color: #4F46E5;
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12);
-    transform: translateY(-2px);
-}
-
-/* --- Animation subtile pour le hero --- */
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-.animate-float {
-    animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-    animation: float 6s ease-in-out infinite;
-    animation-delay: 2s;
-}
-
-/* --- Barre de défilement personnalisée --- */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c4c4c4;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a0a0a0;
+/* --- Sélection texte --- */
+::selection {
+    background-color: var(--color-gold);
+    color: #fff;
 }
