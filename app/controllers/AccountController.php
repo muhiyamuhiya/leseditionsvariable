@@ -2,7 +2,9 @@
 namespace App\Controllers;
 
 use App\Lib\Auth;
+use App\Lib\CSRF;
 use App\Lib\Database;
+use App\Lib\Session;
 
 /**
  * Dashboard lecteur
@@ -15,7 +17,6 @@ class AccountController extends BaseController
         $user = Auth::user();
         $db = Database::getInstance();
 
-        // Livres achetés/en bibliothèque
         $livres = $db->fetchAll(
             "SELECT b.titre, b.slug, b.nombre_pages, b.prix_unitaire_usd, b.author_id,
                     COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
@@ -33,13 +34,11 @@ class AccountController extends BaseController
             [$user->id]
         );
 
-        // Abonnement actif
         $abonnement = $db->fetch(
             "SELECT * FROM subscriptions WHERE user_id = ? AND statut = 'actif' AND date_fin > NOW() ORDER BY date_fin DESC LIMIT 1",
             [$user->id]
         );
 
-        // Stats lecture
         $stats = $db->fetch(
             "SELECT COUNT(*) as nb_livres, SUM(total_pages_lues) as pages_lues, SUM(total_temps_lecture) as temps_total
              FROM reading_progress WHERE user_id = ?",
@@ -53,5 +52,96 @@ class AccountController extends BaseController
             'abonnement' => $abonnement,
             'stats'      => $stats,
         ]);
+    }
+
+    /**
+     * Page profil lecteur
+     */
+    public function profile(): void
+    {
+        Auth::requireLogin();
+        $user = Auth::user();
+
+        $this->view('account/profile', [
+            'titre' => 'Mon profil',
+            'user'  => $user,
+        ]);
+    }
+
+    /**
+     * Mise à jour du profil
+     */
+    public function updateProfile(): void
+    {
+        Auth::requireLogin();
+        CSRF::check();
+        $db = Database::getInstance();
+        $userId = Auth::id();
+
+        $data = [
+            'prenom'            => trim($_POST['prenom'] ?? ''),
+            'nom'               => trim($_POST['nom'] ?? ''),
+            'telephone'         => trim($_POST['telephone'] ?? '') ?: null,
+            'pays'              => trim($_POST['pays'] ?? '') ?: null,
+            'devise_preferee'   => trim($_POST['devise_preferee'] ?? 'USD'),
+            'accepte_newsletter'=> isset($_POST['accepte_newsletter']) ? 1 : 0,
+        ];
+
+        if (empty($data['prenom']) || empty($data['nom'])) {
+            Session::flash('error', 'Prénom et nom sont obligatoires.');
+            redirect('/mon-compte/profil');
+            return;
+        }
+
+        // Upload photo
+        if (!empty($_FILES['photo']['tmp_name'])) {
+            $file = $_FILES['photo'];
+            $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (in_array($file['type'], $allowed) && $file['size'] <= 2 * 1024 * 1024) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = 'user-' . $userId . '-' . time() . '.' . $ext;
+                $absPath = BASE_PATH . '/storage/users/' . $filename;
+                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                move_uploaded_file($file['tmp_name'], $absPath);
+                $data['avatar_url'] = '/image/users/' . $filename;
+            }
+        }
+
+        $db->update('users', $data, 'id = ?', [$userId]);
+
+        Session::flash('success', 'Profil mis à jour.');
+        redirect('/mon-compte/profil');
+    }
+
+    /**
+     * Changement de mot de passe
+     */
+    public function updatePassword(): void
+    {
+        Auth::requireLogin();
+        CSRF::check();
+        $db = Database::getInstance();
+        $userId = Auth::id();
+
+        $current = $_POST['current_password'] ?? '';
+        $new = $_POST['new_password'] ?? '';
+
+        if (mb_strlen($new) < 8) {
+            Session::flash('error', 'Le nouveau mot de passe doit contenir au moins 8 caractères.');
+            redirect('/mon-compte/profil');
+            return;
+        }
+
+        $user = $db->fetch("SELECT password_hash FROM users WHERE id = ?", [$userId]);
+        if (!$user || !password_verify($current, $user->password_hash)) {
+            Session::flash('error', 'Mot de passe actuel incorrect.');
+            redirect('/mon-compte/profil');
+            return;
+        }
+
+        $db->update('users', ['password_hash' => password_hash($new, PASSWORD_BCRYPT)], 'id = ?', [$userId]);
+
+        Session::flash('success', 'Mot de passe changé avec succès.');
+        redirect('/mon-compte/profil');
     }
 }

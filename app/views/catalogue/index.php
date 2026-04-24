@@ -38,8 +38,8 @@
                        class="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-lg text-sm text-white outline-none focus:border-accent placeholder:text-text-dim">
             </div>
 
-            <?php if ($categorySlug): ?>
-                <input type="hidden" name="categorie" value="<?= e($categorySlug) ?>">
+            <?php if ($categorySlug || $search || $tri !== 'recent'): ?>
+                <a href="/catalogue" class="text-accent text-sm hover:text-accent-hover transition-colors self-center whitespace-nowrap">Réinitialiser</a>
             <?php endif; ?>
         </form>
 

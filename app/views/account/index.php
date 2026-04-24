@@ -3,13 +3,16 @@
 
         <!-- En-tête profil -->
         <div class="flex items-center gap-4 mb-8">
-            <div class="w-14 h-14 rounded-full bg-accent text-black flex items-center justify-center text-xl font-bold font-display">
-                <?= e(mb_strtoupper(mb_substr($user->prenom, 0, 1))) ?>
-            </div>
+            <?php if (!empty($user->avatar_url)): ?>
+                <img src="<?= e($user->avatar_url) ?>" alt="" class="w-14 h-14 rounded-full object-cover border-2 border-accent">
+            <?php else: ?>
+                <div class="w-14 h-14 rounded-full bg-accent text-black flex items-center justify-center text-xl font-bold font-display"><?= e(mb_strtoupper(mb_substr($user->prenom, 0, 1))) ?></div>
+            <?php endif; ?>
             <div>
                 <h1 class="font-display font-bold text-2xl sm:text-3xl text-white"><?= e($user->prenom . ' ' . $user->nom) ?></h1>
                 <p class="text-text-dim text-sm"><?= e($user->email) ?> &middot; Membre depuis <?= date('M Y', strtotime($user->created_at)) ?></p>
             </div>
+            <a href="/mon-compte/profil" class="ml-auto text-accent text-sm hover:text-accent-hover transition-colors">Modifier mon profil</a>
         </div>
 
         <!-- Stats -->
