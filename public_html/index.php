@@ -52,6 +52,9 @@ $router->get('/cgv', 'PageController@cgv');
 $router->get('/mentions-legales', 'PageController@mentions');
 $router->get('/confidentialite', 'PageController@confidentialite');
 
+// Images storage
+$router->get('/image/covers/:filename', 'ImageController@serveCover');
+
 // Admin
 $router->get('/admin', 'AdminController@dashboard');
 $router->get('/admin/livres', 'AdminController@books');

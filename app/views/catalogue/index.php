@@ -53,11 +53,18 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
                 <?php foreach ($livres as $livre): ?>
                 <a href="/livre/<?= e($livre->slug) ?>" class="card-book block">
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
+                    <?php $coverUrl = book_cover_url($livre); ?>
+                    <?php if ($coverUrl): ?>
+                    <div class="card-book-cover aspect-[2/3] overflow-hidden rounded-md bg-gradient-to-br <?= book_cover_gradient($livre->id) ?>">
+                        <img src="<?= e($coverUrl) ?>" alt="<?= e($livre->titre) ?>" class="w-full h-full object-cover">
+                    </div>
+                    <?php else: ?>
+                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4 rounded-md">
                         <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre->category_nom ?? '') ?></p>
                         <p class="font-display font-semibold text-white text-center text-sm sm:text-base leading-snug px-1"><?= e($livre->titre) ?></p>
                         <span></span>
                     </div>
+                    <?php endif; ?>
                     <div class="mt-2.5 px-0.5">
                         <p class="text-white text-[13px] sm:text-sm font-medium leading-snug truncate"><?= e($livre->titre) ?></p>
                         <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(book_author_name($livre)) ?></p>

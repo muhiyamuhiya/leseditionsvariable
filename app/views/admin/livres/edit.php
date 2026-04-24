@@ -1,4 +1,4 @@
-<form method="POST" action="/admin/livres/<?= $book->id ?>/editer" class="max-w-3xl space-y-6">
+<form method="POST" action="/admin/livres/<?= $book->id ?>/editer" enctype="multipart/form-data" class="max-w-3xl space-y-6">
     <?= csrf_field() ?>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -58,6 +58,17 @@
         <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Prix CDF</label><input type="number" step="0.01" name="prix_unitaire_cdf" value="<?= $book->prix_unitaire_cdf ?? '' ?>" class="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white outline-none focus:border-accent"></div>
         <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Prix EUR</label><input type="number" step="0.01" name="prix_unitaire_eur" value="<?= $book->prix_unitaire_eur ?? '' ?>" class="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white outline-none focus:border-accent"></div>
         <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Prix CAD</label><input type="number" step="0.01" name="prix_unitaire_cad" value="<?= $book->prix_unitaire_cad ?? '' ?>" class="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white outline-none focus:border-accent"></div>
+    </div>
+
+    <!-- Couverture -->
+    <div>
+        <label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Couverture du livre</label>
+        <?php if (!empty($book->couverture_url_web)): ?>
+            <div class="mb-3"><img src="<?= e($book->couverture_url_web) ?>" alt="Couverture" class="h-32 rounded"></div>
+        <?php endif; ?>
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp"
+               class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
+        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
     </div>
 
     <div class="flex flex-wrap gap-6">

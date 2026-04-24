@@ -110,6 +110,17 @@ function currentUserId(): ?int
 }
 
 /**
+ * URL de la couverture d'un livre (ou null pour fallback gradient)
+ */
+function book_cover_url(object $book): ?string
+{
+    if (!empty($book->couverture_url_web)) {
+        return $book->couverture_url_web;
+    }
+    return null;
+}
+
+/**
  * Dégradé de couverture placeholder basé sur l'ID du livre
  */
 function book_cover_gradient(int $bookId): string

@@ -127,6 +127,21 @@ class AdminController extends BaseController
             }
         }
 
+        // Upload couverture
+        if (!empty($_FILES['couverture']['tmp_name'])) {
+            $file = $_FILES['couverture'];
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (in_array($file['type'], $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = ($data['slug'] ?? 'book-' . $id) . '-' . time() . '.' . $ext;
+                $absPath = BASE_PATH . '/storage/covers/' . $filename;
+                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                move_uploaded_file($file['tmp_name'], $absPath);
+                $data['couverture_path'] = 'storage/covers/' . $filename;
+                $data['couverture_url_web'] = '/image/covers/' . $filename;
+            }
+        }
+
         $db->update('books', $data, 'id = ?', [$id]);
         audit('book_update', 'books', $id, null, $data);
 
