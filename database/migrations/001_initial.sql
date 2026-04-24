@@ -215,7 +215,7 @@ CREATE TABLE user_books (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
     book_id INT UNSIGNED NOT NULL,
-    source ENUM('achat_unitaire', 'abonnement') NOT NULL,
+    source ENUM('achat_unitaire', 'abonnement', 'favori') NOT NULL,
     sale_id INT UNSIGNED,
     date_ajout DATETIME DEFAULT CURRENT_TIMESTAMP,
     dernier_acces DATETIME,

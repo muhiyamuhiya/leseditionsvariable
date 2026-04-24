@@ -157,10 +157,11 @@ class BookController extends BaseController
             $db->update('user_books', ['favori' => $newFavori], 'id = ?', [$existing->id]);
             $this->json(['favori' => (bool) $newFavori]);
         } else {
+            // Source dédiée : ne donne PAS accès à la lecture (BookAccess filtre sur 'achat_unitaire' ou abonnement actif)
             $db->insert('user_books', [
                 'user_id'    => $userId,
                 'book_id'    => $book->id,
-                'source'     => 'achat_unitaire',
+                'source'     => 'favori',
                 'favori'     => 1,
                 'date_ajout' => date('Y-m-d H:i:s'),
             ]);

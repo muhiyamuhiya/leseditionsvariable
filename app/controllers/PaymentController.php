@@ -440,6 +440,7 @@ class PaymentController extends BaseController
     private function fulfillBookPurchase(int $userId, int $bookId, ?string $txId): void
     {
         $db = Database::getInstance();
+        // Idempotence : déjà acheté
         $already = $db->fetch("SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ? AND source = 'achat_unitaire'", [$userId, $bookId]);
         if ($already) return;
 
@@ -450,7 +451,17 @@ class PaymentController extends BaseController
         $commission = round($prix * COMMISSION_RATE, 2);
         $revenu = round($prix * AUTHOR_SHARE_RATE, 2);
 
-        $db->insert('user_books', ['user_id' => $userId, 'book_id' => $bookId, 'source' => 'achat_unitaire', 'date_ajout' => date('Y-m-d H:i:s')]);
+        // Si une ligne existe déjà pour ce couple (user, livre) avec une autre source (ex: 'favori'),
+        // on la met à niveau au lieu d'insérer (la contrainte UNIQUE (user_id, book_id) interdirait l'INSERT)
+        $existing = $db->fetch("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?", [$userId, $bookId]);
+        if ($existing) {
+            $db->update('user_books', [
+                'source'     => 'achat_unitaire',
+                'date_ajout' => date('Y-m-d H:i:s'),
+            ], 'id = ?', [$existing->id]);
+        } else {
+            $db->insert('user_books', ['user_id' => $userId, 'book_id' => $bookId, 'source' => 'achat_unitaire', 'date_ajout' => date('Y-m-d H:i:s')]);
+        }
         $db->insert('sales', [
             'user_id' => $userId, 'book_id' => $bookId, 'author_id' => $book->author_id,
             'prix_paye' => $prix, 'devise' => 'USD', 'prix_paye_usd' => $prix,

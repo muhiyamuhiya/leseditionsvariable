@@ -30,9 +30,13 @@ class BookAccess
         if (!$user) return false;
         if ($user->role === 'admin') return true;
 
+        // Seules les sources légitimes (achat ou abonnement) ouvrent le droit d'avis
         $db = Database::getInstance();
-        $bought = $db->fetch("SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ?", [$user->id, $bookId]);
-        if ($bought) return true;
+        $owned = $db->fetch(
+            "SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ? AND source IN ('achat_unitaire','abonnement')",
+            [$user->id, $bookId]
+        );
+        if ($owned) return true;
 
         return Subscription::isUserActive($user->id);
     }
