@@ -30,6 +30,12 @@ $router->get('/livre/:slug', 'BookController@show');
 $router->post('/livre/:slug/avis', 'BookController@submitReview');
 $router->post('/livre/:slug/favori', 'BookController@toggleFavorite');
 
+// Paiements
+$router->get('/achat/livre/:id', 'PaymentController@purchaseBook');
+$router->get('/paiement/succes', 'PaymentController@success');
+$router->get('/paiement/echec', 'PaymentController@failed');
+$router->post('/webhook/stripe', 'PaymentController@stripeWebhook');
+
 // Liseuse PDF (ordre important : routes spécifiques en premier)
 $router->post('/lire/progress', 'ReaderController@saveProgress');
 $router->get('/lire/pdf/:sessionToken/:fileType', 'ReaderController@streamPDF');

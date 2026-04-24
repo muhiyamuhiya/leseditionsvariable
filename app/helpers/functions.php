@@ -159,6 +159,18 @@ function book_cover_gradient(int $bookId): string
 }
 
 /**
+ * Formater le prix d'un livre selon la devise
+ */
+function format_price(object $book, string $devise = 'USD'): string
+{
+    $field = 'prix_unitaire_' . strtolower($devise);
+    $price = (float) ($book->$field ?? $book->prix_unitaire_usd ?? 0);
+    $symbols = ['USD' => '$', 'CDF' => 'Fc', 'EUR' => '€', 'CAD' => 'CA$', 'XOF' => 'CFA'];
+    $symbol = $symbols[strtoupper($devise)] ?? '$';
+    return number_format($price, 2, ',', ' ') . ' ' . $symbol;
+}
+
+/**
  * Nom d'affichage de l'auteur d'un livre
  */
 function book_author_name(object $livre): string
