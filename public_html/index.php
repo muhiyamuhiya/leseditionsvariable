@@ -43,10 +43,29 @@ $router->get('/ma-bibliotheque', 'AccountController@index');
 // Abonnement
 $router->get('/abonnement', 'PageController@abonnement');
 
+// Dashboard auteur (racine + sous-routes)
+$router->get('/auteur', 'AuthorDashboardController@dashboard');
+$router->get('/auteur/candidater', 'AuthorDashboardController@showApplication');
+$router->post('/auteur/candidater', 'AuthorDashboardController@submitApplication');
+$router->get('/auteur/livres/nouveau', 'AuthorDashboardController@createBook');
+$router->post('/auteur/livres/nouveau', 'AuthorDashboardController@storeBook');
+$router->get('/auteur/livres/:id/editer', 'AuthorDashboardController@editBook');
+$router->post('/auteur/livres/:id/editer', 'AuthorDashboardController@updateBook');
+$router->get('/auteur/livres', 'AuthorDashboardController@books');
+$router->get('/auteur/ventes', 'AuthorDashboardController@sales');
+$router->get('/auteur/versements', 'AuthorDashboardController@payouts');
+$router->get('/auteur/profil', 'AuthorDashboardController@profile');
+$router->post('/auteur/profil', 'AuthorDashboardController@updateProfile');
+$router->get('/auteur/dashboard', 'AuthorDashboardController@dashboard');
+
+// Page auteur publique (APRÈS les routes /auteur/* spécifiques)
+// Note : déplacée ici pour que /auteur/:slug ne matche pas "candidater", "livres", etc.
+
 // Pages statiques
 $router->get('/a-propos', 'PageController@aPropos');
 $router->get('/contact', 'PageController@contact');
 $router->get('/publier', 'PageController@publier');
+$router->get('/devenir-auteur', 'PageController@publier');
 $router->get('/cgu', 'PageController@cgu');
 $router->get('/cgv', 'PageController@cgv');
 $router->get('/mentions-legales', 'PageController@mentions');

@@ -145,4 +145,29 @@ class Auth
             redirect('/');
         }
     }
+
+    /**
+     * Exiger le rôle auteur (ou admin)
+     */
+    public static function requireAuthor(): void
+    {
+        self::requireLogin();
+        $user = self::user();
+        if (!$user) { redirect('/connexion'); }
+        if (!in_array($user->role, ['auteur', 'admin'])) {
+            redirect('/devenir-auteur');
+        }
+    }
+
+    /**
+     * Récupérer l'enregistrement authors de l'utilisateur connecté
+     */
+    public static function getAuthorRecord(): ?object
+    {
+        $user = self::user();
+        if (!$user) return null;
+        $db = \App\Lib\Database::getInstance();
+        $author = $db->fetch("SELECT * FROM authors WHERE user_id = ?", [$user->id]);
+        return $author ?: null;
+    }
 }

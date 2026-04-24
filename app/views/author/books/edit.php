@@ -1,0 +1,20 @@
+<?php $s = flash('author_success'); if ($s): ?><div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($s) ?></div><?php endif; ?>
+<form method="POST" action="/auteur/livres/<?= $book->id ?>/editer" enctype="multipart/form-data" class="max-w-3xl space-y-6">
+    <?= csrf_field() ?>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2"><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Titre</label><input type="text" name="titre" value="<?= e($book->titre) ?>" required class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent"></div>
+        <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Sous-titre</label><input type="text" name="sous_titre" value="<?= e($book->sous_titre ?? '') ?>" class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent"></div>
+        <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Catégorie</label><select name="category_id" class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent"><option value="">Choisir...</option><?php foreach ($categories as $c): ?><option value="<?= $c->id ?>" <?= $book->category_id == $c->id ? 'selected' : '' ?>><?= e($c->nom) ?></option><?php endforeach; ?></select></div>
+    </div>
+    <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Description courte</label><textarea name="description_courte" rows="2" maxlength="500" class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent resize-none"><?= e($book->description_courte ?? '') ?></textarea></div>
+    <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Description longue</label><textarea name="description_longue" rows="6" class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent resize-none"><?= e($book->description_longue ?? '') ?></textarea></div>
+    <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Mots-clés</label><input type="text" name="mots_cles" value="<?= e($book->mots_cles ?? '') ?>" class="w-full bg-surface border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent"></div>
+    <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Prix USD</label><input type="number" step="0.01" name="prix_unitaire_usd" value="<?= $book->prix_unitaire_usd ?>" class="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white outline-none focus:border-accent max-w-[200px]"></div>
+    <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Changer la couverture</label>
+        <?php if (!empty($book->couverture_url_web)): ?><div class="mb-3"><img src="<?= e($book->couverture_url_web) ?>" class="h-24 rounded"></div><?php endif; ?>
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp" class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
+    </div>
+    <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" <?= $book->accessible_abonnement ? 'checked' : '' ?> class="accent-accent"> Inclus dans l'abonnement</label>
+    <p class="text-text-dim text-xs">Statut actuel : <strong class="text-white"><?= ucfirst(str_replace('_',' ',$book->statut)) ?></strong> — Seul l'admin peut changer le statut de publication.</p>
+    <div class="flex gap-3 pt-4"><button type="submit" class="btn-primary">Enregistrer</button><a href="/auteur/livres" class="btn-secondary">Annuler</a></div>
+</form>
