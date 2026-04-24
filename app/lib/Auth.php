@@ -132,4 +132,17 @@ class Auth
             redirect('/');
         }
     }
+
+    /**
+     * Exiger le rôle admin
+     */
+    public static function requireAdmin(): void
+    {
+        self::requireLogin();
+        $user = self::user();
+        if (!$user || $user->role !== 'admin') {
+            http_response_code(403);
+            redirect('/');
+        }
+    }
 }

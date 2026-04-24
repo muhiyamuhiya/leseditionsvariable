@@ -138,6 +138,23 @@ function book_author_name(object $livre): string
 }
 
 /**
+ * Enregistrer une action admin dans audit_log
+ */
+function audit(string $action, ?string $entityType = null, ?int $entityId = null, ?array $oldValues = null, ?array $newValues = null): void
+{
+    $db = App\Lib\Database::getInstance();
+    $db->insert('audit_log', [
+        'admin_id'    => App\Lib\Auth::id() ?? 0,
+        'action'      => $action,
+        'entity_type' => $entityType,
+        'entity_id'   => $entityId,
+        'old_values'  => $oldValues ? json_encode($oldValues) : null,
+        'new_values'  => $newValues ? json_encode($newValues) : null,
+        'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
+}
+
+/**
  * Générer des étoiles HTML (ambre pleines + grises vides)
  */
 function stars_html(float $note, int $max = 5): string

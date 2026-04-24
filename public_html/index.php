@@ -52,6 +52,29 @@ $router->get('/cgv', 'PageController@cgv');
 $router->get('/mentions-legales', 'PageController@mentions');
 $router->get('/confidentialite', 'PageController@confidentialite');
 
+// Admin
+$router->get('/admin', 'AdminController@dashboard');
+$router->get('/admin/livres', 'AdminController@books');
+$router->get('/admin/livres/nouveau', 'AdminController@bookCreate');
+$router->post('/admin/livres/nouveau', 'AdminController@bookStore');
+$router->get('/admin/livres/:id/editer', 'AdminController@bookEdit');
+$router->post('/admin/livres/:id/editer', 'AdminController@bookUpdate');
+$router->post('/admin/livres/:id/supprimer', 'AdminController@bookDelete');
+$router->get('/admin/auteurs', 'AdminController@authors');
+$router->get('/admin/candidatures', 'AdminController@authorCandidatures');
+$router->post('/admin/candidatures/:id/valider', 'AdminController@authorValidate');
+$router->post('/admin/candidatures/:id/refuser', 'AdminController@authorRefuse');
+$router->get('/admin/lecteurs', 'AdminController@readers');
+$router->get('/admin/categories', 'AdminController@categories');
+$router->post('/admin/categories', 'AdminController@categoriesUpdate');
+$router->get('/admin/abonnements', 'AdminController@subscriptions');
+$router->get('/admin/ventes', 'AdminController@sales');
+$router->get('/admin/versements', 'AdminController@payouts');
+$router->post('/admin/versements/:id/payer', 'AdminController@payoutMarkPaid');
+$router->get('/admin/parametres', 'AdminController@settings');
+$router->post('/admin/parametres', 'AdminController@settingsUpdate');
+$router->get('/admin/journal', 'AdminController@auditLog');
+
 // API
 $router->get('/api/recherche', 'BookController@searchApi');
 
