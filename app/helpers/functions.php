@@ -121,6 +121,24 @@ function book_cover_url(object $book): ?string
 }
 
 /**
+ * URL de la photo d'un auteur (ou null)
+ */
+function author_photo_url(object $author): ?string
+{
+    return !empty($author->photo_url_web) ? $author->photo_url_web : (!empty($author->photo_auteur) ? $author->photo_auteur : null);
+}
+
+/**
+ * Initiales d'un auteur pour le placeholder
+ */
+function author_initials(object $author): string
+{
+    $p = mb_strtoupper(mb_substr($author->prenom ?? '', 0, 1));
+    $n = mb_strtoupper(mb_substr($author->nom ?? '', 0, 1));
+    return ($p . $n) ?: '?';
+}
+
+/**
  * Dégradé de couverture placeholder basé sur l'ID du livre
  */
 function book_cover_gradient(int $bookId): string

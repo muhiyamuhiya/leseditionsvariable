@@ -52,8 +52,12 @@ $router->get('/cgv', 'PageController@cgv');
 $router->get('/mentions-legales', 'PageController@mentions');
 $router->get('/confidentialite', 'PageController@confidentialite');
 
+// Page auteur publique
+$router->get('/auteur/:slug', 'AuthorController@show');
+
 // Images storage
 $router->get('/image/covers/:filename', 'ImageController@serveCover');
+$router->get('/image/authors/:filename', 'ImageController@serveAuthorPhoto');
 
 // Admin
 $router->get('/admin', 'AdminController@dashboard');
@@ -64,6 +68,8 @@ $router->get('/admin/livres/:id/editer', 'AdminController@bookEdit');
 $router->post('/admin/livres/:id/editer', 'AdminController@bookUpdate');
 $router->post('/admin/livres/:id/supprimer', 'AdminController@bookDelete');
 $router->get('/admin/auteurs', 'AdminController@authors');
+$router->get('/admin/auteurs/:id/editer', 'AdminController@authorEdit');
+$router->post('/admin/auteurs/:id/editer', 'AdminController@authorUpdate');
 $router->get('/admin/candidatures', 'AdminController@authorCandidatures');
 $router->post('/admin/candidatures/:id/valider', 'AdminController@authorValidate');
 $router->post('/admin/candidatures/:id/refuser', 'AdminController@authorRefuse');

@@ -2,14 +2,22 @@
 namespace App\Controllers;
 
 /**
- * Sert les images stockées dans /storage/covers/
+ * Sert les images stockées dans /storage/
  */
 class ImageController extends BaseController
 {
     public function serveCover(string $filename): void
     {
-        $path = BASE_PATH . '/storage/covers/' . basename($filename);
+        $this->serveFile(BASE_PATH . '/storage/covers/' . basename($filename));
+    }
 
+    public function serveAuthorPhoto(string $filename): void
+    {
+        $this->serveFile(BASE_PATH . '/storage/authors/' . basename($filename));
+    }
+
+    private function serveFile(string $path): void
+    {
         if (!file_exists($path)) {
             http_response_code(404);
             exit;

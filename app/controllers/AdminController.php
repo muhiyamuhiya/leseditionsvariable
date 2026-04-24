@@ -209,6 +209,61 @@ class AdminController extends BaseController
         $this->adminView('auteurs/index', ['titre' => 'Auteurs', 'auteurs' => $auteurs]);
     }
 
+    public function authorEdit(string $id): void
+    {
+        Auth::requireAdmin();
+        $author = $this->db()->fetch(
+            "SELECT a.*, u.prenom, u.nom, u.email FROM authors a JOIN users u ON a.user_id=u.id WHERE a.id = ?",
+            [(int) $id]
+        );
+        if (!$author) { redirect('/admin/auteurs'); }
+        $this->adminView('auteurs/edit', ['titre' => 'Éditer : ' . ($author->nom_plume ?: $author->prenom . ' ' . $author->nom), 'author' => $author]);
+    }
+
+    public function authorUpdate(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $db = $this->db();
+        $id = (int) $id;
+        $author = $db->fetch("SELECT slug FROM authors WHERE id = ?", [$id]);
+
+        $data = [
+            'nom_plume'          => trim($_POST['nom_plume'] ?? '') ?: null,
+            'biographie_courte'  => trim($_POST['biographie_courte'] ?? ''),
+            'biographie_longue'  => trim($_POST['biographie_longue'] ?? ''),
+            'pays_origine'       => trim($_POST['pays_origine'] ?? '') ?: null,
+            'ville_residence'    => trim($_POST['ville_residence'] ?? '') ?: null,
+            'site_web'           => trim($_POST['site_web'] ?? '') ?: null,
+            'facebook_url'       => trim($_POST['facebook_url'] ?? '') ?: null,
+            'instagram_url'      => trim($_POST['instagram_url'] ?? '') ?: null,
+            'twitter_x_url'      => trim($_POST['twitter_x_url'] ?? '') ?: null,
+            'linkedin_url'       => trim($_POST['linkedin_url'] ?? '') ?: null,
+            'methode_versement'  => $_POST['methode_versement'] ?? 'mobile_money',
+            'numero_mobile_money'=> trim($_POST['numero_mobile_money'] ?? '') ?: null,
+            'email_paypal'       => trim($_POST['email_paypal'] ?? '') ?: null,
+        ];
+
+        // Upload photo
+        if (!empty($_FILES['photo']['tmp_name'])) {
+            $file = $_FILES['photo'];
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (in_array($file['type'], $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = ($author->slug ?? 'author-' . $id) . '-' . time() . '.' . $ext;
+                $absPath = BASE_PATH . '/storage/authors/' . $filename;
+                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                move_uploaded_file($file['tmp_name'], $absPath);
+                $data['photo_auteur'] = '/image/authors/' . $filename;
+            }
+        }
+
+        $db->update('authors', $data, 'id = ?', [$id]);
+        audit('author_update', 'authors', $id);
+        Session::flash('admin_success', 'Auteur mis à jour.');
+        redirect('/admin/auteurs');
+    }
+
     public function authorCandidatures(): void
     {
         Auth::requireAdmin();
