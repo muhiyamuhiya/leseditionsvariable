@@ -8,7 +8,15 @@
             $error = flash('error');
             $success = flash('success');
             $errors = flash('errors');
+            $redirectUrl = $_GET['redirect'] ?? '';
             ?>
+
+            <?php if ($redirectUrl === '/auteur/candidater'): ?>
+                <div class="bg-accent/10 border border-accent/30 rounded-lg p-4 mb-6 text-center">
+                    <p class="text-accent font-medium text-sm">Connecte-toi pour postuler en tant qu'auteur</p>
+                    <p class="text-text-dim text-xs mt-1">Après ta connexion, tu seras dirigé vers le formulaire de candidature.</p>
+                </div>
+            <?php endif; ?>
 
             <?php if ($success): ?>
                 <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm">
@@ -34,6 +42,9 @@
 
             <form action="/connexion" method="POST" class="space-y-5">
                 <?= csrf_field() ?>
+                <?php if ($redirectUrl): ?>
+                    <input type="hidden" name="redirect" value="<?= e($redirectUrl) ?>">
+                <?php endif; ?>
 
                 <div>
                     <label for="email" class="block text-sm font-medium text-text-muted mb-1">Adresse email</label>
@@ -61,7 +72,7 @@
 
             <p class="mt-6 text-center text-sm text-text-muted">
                 Pas encore inscrit ?
-                <a href="/inscription" class="text-accent font-medium hover:text-accent-hover transition-colors">Créer un compte</a>
+                <a href="/inscription<?= $redirectUrl ? '?redirect=' . urlencode($redirectUrl) : '' ?>" class="text-accent font-medium hover:text-accent-hover transition-colors">Créer un compte</a>
             </p>
         </div>
     </div>

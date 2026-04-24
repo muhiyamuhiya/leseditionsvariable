@@ -51,10 +51,18 @@ class AuthController extends BaseController
 
         // Tentative de connexion
         if (Auth::login($email, $password)) {
+            // Redirection intelligente
+            $redirect = trim($_POST['redirect'] ?? '');
+            if ($redirect && preg_match('/^\/[^\/]/', $redirect) && !str_contains($redirect, '//')) {
+                redirect($redirect);
+            }
+            $user = Auth::user();
+            if ($user && $user->role === 'admin') { redirect('/admin'); }
             redirect('/');
         } else {
             Session::flash('old_email', $email);
-            redirect('/connexion');
+            $redirect = trim($_POST['redirect'] ?? '');
+            redirect('/connexion' . ($redirect ? '?redirect=' . urlencode($redirect) : ''));
         }
     }
 

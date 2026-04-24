@@ -1,4 +1,8 @@
-<?php $currentUser = App\Lib\Auth::user(); ?>
+<?php
+$currentUser = App\Lib\Auth::user();
+$showDevenirAuteur = !$currentUser || $currentUser->role === 'lecteur';
+$devenirAuteurHref = $currentUser ? '/auteur/candidater' : '/connexion?redirect=/auteur/candidater';
+?>
 
 <!-- Wrapper Alpine pour partager menuOpen entre header et overlay -->
 <div x-data="{ menuOpen: false, searchOpen: false }"
@@ -26,6 +30,12 @@
                 <?php endif; ?>
                 <a href="/catalogue?tri=nouveautes" class="text-[13px] font-display font-medium text-text-muted hover:text-accent transition-colors">Nouveautés</a>
                 <a href="/abonnement" class="text-[13px] font-display font-medium text-text-muted hover:text-accent transition-colors">Abonnement</a>
+                <?php if ($showDevenirAuteur): ?>
+                    <a href="<?= $devenirAuteurHref ?>" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-accent border border-accent/30 rounded-full text-xs font-medium hover:bg-accent/10 hover:border-accent transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                        Devenir auteur
+                    </a>
+                <?php endif; ?>
             </nav>
 
             <!-- Droite -->
@@ -153,6 +163,16 @@
                 </template>
             </div>
         </div>
+
+        <?php if ($showDevenirAuteur): ?>
+        <div class="px-6 pt-3 pb-1 flex-shrink-0">
+            <a href="<?= $devenirAuteurHref ?>" @click="menuOpen = false"
+               class="flex items-center gap-3 px-5 py-3.5 text-accent border border-accent/20 bg-accent/5 hover:bg-accent/10 rounded-xl font-display font-semibold text-base transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                Devenir auteur
+            </a>
+        </div>
+        <?php endif; ?>
 
         <nav class="flex-grow flex flex-col justify-center px-8 py-6">
             <a href="/" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">

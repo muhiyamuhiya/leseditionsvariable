@@ -7,7 +7,15 @@
             <?php
             $error = flash('error');
             $errors = flash('errors');
+            $redirectUrl = $_GET['redirect'] ?? '';
             ?>
+
+            <?php if ($redirectUrl === '/auteur/candidater'): ?>
+                <div class="bg-accent/10 border border-accent/30 rounded-lg p-4 mb-6 text-center">
+                    <p class="text-accent font-medium text-sm">Inscris-toi pour postuler en tant qu'auteur</p>
+                    <p class="text-text-dim text-xs mt-1">Après ton inscription, tu seras dirigé vers le formulaire de candidature.</p>
+                </div>
+            <?php endif; ?>
 
             <?php if ($error): ?>
                 <div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
@@ -27,6 +35,9 @@
 
             <form action="/inscription" method="POST" class="space-y-5">
                 <?= csrf_field() ?>
+                <?php if ($redirectUrl): ?>
+                    <input type="hidden" name="redirect" value="<?= e($redirectUrl) ?>">
+                <?php endif; ?>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -102,7 +113,7 @@
 
             <p class="mt-6 text-center text-sm text-text-muted">
                 Déjà inscrit ?
-                <a href="/connexion" class="text-accent font-medium hover:text-accent-hover transition-colors">Se connecter</a>
+                <a href="/connexion<?= $redirectUrl ? '?redirect=' . urlencode($redirectUrl) : '' ?>" class="text-accent font-medium hover:text-accent-hover transition-colors">Se connecter</a>
             </p>
         </div>
     </div>
