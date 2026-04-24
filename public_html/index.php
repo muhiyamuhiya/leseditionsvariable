@@ -28,6 +28,10 @@ $router->post('/deconnexion', 'AuthController@logout');
 $router->get('/catalogue', 'BookController@catalogue');
 $router->get('/catalogue/categorie/:slug', 'BookController@byCategory');
 
+// Livre détail + avis
+$router->get('/livre/:slug', 'BookController@show');
+$router->post('/livre/:slug/avis', 'BookController@submitReview');
+
 // API recherche instantanée
 $router->get('/api/recherche', 'BookController@searchApi');
 

@@ -138,6 +138,37 @@ class Book extends BaseModel
     }
 
     /**
+     * Livres du même auteur
+     */
+    public static function findByAuthor(int $authorId, int $limit = 4, ?int $excludeBookId = null): array
+    {
+        $db = Database::getInstance();
+        $exclude = $excludeBookId ? 'AND b.id != ?' : '';
+        $params = [$authorId];
+        if ($excludeBookId) $params[] = $excludeBookId;
+        $params[] = $limit;
+
+        return $db->fetchAll(
+            self::baseSelect() . " WHERE b.statut = 'publie' AND b.author_id = ? {$exclude} ORDER BY b.date_publication DESC LIMIT ?",
+            $params
+        );
+    }
+
+    /**
+     * Livres similaires (même catégorie, sauf le livre courant)
+     */
+    public static function findSimilar(int $bookId, ?int $categoryId, int $limit = 4): array
+    {
+        $db = Database::getInstance();
+        if (!$categoryId) return [];
+
+        return $db->fetchAll(
+            self::baseSelect() . " WHERE b.statut = 'publie' AND b.category_id = ? AND b.id != ? ORDER BY RAND() LIMIT ?",
+            [$categoryId, $bookId, $limit]
+        );
+    }
+
+    /**
      * Livres recommandés (mis en avant, sinon aléatoire)
      */
     public static function findRecommandes(int $limit = 10): array

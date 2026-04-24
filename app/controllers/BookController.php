@@ -1,11 +1,16 @@
 <?php
 namespace App\Controllers;
 
+use App\Lib\Auth;
+use App\Lib\CSRF;
+use App\Lib\Database;
+use App\Lib\Session;
 use App\Models\Book;
 use App\Models\Category;
+use App\Models\Review;
 
 /**
- * Contrôleur du catalogue de livres
+ * Contrôleur du catalogue et des livres
  */
 class BookController extends BaseController
 {
@@ -22,7 +27,6 @@ class BookController extends BaseController
         $search = !empty($_GET['q']) ? trim($_GET['q']) : null;
         $tri = $_GET['tri'] ?? 'recent';
 
-        // Mapping tri → ORDER BY SQL
         $orderMap = [
             'recent'    => 'b.date_publication DESC',
             'populaire' => 'b.total_ventes DESC, b.total_lectures DESC',
@@ -31,15 +35,11 @@ class BookController extends BaseController
         ];
         $orderBy = $orderMap[$tri] ?? $orderMap['recent'];
 
-        // Récupérer les livres et le total
         $livres = Book::findPublished($perPage, $offset, $categorySlug, $search, $orderBy);
         $total = Book::countPublished($categorySlug, $search);
         $totalPages = max(1, (int) ceil($total / $perPage));
 
-        // Catégorie active (pour afficher le nom)
         $categorieActive = $categorySlug ? Category::findBySlug($categorySlug) : null;
-
-        // Toutes les catégories pour le filtre
         $categories = Category::findActive();
 
         $this->view('catalogue/index', [
@@ -57,7 +57,114 @@ class BookController extends BaseController
     }
 
     /**
-     * API recherche instantanée — retourne du JSON
+     * Page détail d'un livre
+     */
+    public function show(string $slug): void
+    {
+        $book = Book::findBySlug($slug);
+        if (!$book || $book->statut !== 'publie') {
+            http_response_code(404);
+            $this->view('errors/404', ['titre' => 'Livre introuvable']);
+            return;
+        }
+
+        // Livres du même auteur et similaires
+        $memeAuteur = Book::findByAuthor($book->author_id, 4, $book->id);
+        $similaires = Book::findSimilar($book->id, $book->category_id, 4);
+
+        // Avis
+        $avis = Review::findByBook($book->id, 5);
+        $noteMoyenne = Review::averageForBook($book->id);
+
+        // Statut utilisateur connecté
+        $user = Auth::user();
+        $aAchete = false;
+        $estAbonne = false;
+        $progression = null;
+        $aDejaNote = false;
+
+        if ($user) {
+            $db = Database::getInstance();
+
+            // A acheté ?
+            $ub = $db->fetch("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?", [$user->id, $book->id]);
+            $aAchete = (bool) $ub;
+
+            // Est abonné actif ?
+            $sub = $db->fetch(
+                "SELECT id FROM subscriptions WHERE user_id = ? AND statut = 'actif' AND date_fin > NOW()",
+                [$user->id]
+            );
+            $estAbonne = (bool) $sub;
+
+            // Progression de lecture
+            $progression = $db->fetch(
+                "SELECT * FROM reading_progress WHERE user_id = ? AND book_id = ?",
+                [$user->id, $book->id]
+            );
+
+            $aDejaNote = Review::userHasReviewed($user->id, $book->id);
+        }
+
+        $this->view('book/show', [
+            'titre'       => $book->titre,
+            'description' => $book->description_courte,
+            'book'        => $book,
+            'memeAuteur'  => $memeAuteur,
+            'similaires'  => $similaires,
+            'avis'        => $avis,
+            'noteMoyenne' => $noteMoyenne,
+            'user'        => $user,
+            'aAchete'     => $aAchete,
+            'estAbonne'   => $estAbonne,
+            'progression' => $progression,
+            'aDejaNote'   => $aDejaNote,
+        ]);
+    }
+
+    /**
+     * Soumettre un avis
+     */
+    public function submitReview(string $slug): void
+    {
+        CSRF::check();
+        Auth::requireLogin();
+
+        $book = Book::findBySlug($slug);
+        if (!$book) {
+            redirect('/catalogue');
+        }
+
+        $user = Auth::user();
+        if (Review::userHasReviewed($user->id, $book->id)) {
+            Session::flash('error', 'Vous avez déjà laissé un avis pour ce livre.');
+            redirect('/livre/' . $slug);
+        }
+
+        $note = max(1, min(5, (int) ($_POST['note'] ?? 5)));
+        $titre = trim($_POST['titre_avis'] ?? '');
+        $commentaire = trim($_POST['commentaire'] ?? '');
+
+        if (empty($commentaire)) {
+            Session::flash('error', 'Veuillez écrire un commentaire.');
+            redirect('/livre/' . $slug);
+        }
+
+        Review::create([
+            'user_id'     => $user->id,
+            'book_id'     => $book->id,
+            'note'        => $note,
+            'titre'       => $titre ?: null,
+            'commentaire' => $commentaire,
+            'approuve'    => 0,
+        ]);
+
+        Session::flash('success', 'Merci pour votre avis ! Il sera publié après modération.');
+        redirect('/livre/' . $slug);
+    }
+
+    /**
+     * API recherche instantanée
      */
     public function searchApi(): void
     {

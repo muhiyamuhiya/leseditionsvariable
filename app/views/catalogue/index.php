@@ -1,19 +1,4 @@
-<?php
-$coverColors = [
-    'from-red-900 to-amber-900',
-    'from-blue-900 to-indigo-900',
-    'from-emerald-900 to-teal-900',
-    'from-rose-900 to-pink-900',
-    'from-violet-900 to-purple-900',
-    'from-orange-900 to-red-900',
-    'from-slate-800 to-gray-900',
-    'from-cyan-900 to-blue-900',
-];
-
-function catAuthorName($l) {
-    return $l->author_nom_plume ?: ($l->author_prenom . ' ' . $l->author_nom);
-}
-?>
+<?php // Utilise book_cover_gradient() et book_author_name() depuis helpers ?>
 
 <section class="py-8 sm:py-12">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6">
@@ -68,14 +53,14 @@ function catAuthorName($l) {
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
                 <?php foreach ($livres as $livre): ?>
                 <a href="/livre/<?= e($livre->slug) ?>" class="card-book block">
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= $coverColors[($livre->id) % count($coverColors)] ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
+                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
                         <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre->category_nom ?? '') ?></p>
                         <p class="font-display font-semibold text-white text-center text-sm sm:text-base leading-snug px-1"><?= e($livre->titre) ?></p>
                         <span></span>
                     </div>
                     <div class="mt-2.5 px-0.5">
                         <p class="text-white text-[13px] sm:text-sm font-medium leading-snug truncate"><?= e($livre->titre) ?></p>
-                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(catAuthorName($livre)) ?></p>
+                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(book_author_name($livre)) ?></p>
                         <p class="text-accent text-sm font-semibold mt-1"><?= number_format($livre->prix_unitaire_usd, 2) ?>&nbsp;$</p>
                     </div>
                 </a>

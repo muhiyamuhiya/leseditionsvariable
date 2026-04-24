@@ -13,18 +13,6 @@ $catColors = [
     'jeunesse-education'       => 'from-cyan-800 to-cyan-950',
 ];
 
-// Couleurs de couvertures basées sur l'ID du livre
-$coverColors = [
-    'from-red-900 to-amber-900',
-    'from-blue-900 to-indigo-900',
-    'from-emerald-900 to-teal-900',
-    'from-rose-900 to-pink-900',
-    'from-violet-900 to-purple-900',
-    'from-orange-900 to-red-900',
-    'from-slate-800 to-gray-900',
-    'from-cyan-900 to-blue-900',
-];
-
 // Icônes SVG par rangée
 $icones = [
     'tendances'  => '<path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.468 5.99 5.99 0 00-1.925 3.547 5.975 5.975 0 01-2.133-1.001A3.75 3.75 0 0012 18z"/>',
@@ -35,12 +23,12 @@ $icones = [
 ];
 
 // Helper pour afficher le nom de l'auteur
-function authorName($livre) {
+function book_author_name($livre) {
     return $livre->author_nom_plume ?: ($livre->author_prenom . ' ' . $livre->author_nom);
 }
 
 // Helper pour la couleur de couverture
-function bookCoverColor($livre, $coverColors) {
+function book_cover_gradient($livre->id) {
     return $coverColors[($livre->id ?? 0) % count($coverColors)];
 }
 
@@ -64,7 +52,7 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
         <h1 class="font-display font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] max-w-2xl">
             <?= e($livreDuMois->titre) ?>
         </h1>
-        <p class="text-text-muted text-sm sm:text-base md:text-lg mt-2 sm:mt-3"><?= e(authorName($livreDuMois)) ?></p>
+        <p class="text-text-muted text-sm sm:text-base md:text-lg mt-2 sm:mt-3"><?= e(book_author_name($livreDuMois)) ?></p>
         <p class="text-text-muted text-sm sm:text-base mt-2 max-w-lg leading-relaxed hidden sm:block">
             <?= e($livreDuMois->description_courte) ?>
         </p>
@@ -99,14 +87,14 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
             <div class="carousel-container max-w-[1400px] mx-auto px-4 sm:px-6">
                 <?php foreach ($rangee['livres'] as $livre): ?>
                 <a href="/livre/<?= e($livre->slug) ?>" class="card-book block" style="width:140px;min-width:140px;">
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= bookCoverColor($livre, $coverColors) ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
+                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
                         <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre->category_nom ?? '') ?></p>
                         <p class="font-display font-semibold text-white text-center text-sm sm:text-[15px] leading-snug px-1"><?= e($livre->titre) ?></p>
                         <span></span>
                     </div>
                     <div class="mt-2 px-0.5">
                         <p class="text-white text-[13px] font-medium leading-snug truncate"><?= e($livre->titre) ?></p>
-                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(authorName($livre)) ?></p>
+                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(book_author_name($livre)) ?></p>
                     </div>
                 </a>
                 <?php endforeach; ?>
