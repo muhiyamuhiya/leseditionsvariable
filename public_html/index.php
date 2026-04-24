@@ -30,11 +30,22 @@ $router->get('/livre/:slug', 'BookController@show');
 $router->post('/livre/:slug/avis', 'BookController@submitReview');
 $router->post('/livre/:slug/favori', 'BookController@toggleFavorite');
 
-// Paiements
-$router->get('/achat/livre/:id', 'PaymentController@purchaseBook');
+// Paiements — achat livre
+$router->get('/achat/livre/:id/stripe', 'PaymentController@payWithStripe');
+$router->get('/achat/livre/:id/moneyfusion', 'PaymentController@payWithMoneyFusion');
+$router->get('/achat/livre/:id', 'PaymentController@choosePaymentMethod');
+
+// Paiements — abonnement
+$router->get('/abonnement/souscrire/:plan/stripe', 'PaymentController@subscriptionStripe');
+$router->get('/abonnement/souscrire/:plan/moneyfusion', 'PaymentController@subscriptionMoneyFusion');
+$router->get('/abonnement/souscrire/:plan', 'PaymentController@subscriptionChoose');
+$router->get('/abonnement/succes', 'PaymentController@subscriptionSuccess');
+
+// Paiements — retour + webhooks
 $router->get('/paiement/succes', 'PaymentController@success');
 $router->get('/paiement/echec', 'PaymentController@failed');
 $router->post('/webhook/stripe', 'PaymentController@stripeWebhook');
+$router->post('/webhook/moneyfusion', 'PaymentController@moneyFusionWebhook');
 
 // Liseuse PDF (ordre important : routes spécifiques en premier)
 $router->post('/lire/progress', 'ReaderController@saveProgress');

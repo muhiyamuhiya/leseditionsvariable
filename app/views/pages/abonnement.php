@@ -20,7 +20,7 @@
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Progression sauvegardée</li>
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-border flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg><span class="text-text-dim">Livre physique trimestriel</span></li>
                 </ul>
-                <button class="btn-secondary w-full mt-8 py-3">Choisir ce plan</button>
+                <a href="/abonnement/souscrire/mensuel" class="btn-secondary w-full mt-8 py-3 text-center block">Choisir ce plan</a>
             </div>
 
             <!-- Essentiel Annuel -->
@@ -39,7 +39,7 @@
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Progression sauvegardée</li>
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-border flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg><span class="text-text-dim">Livre physique trimestriel</span></li>
                 </ul>
-                <button class="btn-primary w-full mt-8 py-3">Choisir ce plan</button>
+                <a href="/abonnement/souscrire/annuel" class="btn-primary w-full mt-8 py-3 text-center block">Choisir ce plan</a>
             </div>
 
             <!-- Premium -->
@@ -57,7 +57,7 @@
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Livraison gratuite en RDC</li>
                     <li class="flex items-center gap-2"><svg class="w-4 h-4 text-accent flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>Accès prioritaire aux nouveautés</li>
                 </ul>
-                <button class="btn-secondary w-full mt-8 py-3">Choisir ce plan</button>
+                <a href="/abonnement/souscrire/premium" class="btn-secondary w-full mt-8 py-3 text-center block">Choisir ce plan</a>
             </div>
         </div>
 

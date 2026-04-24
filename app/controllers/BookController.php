@@ -202,11 +202,21 @@ class BookController extends BaseController
             'note'        => $note,
             'titre'       => $titre ?: null,
             'commentaire' => $commentaire,
-            'approuve'    => 0,
+            'approuve'    => 1,
         ]);
 
-        Session::flash('avis_success', 'Merci pour ton avis ! Il sera visible après modération.');
-        redirect('/livre/' . $slug);
+        // Recalculer note_moyenne et nombre_avis
+        $db = Database::getInstance();
+        $stats = $db->fetch("SELECT AVG(note) as avg_note, COUNT(*) as nb FROM reviews WHERE book_id = ? AND approuve = 1", [$book->id]);
+        if ($stats) {
+            $db->update('books', [
+                'note_moyenne' => round((float) $stats->avg_note, 2),
+                'nombre_avis'  => (int) $stats->nb,
+            ], 'id = ?', [$book->id]);
+        }
+
+        Session::flash('avis_success', 'Ton avis a été publié !');
+        redirect('/livre/' . $slug . '#avis');
     }
 
     /**
