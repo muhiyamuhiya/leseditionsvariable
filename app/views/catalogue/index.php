@@ -52,22 +52,22 @@
         <?php else: ?>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
                 <?php foreach ($livres as $livre): ?>
-                <a href="/livre/<?= e($livre->slug) ?>" class="card-book block">
-                    <?php $coverUrl = book_cover_url($livre); ?>
-                    <?php if ($coverUrl): ?>
-                    <div class="card-book-cover aspect-[2/3] overflow-hidden rounded-md bg-gradient-to-br <?= book_cover_gradient($livre->id) ?>">
-                        <img src="<?= e($coverUrl) ?>" alt="<?= e($livre->titre) ?>" class="w-full h-full object-cover">
+                <?php $coverUrl = book_cover_url($livre); ?>
+                <a href="/livre/<?= e($livre->slug) ?>" class="group block">
+                    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> transition-transform duration-300 group-hover:scale-105 group-hover:ring-2 group-hover:ring-accent">
+                        <?php if ($coverUrl): ?>
+                            <img src="<?= e($coverUrl) ?>" alt="<?= e($livre->titre) ?>" class="w-full h-full object-cover" loading="lazy">
+                            <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50"></div>
+                        <?php else: ?>
+                            <div class="w-full h-full flex items-center justify-center p-4">
+                                <span class="text-white font-display font-semibold text-center text-sm drop-shadow-lg"><?= e($livre->titre) ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($livre->category_nom ?? '') ?></span>
                     </div>
-                    <?php else: ?>
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4 rounded-md">
-                        <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre->category_nom ?? '') ?></p>
-                        <p class="font-display font-semibold text-white text-center text-sm sm:text-base leading-snug px-1"><?= e($livre->titre) ?></p>
-                        <span></span>
-                    </div>
-                    <?php endif; ?>
                     <div class="mt-2.5 px-0.5">
-                        <p class="text-white text-[13px] sm:text-sm font-medium leading-snug truncate"><?= e($livre->titre) ?></p>
-                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(book_author_name($livre)) ?></p>
+                        <p class="text-white text-[13px] sm:text-sm font-medium leading-snug line-clamp-2 group-hover:text-accent transition-colors"><?= e($livre->titre) ?></p>
+                        <p class="text-text-dim text-[11px] mt-1 truncate"><?= e(book_author_name($livre)) ?></p>
                         <p class="text-accent text-sm font-semibold mt-1"><?= number_format($livre->prix_unitaire_usd, 2) ?>&nbsp;$</p>
                     </div>
                 </a>

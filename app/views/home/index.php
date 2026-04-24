@@ -33,25 +33,35 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
 
 <!-- SECTION 1 : HERO -->
 <?php if ($livreDuMois): ?>
-<section class="relative h-[50vh] sm:h-[60vh] md:h-[70vh] flex items-end overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-br from-amber-950 via-red-950 to-bg"></div>
-    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent"></div>
+<?php $heroImage = book_cover_url($livreDuMois) ?? 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&q=80'; ?>
+<section class="relative h-[55vh] sm:h-[65vh] md:h-[75vh] overflow-hidden">
+    <!-- Image de fond -->
+    <div class="absolute inset-0">
+        <img src="<?= e($heroImage) ?>" alt="" class="w-full h-full object-cover">
+    </div>
+    <!-- Dégradé bas -->
+    <div class="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/20"></div>
+    <!-- Dégradé latéral gauche -->
+    <div class="absolute inset-0 bg-gradient-to-r from-bg via-bg/50 to-transparent"></div>
 
-    <div class="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 w-full pb-8 sm:pb-12 md:pb-16">
-        <p class="text-[10px] sm:text-xs font-display font-semibold tracking-widest uppercase text-accent mb-3">Livre du mois</p>
-        <h1 class="font-display font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] max-w-2xl">
-            <?= e($livreDuMois->titre) ?>
-        </h1>
-        <p class="text-text-muted text-sm sm:text-base md:text-lg mt-2 sm:mt-3"><?= e(book_author_name($livreDuMois)) ?></p>
-        <p class="text-text-muted text-sm sm:text-base mt-2 max-w-lg leading-relaxed hidden sm:block">
-            <?= e($livreDuMois->description_courte) ?>
-        </p>
-        <div class="flex flex-wrap gap-3 mt-5 sm:mt-6">
-            <a href="/livre/<?= e($livreDuMois->slug) ?>" class="btn-primary">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                Lire maintenant
-            </a>
-            <a href="/livre/<?= e($livreDuMois->slug) ?>" class="btn-secondary">Plus d'infos</a>
+    <!-- Contenu aligné en bas -->
+    <div class="relative z-10 h-full flex items-end">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 w-full pb-8 sm:pb-12 md:pb-16">
+            <p class="text-[10px] sm:text-xs font-display font-semibold tracking-widest uppercase text-accent mb-3">Livre du mois</p>
+            <h1 class="font-display font-extrabold text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-[1.1] max-w-2xl drop-shadow-lg">
+                <?= e($livreDuMois->titre) ?>
+            </h1>
+            <p class="text-white/80 text-sm sm:text-base md:text-lg mt-2 sm:mt-3 drop-shadow"><?= e(book_author_name($livreDuMois)) ?></p>
+            <p class="text-white/60 text-sm sm:text-base mt-2 max-w-lg leading-relaxed hidden sm:block drop-shadow">
+                <?= e($livreDuMois->description_courte) ?>
+            </p>
+            <div class="flex flex-wrap gap-3 mt-5 sm:mt-6">
+                <a href="/livre/<?= e($livreDuMois->slug) ?>" class="btn-primary">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    Lire maintenant
+                </a>
+                <a href="/livre/<?= e($livreDuMois->slug) ?>" class="btn-secondary">Plus d'infos</a>
+            </div>
         </div>
     </div>
 </section>
@@ -76,22 +86,22 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
 
             <div class="carousel-container max-w-[1400px] mx-auto px-4 sm:px-6">
                 <?php foreach ($rangee['livres'] as $livre): ?>
-                <a href="/livre/<?= e($livre->slug) ?>" class="card-book block" style="width:140px;min-width:140px;">
-                    <?php $coverUrl = book_cover_url($livre); ?>
-                    <?php if ($coverUrl): ?>
-                    <div class="card-book-cover aspect-[2/3] overflow-hidden rounded-md bg-gradient-to-br <?= book_cover_gradient($livre->id) ?>">
-                        <img src="<?= e($coverUrl) ?>" alt="<?= e($livre->titre) ?>" class="w-full h-full object-cover">
+                <?php $coverUrl = book_cover_url($livre); ?>
+                <a href="/livre/<?= e($livre->slug) ?>" class="group block flex-shrink-0" style="width:150px;min-width:150px;">
+                    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> transition-transform duration-300 group-hover:scale-105 group-hover:ring-2 group-hover:ring-accent">
+                        <?php if ($coverUrl): ?>
+                            <img src="<?= e($coverUrl) ?>" alt="<?= e($livre->titre) ?>" class="w-full h-full object-cover" loading="lazy">
+                            <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50"></div>
+                        <?php else: ?>
+                            <div class="w-full h-full flex items-center justify-center p-4">
+                                <span class="text-white font-display font-semibold text-center text-sm drop-shadow-lg"><?= e($livre->titre) ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($livre->category_nom ?? '') ?></span>
                     </div>
-                    <?php else: ?>
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> relative flex flex-col items-center justify-between p-3 sm:p-4">
-                        <p class="self-start text-[9px] sm:text-[10px] font-medium tracking-wider uppercase text-accent/80"><?= e($livre->category_nom ?? '') ?></p>
-                        <p class="font-display font-semibold text-white text-center text-sm sm:text-[15px] leading-snug px-1"><?= e($livre->titre) ?></p>
-                        <span></span>
-                    </div>
-                    <?php endif; ?>
-                    <div class="mt-2 px-0.5">
-                        <p class="text-white text-[13px] font-medium leading-snug truncate"><?= e($livre->titre) ?></p>
-                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e(book_author_name($livre)) ?></p>
+                    <div class="mt-2.5 px-0.5">
+                        <p class="text-white text-[13px] font-medium leading-snug line-clamp-2 group-hover:text-accent transition-colors"><?= e($livre->titre) ?></p>
+                        <p class="text-text-dim text-[11px] mt-1 truncate"><?= e(book_author_name($livre)) ?></p>
                     </div>
                 </a>
                 <?php endforeach; ?>
