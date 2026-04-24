@@ -296,6 +296,40 @@ class AdminController extends BaseController
         $this->adminView('candidatures/index', ['titre' => 'Candidatures auteurs', 'candidatures' => $candidatures]);
     }
 
+    public function authorCandidatureShow(string $id): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+        $author = $db->fetch(
+            "SELECT a.*, u.prenom, u.nom, u.email, u.telephone, u.pays as user_pays, u.created_at as user_created_at
+             FROM authors a JOIN users u ON a.user_id=u.id WHERE a.id = ?",
+            [(int) $id]
+        );
+        if (!$author) { redirect('/admin/candidatures'); return; }
+        $livresEnRevue = $db->fetchAll("SELECT * FROM books WHERE author_id = ? AND statut IN ('brouillon','en_revue')", [$author->id]);
+        $this->adminView('candidatures/show', ['titre' => 'Candidature : ' . $author->prenom . ' ' . $author->nom, 'author' => $author, 'livresEnRevue' => $livresEnRevue]);
+    }
+
+    public function bookPreview(string $id): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+        $book = $db->fetch("SELECT b.*, c.nom as cat_nom, c.slug as cat_slug FROM books b LEFT JOIN categories c ON b.category_id=c.id WHERE b.id = ?", [(int)$id]);
+        if (!$book) { redirect('/admin/livres'); return; }
+        $author = $db->fetch("SELECT a.*, u.prenom, u.nom, u.email FROM authors a JOIN users u ON a.user_id=u.id WHERE a.id = ?", [$book->author_id]);
+        $this->adminView('livres/preview', ['titre' => 'Aperçu : ' . $book->titre, 'book' => $book, 'author' => $author]);
+    }
+
+    public function bookPublish(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $this->db()->update('books', ['statut' => 'publie', 'date_publication' => date('Y-m-d H:i:s')], 'id = ?', [(int) $id]);
+        audit('book_publish', 'books', (int) $id);
+        Session::flash('admin_success', 'Livre publié.');
+        redirect('/admin/livres');
+    }
+
     public function authorValidate(string $id): void
     {
         Auth::requireAdmin();

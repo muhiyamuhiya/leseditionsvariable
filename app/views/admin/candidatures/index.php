@@ -10,7 +10,7 @@
         <div class="bg-surface border border-border rounded-xl p-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <p class="text-white font-medium"><?= e($c->prenom . ' ' . $c->nom) ?></p>
+                    <a href="/admin/candidatures/<?= $c->id ?>" class="text-white font-medium hover:text-accent transition-colors"><?= e($c->prenom . ' ' . $c->nom) ?></a>
                     <p class="text-text-dim text-sm"><?= e($c->email) ?> &middot; <?= e($c->pays_origine ?? '?') ?></p>
                     <?php if ($c->biographie_courte): ?>
                         <p class="text-text-muted text-sm mt-2 max-w-lg"><?= e($c->biographie_courte) ?></p>

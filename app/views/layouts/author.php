@@ -79,7 +79,7 @@
     </aside>
 
     <div class="lg:ml-64 min-h-screen flex flex-col">
-        <header class="h-14 bg-surface/80 backdrop-blur border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
+        <header x-data="{ userMenu: false }" class="h-14 bg-surface/80 backdrop-blur border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
             <div class="flex items-center gap-3">
                 <button @click="sidebarOpen = true" class="lg:hidden text-text-muted hover:text-white p-1">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
@@ -87,9 +87,41 @@
                 <h1 class="font-display font-semibold text-sm sm:text-base text-white"><?= e($titre ?? 'Espace auteur') ?></h1>
             </div>
             <?php $au = App\Lib\Auth::user(); ?>
-            <div class="flex items-center gap-3 text-sm">
-                <span class="hidden sm:inline text-text-dim text-xs"><?= e($au->prenom ?? '') ?> &middot; Auteur</span>
-                <div class="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-xs font-bold font-display"><?= e(mb_strtoupper(mb_substr($au->prenom ?? 'A', 0, 1))) ?></div>
+            <div class="relative">
+                <button @click="userMenu = !userMenu" @click.outside="userMenu = false" class="flex items-center gap-2 hover:bg-surface-2 rounded-full px-2 py-1 transition-colors">
+                    <div class="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-xs font-bold font-display"><?= e(mb_strtoupper(mb_substr($au->prenom ?? 'A', 0, 1))) ?></div>
+                    <span class="hidden sm:block text-white text-sm"><?= e($au->prenom ?? '') ?></span>
+                    <svg class="w-4 h-4 text-text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </button>
+                <div x-show="userMenu" x-transition x-cloak class="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-lg shadow-2xl py-2 z-50">
+                    <div class="px-4 py-2.5 border-b border-border">
+                        <p class="text-sm font-semibold text-white"><?= e(($au->prenom ?? '') . ' ' . ($au->nom ?? '')) ?></p>
+                        <p class="text-xs text-text-dim mt-0.5"><?= e($au->email ?? '') ?></p>
+                    </div>
+                    <a href="/" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                        Retour au site
+                    </a>
+                    <a href="/mon-compte" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                        Mon compte
+                    </a>
+                    <?php if (($au->role ?? '') === 'admin'): ?>
+                    <a href="/admin" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Administration
+                    </a>
+                    <?php endif; ?>
+                    <div class="border-t border-border mt-1 pt-1">
+                        <form action="/deconnexion" method="POST">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+                                Déconnexion
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </header>
         <main class="flex-grow p-4 sm:p-6"><?= $content ?></main>

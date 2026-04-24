@@ -16,6 +16,11 @@ class ImageController extends BaseController
         $this->serveFromStorage('authors', $filename);
     }
 
+    public function serveUserPhoto(string $filename): void
+    {
+        $this->serveFromStorage('users', $filename);
+    }
+
     private function serveFromStorage(string $folder, string $filename): void
     {
         // Sécurité path traversal

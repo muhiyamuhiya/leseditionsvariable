@@ -51,6 +51,9 @@
         <nav class="flex-grow overflow-y-auto py-4 px-3 space-y-6 text-sm">
             <?php
             $uri = strtok($_SERVER['REQUEST_URI'] ?? '/admin', '?');
+            $_adminDb = App\Lib\Database::getInstance();
+            $_pendingCandidatures = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM authors WHERE statut_validation='en_attente'")->c ?? 0);
+            $_pendingBooks = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM books WHERE statut IN ('brouillon','en_revue')")->c ?? 0);
             function navItem($href, $label, $icon, $uri, $badge = null) {
                 $active = ($uri === $href || ($href !== '/admin' && str_starts_with($uri, $href)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';
@@ -68,14 +71,14 @@
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Contenu</p>
-                <?= navItem('/admin/livres', 'Livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri) ?>
+                <?= navItem('/admin/livres', 'Livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri, $_pendingBooks ?: null) ?>
                 <?= navItem('/admin/auteurs', 'Auteurs', '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>', $uri) ?>
                 <?= navItem('/admin/categories', 'Catégories', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>', $uri) ?>
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Utilisateurs</p>
                 <?= navItem('/admin/lecteurs', 'Lecteurs', '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>', $uri) ?>
-                <?= navItem('/admin/candidatures', 'Candidatures', '<path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/>', $uri) ?>
+                <?= navItem('/admin/candidatures', 'Candidatures', '<path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/>', $uri, $_pendingCandidatures ?: null) ?>
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Commerce</p>
@@ -100,8 +103,8 @@
 
     <!-- Contenu principal -->
     <div class="lg:ml-64 min-h-screen flex flex-col">
-        <!-- Header admin -->
-        <header class="h-14 bg-surface/80 backdrop-blur border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
+        <!-- Header admin avec menu utilisateur -->
+        <header x-data="{ userMenu: false }" class="h-14 bg-surface/80 backdrop-blur border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
             <div class="flex items-center gap-3">
                 <button @click="sidebarOpen = true" class="lg:hidden text-text-muted hover:text-white p-1">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
@@ -109,10 +112,38 @@
                 <h1 class="font-display font-semibold text-sm sm:text-base text-white"><?= e($titre ?? 'Administration') ?></h1>
             </div>
             <?php $adminUser = App\Lib\Auth::user(); ?>
-            <div class="flex items-center gap-3 text-sm">
-                <span class="hidden sm:inline text-text-dim text-xs"><?= e($adminUser->prenom ?? '') ?> &middot; Admin</span>
-                <div class="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-xs font-bold font-display">
-                    <?= e(mb_strtoupper(mb_substr($adminUser->prenom ?? 'A', 0, 1))) ?>
+            <div class="relative">
+                <button @click="userMenu = !userMenu" @click.outside="userMenu = false" class="flex items-center gap-2 hover:bg-surface-2 rounded-full px-2 py-1 transition-colors">
+                    <div class="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-xs font-bold font-display"><?= e(mb_strtoupper(mb_substr($adminUser->prenom ?? 'A', 0, 1))) ?></div>
+                    <span class="hidden sm:block text-white text-sm"><?= e($adminUser->prenom ?? '') ?></span>
+                    <svg class="w-4 h-4 text-text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                </button>
+                <div x-show="userMenu" x-transition x-cloak class="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-lg shadow-2xl py-2 z-50">
+                    <div class="px-4 py-2.5 border-b border-border">
+                        <p class="text-sm font-semibold text-white"><?= e(($adminUser->prenom ?? '') . ' ' . ($adminUser->nom ?? '')) ?></p>
+                        <p class="text-xs text-text-dim mt-0.5"><?= e($adminUser->email ?? '') ?></p>
+                    </div>
+                    <a href="/" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                        Retour au site
+                    </a>
+                    <a href="/mon-compte" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                        Mon compte
+                    </a>
+                    <a href="/auteur" class="flex items-center gap-3 px-4 py-2 text-sm text-text-muted hover:text-accent hover:bg-surface-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                        Espace auteur
+                    </a>
+                    <div class="border-t border-border mt-1 pt-1">
+                        <form action="/deconnexion" method="POST">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+                                Déconnexion
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </header>

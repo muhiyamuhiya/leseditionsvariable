@@ -77,6 +77,7 @@ $router->get('/auteur/:slug', 'AuthorController@show');
 // Images storage
 $router->get('/image/covers/:filename', 'ImageController@serveCover');
 $router->get('/image/authors/:filename', 'ImageController@serveAuthorPhoto');
+$router->get('/image/users/:filename', 'ImageController@serveUserPhoto');
 
 // Admin
 $router->get('/admin', 'AdminController@dashboard');
@@ -90,8 +91,11 @@ $router->get('/admin/auteurs', 'AdminController@authors');
 $router->get('/admin/auteurs/:id/editer', 'AdminController@authorEdit');
 $router->post('/admin/auteurs/:id/editer', 'AdminController@authorUpdate');
 $router->get('/admin/candidatures', 'AdminController@authorCandidatures');
+$router->get('/admin/candidatures/:id', 'AdminController@authorCandidatureShow');
 $router->post('/admin/candidatures/:id/valider', 'AdminController@authorValidate');
 $router->post('/admin/candidatures/:id/refuser', 'AdminController@authorRefuse');
+$router->get('/admin/livres/:id/apercu', 'AdminController@bookPreview');
+$router->post('/admin/livres/:id/publier', 'AdminController@bookPublish');
 $router->get('/admin/lecteurs', 'AdminController@readers');
 $router->get('/admin/categories', 'AdminController@categories');
 $router->post('/admin/categories', 'AdminController@categoriesUpdate');

@@ -51,6 +51,7 @@
             <td class="py-3 px-2 hidden md:table-cell text-text-muted"><?= $l->total_ventes ?></td>
             <td class="py-3 px-2">
                 <div class="flex items-center gap-2">
+                    <a href="/admin/livres/<?= $l->id ?>/apercu" class="text-accent hover:text-accent-hover text-xs font-medium"><?= in_array($l->statut, ['brouillon','en_revue']) ? 'Examiner' : 'Aperçu' ?></a>
                     <a href="/admin/livres/<?= $l->id ?>/editer" class="text-text-muted hover:text-accent text-xs">Éditer</a>
                     <form method="POST" action="/admin/livres/<?= $l->id ?>/supprimer" onsubmit="return confirm('Supprimer ce livre ?')" class="inline">
                         <?= csrf_field() ?>
