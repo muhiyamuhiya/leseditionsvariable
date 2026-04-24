@@ -166,7 +166,7 @@ class AdminController extends BaseController
 
         $slug = trim($_POST['slug']) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', trim($_POST['titre']))));
 
-        $id = $db->insert('books', [
+        $bookData = [
             'titre' => trim($_POST['titre']),
             'slug' => $slug,
             'sous_titre' => trim($_POST['sous_titre'] ?? '') ?: null,
@@ -179,7 +179,30 @@ class AdminController extends BaseController
             'langue' => 'fr',
             'editeur' => 'Les éditions Variable',
             'accessible_abonnement' => isset($_POST['accessible_abonnement']) ? 1 : 0,
-        ]);
+        ];
+
+        if ($bookData['statut'] === 'publie') {
+            $bookData['date_publication'] = date('Y-m-d H:i:s');
+        }
+
+        $id = $db->insert('books', $bookData);
+
+        // Upload couverture après création
+        if ($id && !empty($_FILES['couverture']['tmp_name'])) {
+            $file = $_FILES['couverture'];
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (in_array($file['type'], $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = $slug . '-' . time() . '.' . $ext;
+                $absPath = BASE_PATH . '/storage/covers/' . $filename;
+                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                move_uploaded_file($file['tmp_name'], $absPath);
+                $db->update('books', [
+                    'couverture_path'    => 'storage/covers/' . $filename,
+                    'couverture_url_web' => '/image/covers/' . $filename,
+                ], 'id = ?', [$id]);
+            }
+        }
 
         audit('book_create', 'books', $id);
         Session::flash('admin_success', 'Livre créé.');

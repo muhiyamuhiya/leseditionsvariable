@@ -1,4 +1,4 @@
-<form method="POST" action="/admin/livres/nouveau" class="max-w-3xl space-y-6">
+<form method="POST" action="/admin/livres/nouveau" enctype="multipart/form-data" class="max-w-3xl space-y-6">
     <?= csrf_field() ?>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -46,6 +46,15 @@
             </select>
         </div>
     </div>
+
+    <!-- Couverture -->
+    <div>
+        <label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Couverture du livre</label>
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp"
+               class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
+        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
+    </div>
+
     <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" checked class="accent-accent"> Accessible abonnement</label>
     <div class="flex gap-3 pt-4">
         <button type="submit" class="btn-primary">Créer le livre</button>
