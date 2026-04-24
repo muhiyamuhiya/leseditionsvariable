@@ -5,14 +5,22 @@ use App\Lib\Database;
 
 /**
  * Modèle Category
- * Gère les catégories de livres
  */
 class Category extends BaseModel
 {
     protected static string $table = 'categories';
 
     /**
-     * Récupérer toutes les catégories actives, triées par ordre d'affichage
+     * Trouver par slug
+     */
+    public static function findBySlug(string $slug): object|false
+    {
+        $db = Database::getInstance();
+        return $db->fetch("SELECT * FROM categories WHERE slug = ?", [$slug]);
+    }
+
+    /**
+     * Catégories actives triées
      */
     public static function findActive(): array
     {

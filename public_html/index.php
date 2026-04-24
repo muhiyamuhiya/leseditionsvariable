@@ -24,6 +24,10 @@ $router->get('/inscription', 'AuthController@showRegister');
 $router->post('/inscription', 'AuthController@processRegister');
 $router->post('/deconnexion', 'AuthController@logout');
 
+// Catalogue
+$router->get('/catalogue', 'BookController@catalogue');
+$router->get('/catalogue/categorie/:slug', 'BookController@byCategory');
+
 // Vérification email
 $router->get('/verifier-email/:token', 'AuthController@verifyEmail');
 
