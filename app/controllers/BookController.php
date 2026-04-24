@@ -104,6 +104,10 @@ class BookController extends BaseController
             );
 
             $aDejaNote = Review::userHasReviewed($user->id, $book->id);
+
+            // Favori ?
+            $ubFav = $db->fetch("SELECT favori FROM user_books WHERE user_id = ? AND book_id = ?", [$user->id, $book->id]);
+            $estFavori = $ubFav ? (bool) $ubFav->favori : false;
         }
 
         $this->view('book/show', [
@@ -117,9 +121,51 @@ class BookController extends BaseController
             'user'        => $user,
             'aAchete'     => $aAchete,
             'estAbonne'   => $estAbonne,
+            'estFavori'   => $estFavori ?? false,
             'progression' => $progression,
             'aDejaNote'   => $aDejaNote,
         ]);
+    }
+
+    /**
+     * Toggle favori (AJAX)
+     */
+    public function toggleFavorite(string $slug): void
+    {
+        if (!Auth::check()) {
+            $this->json(['error' => 'not_logged_in'], 401);
+        }
+
+        $book = Book::findBySlug($slug);
+        if (!$book) {
+            $this->json(['error' => 'not_found'], 404);
+        }
+
+        // Vérifier le token CSRF depuis le header
+        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!CSRF::validate($token)) {
+            $this->json(['error' => 'csrf'], 403);
+        }
+
+        $db = Database::getInstance();
+        $userId = Auth::id();
+
+        $existing = $db->fetch("SELECT id, favori FROM user_books WHERE user_id = ? AND book_id = ?", [$userId, $book->id]);
+
+        if ($existing) {
+            $newFavori = $existing->favori ? 0 : 1;
+            $db->update('user_books', ['favori' => $newFavori], 'id = ?', [$existing->id]);
+            $this->json(['favori' => (bool) $newFavori]);
+        } else {
+            $db->insert('user_books', [
+                'user_id'    => $userId,
+                'book_id'    => $book->id,
+                'source'     => 'achat_unitaire',
+                'favori'     => 1,
+                'date_ajout' => date('Y-m-d H:i:s'),
+            ]);
+            $this->json(['favori' => true]);
+        }
     }
 
     /**
@@ -137,7 +183,7 @@ class BookController extends BaseController
 
         $user = Auth::user();
         if (Review::userHasReviewed($user->id, $book->id)) {
-            Session::flash('error', 'Vous avez déjà laissé un avis pour ce livre.');
+            Session::flash('avis_error', 'Tu as déjà laissé un avis pour ce livre.');
             redirect('/livre/' . $slug);
         }
 
@@ -145,8 +191,8 @@ class BookController extends BaseController
         $titre = trim($_POST['titre_avis'] ?? '');
         $commentaire = trim($_POST['commentaire'] ?? '');
 
-        if (empty($commentaire)) {
-            Session::flash('error', 'Veuillez écrire un commentaire.');
+        if (empty($commentaire) || mb_strlen($commentaire) < 10) {
+            Session::flash('avis_error', 'Ton commentaire doit contenir au moins 10 caractères.');
             redirect('/livre/' . $slug);
         }
 
@@ -159,7 +205,7 @@ class BookController extends BaseController
             'approuve'    => 0,
         ]);
 
-        Session::flash('success', 'Merci pour votre avis ! Il sera publié après modération.');
+        Session::flash('avis_success', 'Merci pour ton avis ! Il sera visible après modération.');
         redirect('/livre/' . $slug);
     }
 

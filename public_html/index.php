@@ -31,6 +31,7 @@ $router->get('/catalogue/categorie/:slug', 'BookController@byCategory');
 // Livre détail + avis
 $router->get('/livre/:slug', 'BookController@show');
 $router->post('/livre/:slug/avis', 'BookController@submitReview');
+$router->post('/livre/:slug/favori', 'BookController@toggleFavorite');
 
 // API recherche instantanée
 $router->get('/api/recherche', 'BookController@searchApi');

@@ -63,6 +63,14 @@ function csrf_field(): string
 }
 
 /**
+ * Récupérer la valeur brute du token CSRF (pour les requêtes AJAX)
+ */
+function csrf_token(): string
+{
+    return App\Lib\CSRF::getToken();
+}
+
+/**
  * Stocker ou récupérer un message flash
  * flash('success', 'Bravo !') → stocke
  * flash('success')             → récupère et supprime

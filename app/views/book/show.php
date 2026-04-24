@@ -40,10 +40,26 @@
 
                 <div class="flex flex-col gap-2 mt-5 w-full max-w-[280px]">
                     <a href="#" class="btn-secondary w-full text-center text-sm py-2.5">Lire l'extrait gratuit</a>
-                    <button class="btn-ghost w-full text-center text-sm py-2.5 border border-border rounded hover:border-accent transition-colors">
-                        <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
-                        Ajouter aux favoris
+
+                    <?php if ($user): ?>
+                    <button x-data="{ favori: <?= $estFavori ? 'true' : 'false' ?>, loading: false }"
+                            @click="if(loading) return; loading=true;
+                                fetch('/livre/<?= e($book->slug) ?>/favori', {
+                                    method:'POST',
+                                    headers:{'X-Requested-With':'XMLHttpRequest','X-CSRF-Token':'<?= csrf_token() ?>'}
+                                }).then(r=>r.json()).then(d=>{favori=d.favori;loading=false}).catch(()=>loading=false)"
+                            class="w-full text-center text-sm py-2.5 border border-border rounded hover:border-accent transition-colors flex items-center justify-center gap-2 text-text-muted hover:text-white">
+                        <svg x-show="!favori" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+                        <svg x-show="favori" x-cloak class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+                        <span x-text="favori ? 'Dans mes favoris' : 'Ajouter aux favoris'"></span>
                     </button>
+                    <?php else: ?>
+                    <a href="/connexion?redirect=/livre/<?= e($book->slug) ?>"
+                       class="w-full text-center text-sm py-2.5 border border-border rounded hover:border-accent transition-colors flex items-center justify-center gap-2 text-text-muted hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+                        Ajouter aux favoris
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -271,49 +287,70 @@
         </div>
 
         <?php
-        $flashError = flash('error');
-        $flashSuccess = flash('success');
+        // Flash messages UNIQUEMENT liés aux avis (pas les "Bienvenue" de connexion)
+        $avisSuccess = flash('avis_success');
+        $avisError = flash('avis_error');
         ?>
-        <?php if ($flashSuccess): ?>
-            <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($flashSuccess) ?></div>
+        <?php if ($avisSuccess): ?>
+            <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($avisSuccess) ?></div>
         <?php endif; ?>
-        <?php if ($flashError): ?>
-            <div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($flashError) ?></div>
+        <?php if ($avisError): ?>
+            <div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($avisError) ?></div>
         <?php endif; ?>
 
-        <!-- Formulaire avis -->
-        <?php if ($user && ($aAchete || $estAbonne) && !$aDejaNote): ?>
-        <form action="/livre/<?= e($book->slug) ?>/avis" method="POST" class="bg-surface border border-border rounded-lg p-5 sm:p-6 mb-8">
-            <?= csrf_field() ?>
-            <p class="text-white font-medium mb-4">Laisser un avis</p>
-
-            <div class="flex items-center gap-1 mb-4" x-data="{ note: 5 }">
-                <span class="text-text-dim text-sm mr-2">Note :</span>
-                <?php for ($i = 1; $i <= 5; $i++): ?>
-                    <button type="button" @click="note = <?= $i ?>"
-                            :class="note >= <?= $i ?> ? 'text-accent' : 'text-border'"
-                            class="transition-colors">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                    </button>
-                <?php endfor; ?>
-                <input type="hidden" name="note" :value="note">
+        <!-- CAS 1 : Non connecté -->
+        <?php if (!$user): ?>
+            <div class="bg-surface border border-border rounded-lg p-5 sm:p-6 mb-8 text-center">
+                <p class="text-text-muted text-sm mb-4">Connecte-toi pour laisser ton avis sur ce livre.</p>
+                <a href="/connexion?redirect=/livre/<?= e($book->slug) ?>" class="btn-primary text-sm">Se connecter</a>
             </div>
 
-            <input type="text" name="titre_avis" placeholder="Titre de votre avis (optionnel)"
-                   class="w-full bg-surface-2 border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim mb-3">
-            <textarea name="commentaire" rows="3" placeholder="Votre commentaire..." required
-                      class="w-full bg-surface-2 border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim resize-none mb-4"></textarea>
-            <button type="submit" class="btn-primary text-sm">Publier mon avis</button>
-        </form>
-        <?php elseif ($user && $aDejaNote): ?>
-            <p class="text-text-dim text-sm mb-6">Vous avez déjà laissé un avis pour ce livre.</p>
-        <?php elseif (!$user): ?>
-            <p class="text-text-dim text-sm mb-6"><a href="/connexion" class="text-accent hover:text-accent-hover">Connectez-vous</a> pour laisser un avis.</p>
+        <!-- CAS 2 : Connecté mais n'a ni acheté ni abonnement -->
+        <?php elseif (!$aAchete && !$estAbonne): ?>
+            <div class="bg-surface border border-border rounded-lg p-5 sm:p-6 mb-8 text-center">
+                <p class="text-text-muted text-sm mb-4">Seuls les lecteurs ayant lu ce livre peuvent laisser un avis.</p>
+                <div class="flex flex-wrap justify-center gap-3">
+                    <a href="/achat/livre/<?= $book->id ?>" class="btn-primary text-sm">Acheter le livre</a>
+                    <a href="/abonnement" class="btn-secondary text-sm">S'abonner</a>
+                </div>
+            </div>
+
+        <!-- CAS 3 : Connecté + a déjà noté -->
+        <?php elseif ($aDejaNote): ?>
+            <div class="bg-surface border border-border rounded-lg p-5 sm:p-6 mb-8">
+                <p class="text-text-muted text-sm">Tu as déjà laissé un avis pour ce livre. Merci !</p>
+            </div>
+
+        <!-- CAS 4 : Connecté + peut noter -->
+        <?php else: ?>
+            <form action="/livre/<?= e($book->slug) ?>/avis" method="POST" class="bg-surface border border-border rounded-lg p-5 sm:p-6 mb-8">
+                <?= csrf_field() ?>
+                <p class="text-white font-medium mb-4">Laisser un avis</p>
+
+                <div class="flex items-center gap-1 mb-4" x-data="{ note: 5 }">
+                    <span class="text-text-dim text-sm mr-2">Note :</span>
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <button type="button" @click="note = <?= $i ?>"
+                                :class="note >= <?= $i ?> ? 'text-accent' : 'text-border'"
+                                class="transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        </button>
+                    <?php endfor; ?>
+                    <input type="hidden" name="note" :value="note">
+                </div>
+
+                <input type="text" name="titre_avis" placeholder="Titre de ton avis (optionnel)" maxlength="200"
+                       class="w-full bg-surface-2 border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim mb-3">
+                <textarea name="commentaire" rows="3" placeholder="Ton commentaire..." required minlength="10" maxlength="2000"
+                          class="w-full bg-surface-2 border border-border rounded px-4 py-2.5 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim resize-none mb-3"></textarea>
+                <p class="text-text-dim text-xs mb-4">Ton avis sera visible après modération.</p>
+                <button type="submit" class="btn-primary text-sm">Publier mon avis</button>
+            </form>
         <?php endif; ?>
 
-        <!-- Liste des avis -->
+        <!-- Liste des avis approuvés -->
         <?php if (empty($avis)): ?>
-            <p class="text-text-dim text-sm">Soyez le premier à laisser un avis.</p>
+            <p class="text-text-dim text-sm">Aucun avis pour l'instant. Sois le premier à partager ton avis !</p>
         <?php else: ?>
             <div class="space-y-5">
                 <?php foreach ($avis as $a): ?>
