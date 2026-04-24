@@ -57,6 +57,31 @@ class BookController extends BaseController
     }
 
     /**
+     * API recherche instantanée — retourne du JSON
+     */
+    public function searchApi(): void
+    {
+        $q = trim($_GET['q'] ?? '');
+        if (mb_strlen($q) < 2) {
+            $this->json([]);
+        }
+
+        $livres = Book::findPublished(6, 0, null, $q);
+
+        $results = array_map(function ($l) {
+            return [
+                'titre'    => $l->titre,
+                'slug'     => $l->slug,
+                'auteur'   => $l->author_nom_plume ?: ($l->author_prenom . ' ' . $l->author_nom),
+                'categorie'=> $l->category_nom ?? '',
+                'prix'     => number_format($l->prix_unitaire_usd, 2) . ' $',
+            ];
+        }, $livres);
+
+        $this->json($results);
+    }
+
+    /**
      * Catalogue filtré par catégorie via URL propre
      */
     public function byCategory(string $slug): void

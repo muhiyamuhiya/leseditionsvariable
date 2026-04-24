@@ -56,8 +56,12 @@ class Book extends BaseModel
         }
 
         if ($search) {
-            $where .= " AND MATCH(b.titre, b.description_courte, b.description_longue, b.mots_cles) AGAINST(? IN BOOLEAN MODE)";
-            $params[] = $search;
+            $like = '%' . $search . '%';
+            $where .= " AND (b.titre LIKE ? OR b.description_courte LIKE ? OR CONCAT(u.prenom, ' ', u.nom) LIKE ? OR a.nom_plume LIKE ?)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
         }
 
         $params[] = $limit;
@@ -84,8 +88,10 @@ class Book extends BaseModel
         }
 
         if ($search) {
-            $where .= " AND MATCH(b.titre, b.description_courte, b.description_longue, b.mots_cles) AGAINST(? IN BOOLEAN MODE)";
-            $params[] = $search;
+            $like = '%' . $search . '%';
+            $where .= " AND (b.titre LIKE ? OR b.description_courte LIKE ?)";
+            $params[] = $like;
+            $params[] = $like;
         }
 
         $result = $db->fetch(

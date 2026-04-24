@@ -30,26 +30,44 @@
 
             <!-- Droite -->
             <div class="flex items-center gap-3 sm:gap-4">
-                <!-- Recherche desktop -->
-                <div class="hidden sm:flex items-center">
-                    <form action="/catalogue" method="GET"
-                          x-show="searchOpen"
-                          x-transition:enter="transition ease-out duration-200"
-                          x-transition:enter-start="opacity-0 scale-x-0 origin-right"
-                          x-transition:enter-end="opacity-100 scale-x-100 origin-right"
-                          x-transition:leave="transition ease-in duration-150"
-                          x-transition:leave-start="opacity-100 scale-x-100 origin-right"
-                          x-transition:leave-end="opacity-0 scale-x-0 origin-right"
-                          @click.outside="searchOpen = false"
-                          @keydown.escape="searchOpen = false"
-                          x-cloak
-                          class="flex items-center mr-2">
-                        <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
-                               x-ref="searchInput"
-                               class="w-56 lg:w-64 bg-surface border border-border rounded-full px-4 py-2 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim"
-                               autofocus>
-                    </form>
-                    <button @click="searchOpen = !searchOpen; $nextTick(() => { if(searchOpen) $refs.searchInput.focus() })"
+                <!-- Recherche desktop avec live search -->
+                <div x-data="liveSearch()" class="hidden sm:flex items-center relative">
+                    <div x-show="searchOpen"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-x-0 origin-right"
+                         x-transition:enter-end="opacity-100 scale-x-100 origin-right"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 scale-x-100 origin-right"
+                         x-transition:leave-end="opacity-0 scale-x-0 origin-right"
+                         @click.outside="close()"
+                         @keydown.escape="close()"
+                         x-cloak
+                         class="mr-2 relative">
+                        <form action="/catalogue" method="GET" @submit.prevent="goFull()">
+                            <input type="text" name="q" x-model="q" x-ref="input"
+                                   @input.debounce.300ms="search()"
+                                   placeholder="Rechercher un livre, un auteur..."
+                                   autocomplete="off"
+                                   class="w-56 lg:w-64 bg-surface border border-border rounded-full px-4 py-2 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim">
+                        </form>
+                        <!-- Résultats live -->
+                        <div x-show="results.length > 0" x-cloak
+                             class="absolute right-0 top-full mt-2 w-72 lg:w-80 bg-surface border border-border rounded-lg shadow-2xl overflow-hidden z-50">
+                            <template x-for="r in results" :key="r.slug">
+                                <a :href="'/livre/' + r.slug" class="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors border-b border-border/50 last:border-0">
+                                    <div class="flex-grow min-w-0">
+                                        <p class="text-sm text-white font-medium truncate" x-text="r.titre"></p>
+                                        <p class="text-xs text-text-dim truncate" x-text="r.auteur + ' · ' + r.categorie"></p>
+                                    </div>
+                                    <span class="text-accent text-xs font-semibold whitespace-nowrap" x-text="r.prix"></span>
+                                </a>
+                            </template>
+                            <a :href="'/catalogue?q=' + encodeURIComponent(q)" class="block px-4 py-2.5 text-center text-xs text-accent hover:bg-surface-2 transition-colors border-t border-border">
+                                Voir tous les résultats
+                            </a>
+                        </div>
+                    </div>
+                    <button @click="toggle()"
                             class="p-1 text-text-muted hover:text-accent transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </button>
@@ -110,15 +128,30 @@
          x-cloak
          class="md:hidden fixed inset-0 top-14 sm:top-16 z-[55] bg-bg flex flex-col overflow-y-auto">
 
-        <!-- Recherche mobile -->
-        <div class="px-6 pt-5 pb-2 flex-shrink-0">
-            <form action="/catalogue" method="GET" @submit="menuOpen = false">
+        <!-- Recherche mobile live -->
+        <div x-data="liveSearch()" class="px-6 pt-5 pb-2 flex-shrink-0">
+            <form action="/catalogue" method="GET" @submit.prevent="menuOpen = false; goFull()">
                 <div class="relative">
                     <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                    <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
+                    <input type="text" name="q" x-model="q"
+                           @input.debounce.300ms="search()"
+                           placeholder="Rechercher un livre, un auteur..."
+                           autocomplete="off"
                            class="w-full bg-surface-2 border border-border rounded-full pl-12 pr-4 py-3 text-white text-sm outline-none focus:border-accent placeholder:text-text-dim">
                 </div>
             </form>
+            <!-- Résultats live mobile -->
+            <div x-show="results.length > 0" x-cloak class="mt-2 bg-surface border border-border rounded-lg overflow-hidden">
+                <template x-for="r in results" :key="r.slug">
+                    <a :href="'/livre/' + r.slug" @click="menuOpen = false" class="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors border-b border-border/50 last:border-0">
+                        <div class="flex-grow min-w-0">
+                            <p class="text-sm text-white font-medium truncate" x-text="r.titre"></p>
+                            <p class="text-xs text-text-dim truncate" x-text="r.auteur + ' · ' + r.categorie"></p>
+                        </div>
+                        <span class="text-accent text-xs font-semibold whitespace-nowrap" x-text="r.prix"></span>
+                    </a>
+                </template>
+            </div>
         </div>
 
         <nav class="flex-grow flex flex-col justify-center px-8 py-6">

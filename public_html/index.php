@@ -28,6 +28,9 @@ $router->post('/deconnexion', 'AuthController@logout');
 $router->get('/catalogue', 'BookController@catalogue');
 $router->get('/catalogue/categorie/:slug', 'BookController@byCategory');
 
+// API recherche instantanée
+$router->get('/api/recherche', 'BookController@searchApi');
+
 // Vérification email
 $router->get('/verifier-email/:token', 'AuthController@verifyEmail');
 

@@ -56,5 +56,46 @@
 
     <?php require BASE_PATH . '/app/views/partials/footer.php'; ?>
 
+    <script>
+    function liveSearch() {
+        return {
+            q: '',
+            results: [],
+            searchOpen: false,
+            timer: null,
+            toggle() {
+                this.searchOpen = !this.searchOpen;
+                if (this.searchOpen) {
+                    this.$nextTick(() => this.$refs.input?.focus());
+                } else {
+                    this.results = [];
+                    this.q = '';
+                }
+            },
+            close() {
+                this.searchOpen = false;
+                this.results = [];
+                this.q = '';
+            },
+            goFull() {
+                if (this.q.trim().length > 0) {
+                    window.location.href = '/catalogue?q=' + encodeURIComponent(this.q.trim());
+                }
+            },
+            async search() {
+                if (this.q.trim().length < 2) {
+                    this.results = [];
+                    return;
+                }
+                try {
+                    const res = await fetch('/api/recherche?q=' + encodeURIComponent(this.q.trim()));
+                    this.results = await res.json();
+                } catch (e) {
+                    this.results = [];
+                }
+            }
+        }
+    }
+    </script>
 </body>
 </html>
