@@ -39,7 +39,7 @@
                 <?php endif; ?>
 
                 <div class="flex flex-col gap-2 mt-5 w-full max-w-[280px]">
-                    <a href="#" class="btn-secondary w-full text-center text-sm py-2.5">Lire l'extrait gratuit</a>
+                    <a href="/lire/<?= e($book->slug) ?>/extrait" class="btn-secondary w-full text-center text-sm py-2.5">Lire l'extrait gratuit</a>
 
                     <?php if ($user): ?>
                     <button x-data="{ favori: <?= $estFavori ? 'true' : 'false' ?>, loading: false }"
@@ -118,12 +118,12 @@
                         <a href="/abonnement" class="btn-secondary text-base px-6 py-3">S'abonner et lire illimité</a>
                     <?php elseif ($aAchete || $estAbonne): ?>
                         <?php if ($progression && $progression->derniere_page_lue > 1): ?>
-                            <a href="#" class="btn-primary text-base px-8 py-3">
+                            <a href="/lire/<?= e($book->slug) ?>" class="btn-primary text-base px-8 py-3">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                 Continuer la lecture (p.<?= $progression->derniere_page_lue ?>)
                             </a>
                         <?php else: ?>
-                            <a href="#" class="btn-primary text-base px-8 py-3">
+                            <a href="/lire/<?= e($book->slug) ?>" class="btn-primary text-base px-8 py-3">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                 Commencer la lecture
                             </a>

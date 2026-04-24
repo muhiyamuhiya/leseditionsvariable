@@ -30,10 +30,11 @@ $router->get('/livre/:slug', 'BookController@show');
 $router->post('/livre/:slug/avis', 'BookController@submitReview');
 $router->post('/livre/:slug/favori', 'BookController@toggleFavorite');
 
-// Liseuse PDF
-$router->get('/lire/:slug', 'ReaderController@read');
-$router->get('/lire/pdf/:sessionToken/:fileType', 'ReaderController@streamPDF');
+// Liseuse PDF (ordre important : routes spécifiques en premier)
 $router->post('/lire/progress', 'ReaderController@saveProgress');
+$router->get('/lire/pdf/:sessionToken/:fileType', 'ReaderController@streamPDF');
+$router->get('/lire/:slug/extrait', 'ReaderController@readExtrait');
+$router->get('/lire/:slug', 'ReaderController@read');
 
 // Mon compte (dashboard lecteur)
 $router->get('/mon-compte', 'AccountController@index');
