@@ -4,6 +4,8 @@
 
 # Dépendances PHP
 /vendor/
+/composer
+/composer.phar
 
 # Logs
 /logs/*.log
