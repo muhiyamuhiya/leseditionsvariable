@@ -30,18 +30,29 @@
 
             <!-- Droite -->
             <div class="flex items-center gap-3 sm:gap-4">
-                <!-- Recherche -->
-                <div class="relative">
-                    <button @click="searchOpen = !searchOpen" class="text-text-muted hover:text-white transition-colors p-1">
+                <!-- Recherche desktop -->
+                <div class="hidden sm:flex items-center">
+                    <form action="/catalogue" method="GET"
+                          x-show="searchOpen"
+                          x-transition:enter="transition ease-out duration-200"
+                          x-transition:enter-start="opacity-0 scale-x-0 origin-right"
+                          x-transition:enter-end="opacity-100 scale-x-100 origin-right"
+                          x-transition:leave="transition ease-in duration-150"
+                          x-transition:leave-start="opacity-100 scale-x-100 origin-right"
+                          x-transition:leave-end="opacity-0 scale-x-0 origin-right"
+                          @click.outside="searchOpen = false"
+                          @keydown.escape="searchOpen = false"
+                          x-cloak
+                          class="flex items-center mr-2">
+                        <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
+                               x-ref="searchInput"
+                               class="w-56 lg:w-64 bg-surface border border-border rounded-full px-4 py-2 text-sm text-white outline-none focus:border-accent placeholder:text-text-dim"
+                               autofocus>
+                    </form>
+                    <button @click="searchOpen = !searchOpen; $nextTick(() => { if(searchOpen) $refs.searchInput.focus() })"
+                            class="p-1 text-text-muted hover:text-accent transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                     </button>
-                    <div x-show="searchOpen" x-transition @click.outside="searchOpen = false"
-                         class="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-surface border border-border rounded-lg shadow-2xl p-3 z-50">
-                        <form action="/recherche" method="GET">
-                            <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
-                                   class="w-full px-3 py-2 bg-surface-2 border border-border rounded text-sm text-white outline-none focus:border-accent placeholder:text-text-dim" autofocus>
-                        </form>
-                    </div>
                 </div>
 
                 <?php if ($currentUser): ?>
@@ -98,6 +109,17 @@
          @keydown.escape.window="menuOpen = false"
          x-cloak
          class="md:hidden fixed inset-0 top-14 sm:top-16 z-[55] bg-bg flex flex-col overflow-y-auto">
+
+        <!-- Recherche mobile -->
+        <div class="px-6 pt-5 pb-2 flex-shrink-0">
+            <form action="/catalogue" method="GET" @submit="menuOpen = false">
+                <div class="relative">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                    <input type="text" name="q" placeholder="Rechercher un livre, un auteur..."
+                           class="w-full bg-surface-2 border border-border rounded-full pl-12 pr-4 py-3 text-white text-sm outline-none focus:border-accent placeholder:text-text-dim">
+                </div>
+            </form>
+        </div>
 
         <nav class="flex-grow flex flex-col justify-center px-8 py-6">
             <a href="/" @click="menuOpen = false" class="group flex items-center gap-4 py-5 border-b border-border/50 transition-all hover:translate-x-1">
