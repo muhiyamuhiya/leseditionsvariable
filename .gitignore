@@ -15,12 +15,14 @@
 /storage/covers/*
 /storage/uploads/*
 /storage/extracts/*
+/storage/users/*
 
 # Garder les dossiers storage vides dans Git
 !/storage/books/.gitkeep
 !/storage/covers/.gitkeep
 !/storage/uploads/.gitkeep
 !/storage/extracts/.gitkeep
+!/storage/users/.gitkeep
 
 # macOS
 .DS_Store

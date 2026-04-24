@@ -114,6 +114,7 @@ class PaymentController extends BaseController
             'personal_Info' => [['userId' => $user->id, 'bookId' => $book->id, 'type' => 'book_purchase']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
+            'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
         ];
 
         $ch = curl_init($apiUrl);
@@ -221,6 +222,7 @@ class PaymentController extends BaseController
             'personal_Info' => [['userId' => $user->id, 'plan' => $plan, 'duree_jours' => $planData['duree_jours'], 'type' => 'subscription']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
+            'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
         ];
 
         $ch = curl_init($apiUrl);
@@ -290,6 +292,81 @@ class PaymentController extends BaseController
     public function failed(): void
     {
         $this->view('payment/failed', ['titre' => 'Paiement annulé']);
+    }
+
+    // =====================================================================
+    // RETOUR DÉDIÉ MONEY FUSION
+    // =====================================================================
+    public function moneyFusionReturn(): void
+    {
+        Auth::requireLogin();
+
+        $tokenPay = $_GET['tokenPay'] ?? $_GET['token'] ?? null;
+
+        if (!$tokenPay) {
+            $this->view('payment/moneyfusion-return', [
+                'titre'            => 'Paiement Mobile Money',
+                'status'           => 'unknown',
+                'tokenPay'         => null,
+                'book'             => null,
+                'subscriptionInfo' => null,
+            ]);
+            return;
+        }
+
+        // Vérifier le statut du paiement auprès de Money Fusion
+        $checkUrl = 'https://www.pay.moneyfusion.net/paiementNotif/' . urlencode($tokenPay);
+        $ch = curl_init($checkUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $data   = json_decode($response);
+        $status = $data->data->statut ?? 'pending';
+
+        // Récupérer la transaction loguée pour reconstruire le contexte
+        $db = Database::getInstance();
+        $transaction = $db->fetch(
+            "SELECT * FROM transactions_log WHERE provider = 'money_fusion' AND provider_transaction_id = ?",
+            [$tokenPay]
+        );
+
+        $book = null;
+        $subscriptionInfo = null;
+
+        if ($transaction) {
+            if ($transaction->reference_type === 'books' && !empty($transaction->reference_id)) {
+                $book = $db->fetch(
+                    "SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as author_display
+                     FROM books b
+                     JOIN authors a ON b.author_id = a.id
+                     JOIN users u ON a.user_id = u.id
+                     WHERE b.id = ?",
+                    [(int) $transaction->reference_id]
+                );
+            } elseif ($transaction->type === 'abonnement') {
+                // Le webhook a peut-être déjà créé la souscription : on retrouve le label du plan
+                $sub = $db->fetch("SELECT type FROM subscriptions WHERE transaction_id = ?", [$tokenPay]);
+                $planLabel = null;
+                if ($sub) {
+                    foreach (self::PLANS as $p) {
+                        if ($p['type_db'] === $sub->type) { $planLabel = $p['label']; break; }
+                    }
+                }
+                $subscriptionInfo = ['plan' => $planLabel];
+            }
+        }
+
+        $this->view('payment/moneyfusion-return', [
+            'titre'            => 'Paiement Mobile Money',
+            'status'           => $status,
+            'tokenPay'         => $tokenPay,
+            'book'             => $book ?: null,
+            'subscriptionInfo' => $subscriptionInfo,
+        ]);
     }
 
     // =====================================================================

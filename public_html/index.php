@@ -44,6 +44,7 @@ $router->get('/abonnement/succes', 'PaymentController@subscriptionSuccess');
 // Paiements — retour + webhooks
 $router->get('/paiement/succes', 'PaymentController@success');
 $router->get('/paiement/echec', 'PaymentController@failed');
+$router->get('/paiement/moneyfusion/retour', 'PaymentController@moneyFusionReturn');
 $router->post('/webhook/stripe', 'PaymentController@stripeWebhook');
 $router->post('/webhook/moneyfusion', 'PaymentController@moneyFusionWebhook');
 
