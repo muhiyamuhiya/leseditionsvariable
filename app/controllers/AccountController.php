@@ -45,12 +45,53 @@ class AccountController extends BaseController
             [$user->id]
         );
 
+        $nbFavoris = (int) ($db->fetch(
+            "SELECT COUNT(*) AS n FROM user_books ub JOIN books b ON b.id = ub.book_id
+             WHERE ub.user_id = ? AND ub.favori = 1 AND b.statut = 'publie'",
+            [$user->id]
+        )->n ?? 0);
+
         $this->view('account/index', [
             'titre'      => 'Mon compte',
             'user'       => $user,
             'livres'     => $livres,
             'abonnement' => $abonnement,
             'stats'      => $stats,
+            'nbFavoris'  => $nbFavoris,
+        ]);
+    }
+
+    /**
+     * Page "Mes favoris" — livres marqués favoris par l'utilisateur
+     */
+    public function favorites(): void
+    {
+        Auth::requireLogin();
+        $userId = Auth::id();
+        $db = Database::getInstance();
+
+        $favoris = $db->fetchAll(
+            "SELECT b.id, b.slug, b.titre, b.prix_unitaire_usd, b.couverture_url_web,
+                    COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
+                    a.slug AS author_slug,
+                    c.nom AS category_nom,
+                    c.slug AS category_slug,
+                    ub.date_ajout AS date_ajout_favori
+             FROM user_books ub
+             JOIN books b ON ub.book_id = b.id
+             JOIN authors a ON b.author_id = a.id
+             JOIN users u ON a.user_id = u.id
+             LEFT JOIN categories c ON b.category_id = c.id
+             WHERE ub.user_id = ?
+               AND ub.favori = 1
+               AND b.statut = 'publie'
+             ORDER BY ub.date_ajout DESC",
+            [$userId]
+        );
+
+        $this->view('account/favorites', [
+            'titre'   => 'Mes favoris',
+            'favoris' => $favoris,
         ]);
     }
 

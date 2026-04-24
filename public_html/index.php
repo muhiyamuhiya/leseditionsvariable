@@ -58,6 +58,7 @@ $router->get('/lire/:slug', 'ReaderController@read');
 $router->get('/mon-compte/profil', 'AccountController@profile');
 $router->post('/mon-compte/profil', 'AccountController@updateProfile');
 $router->post('/mon-compte/password', 'AccountController@updatePassword');
+$router->get('/mon-compte/favoris', 'AccountController@favorites');
 $router->get('/mon-compte', 'AccountController@index');
 $router->get('/ma-bibliotheque', 'AccountController@index');
 
