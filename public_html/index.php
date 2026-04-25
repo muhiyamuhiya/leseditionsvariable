@@ -125,7 +125,11 @@ $router->post('/admin/candidatures/:id/valider', 'AdminController@authorValidate
 $router->post('/admin/candidatures/:id/refuser', 'AdminController@authorRefuse');
 $router->get('/admin/livres/:id/apercu', 'AdminController@bookPreview');
 $router->post('/admin/livres/:id/publier', 'AdminController@bookPublish');
-$router->get('/admin/lecteurs', 'AdminController@readers');
+$router->get('/admin/lecteurs/:id/editer', 'AdminController@userDetail');
+$router->post('/admin/lecteurs/:id/supprimer', 'AdminController@deleteUser');
+$router->post('/admin/lecteurs/:id/restaurer', 'AdminController@restoreUser');
+$router->get('/admin/lecteurs/:id', 'AdminController@userDetail');
+$router->get('/admin/lecteurs', 'AdminController@usersList');
 $router->get('/admin/categories', 'AdminController@categories');
 $router->post('/admin/categories', 'AdminController@categoriesUpdate');
 $router->get('/admin/abonnements', 'AdminController@subscriptions');

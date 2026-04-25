@@ -353,17 +353,166 @@ class AdminController extends BaseController
     }
 
     // =====================================================================
-    // LECTEURS
+    // UTILISATEURS — liste + détail + soft delete
     // =====================================================================
-    public function readers(): void
+
+    public function usersList(): void
     {
         Auth::requireAdmin();
-        $lecteurs = $this->db()->fetchAll(
-            "SELECT u.*, (SELECT COUNT(*) FROM user_books WHERE user_id=u.id) as nb_livres,
-                    (SELECT COUNT(*) FROM subscriptions WHERE user_id=u.id AND statut='actif' AND date_fin>=NOW()) as abo_actif
-             FROM users u WHERE u.role='lecteur' ORDER BY u.created_at DESC"
+        $db = $this->db();
+
+        $search  = trim($_GET['q'] ?? '');
+        $role    = $_GET['role'] ?? 'tous';
+        $statut  = $_GET['statut'] ?? 'tous';
+        $page    = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 25;
+        $offset  = ($page - 1) * $perPage;
+
+        $where  = ["1=1"];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = "(u.email LIKE ? OR u.prenom LIKE ? OR u.nom LIKE ?)";
+            $like = '%' . $search . '%';
+            $params[] = $like; $params[] = $like; $params[] = $like;
+        }
+        if (in_array($role, ['lecteur','auteur','admin'], true)) {
+            $where[] = "u.role = ?";
+            $params[] = $role;
+        }
+        if ($statut === 'actif') {
+            $where[] = "(u.statut = 'actif' OR u.statut IS NULL)";
+        } elseif ($statut === 'supprime') {
+            $where[] = "u.statut = 'supprime'";
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        $total = (int) ($db->fetch("SELECT COUNT(*) AS n FROM users u WHERE {$whereClause}", $params)->n ?? 0);
+
+        $listParams = $params;
+        $listParams[] = $perPage;
+        $listParams[] = $offset;
+        $users = $db->fetchAll(
+            "SELECT u.id, u.email, u.prenom, u.nom, u.role, u.statut, u.avatar_url, u.created_at, u.deleted_at,
+                    (SELECT COUNT(*) FROM user_books WHERE user_id = u.id AND source = 'achat_unitaire') AS nb_achats,
+                    (SELECT COUNT(*) FROM subscriptions WHERE user_id = u.id) AS nb_abonnements,
+                    (SELECT MAX(date_fin) FROM subscriptions WHERE user_id = u.id AND statut IN ('actif','annule')) AS date_fin_abo,
+                    (SELECT SUM(montant) FROM transactions_log WHERE user_id = u.id AND statut = 'reussi') AS total_depense
+             FROM users u
+             WHERE {$whereClause}
+             ORDER BY u.created_at DESC
+             LIMIT ? OFFSET ?",
+            $listParams
         );
-        $this->adminView('lecteurs/index', ['titre' => 'Lecteurs', 'lecteurs' => $lecteurs]);
+
+        $this->adminView('users/list', [
+            'titre'      => 'Utilisateurs',
+            'users'      => $users,
+            'search'     => $search,
+            'role'       => $role,
+            'statut'     => $statut,
+            'page'       => $page,
+            'totalPages' => max(1, (int) ceil($total / $perPage)),
+            'total'      => $total,
+        ]);
+    }
+
+    public function userDetail(string $id): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+        $id = (int) $id;
+
+        $user = $db->fetch("SELECT * FROM users WHERE id = ?", [$id]);
+        if (!$user) {
+            Session::flash('admin_error', 'Utilisateur introuvable.');
+            redirect('/admin/lecteurs');
+            return;
+        }
+
+        $achats = $db->fetchAll(
+            "SELECT ub.id, ub.date_ajout, b.id AS book_id, b.titre, b.slug, b.couverture_url_web, b.prix_unitaire_usd
+             FROM user_books ub
+             JOIN books b ON ub.book_id = b.id
+             WHERE ub.user_id = ? AND ub.source = 'achat_unitaire'
+             ORDER BY ub.date_ajout DESC",
+            [$id]
+        );
+
+        $abonnements = $db->fetchAll(
+            "SELECT * FROM subscriptions WHERE user_id = ? ORDER BY date_debut DESC",
+            [$id]
+        );
+
+        $transactions = $db->fetchAll(
+            "SELECT * FROM transactions_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
+            [$id]
+        );
+
+        $avis = $db->fetchAll(
+            "SELECT r.id, r.note, r.titre, r.commentaire, r.approuve, r.created_at, b.titre AS book_titre, b.slug AS book_slug
+             FROM reviews r
+             JOIN books b ON r.book_id = b.id
+             WHERE r.user_id = ?
+             ORDER BY r.created_at DESC",
+            [$id]
+        );
+
+        $this->adminView('users/detail', [
+            'titre'        => 'Utilisateur — ' . $user->prenom . ' ' . $user->nom,
+            'user'         => $user,
+            'achats'       => $achats,
+            'abonnements'  => $abonnements,
+            'transactions' => $transactions,
+            'avis'         => $avis,
+        ]);
+    }
+
+    public function deleteUser(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $db = $this->db();
+        $id = (int) $id;
+
+        $user = $db->fetch("SELECT id, role, email, prenom FROM users WHERE id = ?", [$id]);
+        if (!$user) {
+            Session::flash('admin_error', 'Utilisateur introuvable.');
+            redirect('/admin/lecteurs');
+            return;
+        }
+        if ($user->role === 'admin') {
+            Session::flash('admin_error', 'Impossible de supprimer un compte admin.');
+            redirect('/admin/lecteurs/' . $id);
+            return;
+        }
+
+        // Soft delete : anonymisation, conservation des stats agrégées
+        $db->update('users', [
+            'statut'     => 'supprime',
+            'email'      => $user->email . '_deleted_' . time(),
+            'prenom'     => 'Compte',
+            'nom'        => 'Supprimé (admin)',
+            'telephone'  => null,
+            'avatar_url' => null,
+            'bio'        => null,
+            'deleted_at' => date('Y-m-d H:i:s'),
+            'actif'      => 0,
+        ], 'id = ?', [$id]);
+
+        audit('admin_delete_user', 'users', $id, null, ['by' => Auth::id()]);
+
+        Session::flash('admin_success', 'Compte anonymisé avec succès.');
+        redirect('/admin/lecteurs');
+    }
+
+    public function restoreUser(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        Session::flash('admin_error', 'La restauration n\'est pas disponible : l\'email a été anonymisé.');
+        redirect('/admin/lecteurs/' . (int) $id);
     }
 
     // =====================================================================
