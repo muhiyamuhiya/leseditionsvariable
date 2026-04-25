@@ -16,6 +16,8 @@
 /storage/uploads/*
 /storage/extracts/*
 /storage/users/*
+/storage/editorial/uploads/*
+/storage/editorial/deliveries/*
 
 # Garder les dossiers storage vides dans Git
 !/storage/books/.gitkeep
@@ -23,6 +25,8 @@
 !/storage/uploads/.gitkeep
 !/storage/extracts/.gitkeep
 !/storage/users/.gitkeep
+!/storage/editorial/uploads/.gitkeep
+!/storage/editorial/deliveries/.gitkeep
 
 # macOS
 .DS_Store

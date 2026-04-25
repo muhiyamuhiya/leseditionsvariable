@@ -80,6 +80,32 @@ $router->get('/ma-bibliotheque', 'AccountController@index');
 // Abonnement
 $router->get('/abonnement', 'PageController@abonnement');
 
+// Services éditoriaux — page publique
+$router->get('/services-editoriaux', 'EditorialController@publicServices');
+
+// Services éditoriaux — auteur (routes spécifiques avant :id pour éviter collisions)
+$router->get('/auteur/services-editoriaux', 'EditorialController@servicesList');
+$router->get('/auteur/services-editoriaux/:slug/commander', 'EditorialController@orderForm');
+$router->post('/auteur/services-editoriaux/:slug/commander', 'EditorialController@createOrder');
+$router->get('/auteur/services-editoriaux/:slug', 'EditorialController@serviceDetail');
+$router->get('/auteur/mes-commandes-editoriales', 'EditorialController@myOrders');
+$router->get('/auteur/mes-commandes-editoriales/:id/payer', 'EditorialController@payOrder');
+$router->get('/auteur/mes-commandes-editoriales/:id', 'EditorialController@orderDetail');
+
+// Paiement commandes éditoriales
+$router->get('/paiement/editorial/:id/stripe', 'PaymentController@payEditorialStripe');
+$router->get('/paiement/editorial/:id/moneyfusion', 'PaymentController@payEditorialMoneyFusion');
+
+// Téléchargement sécurisé fichiers éditoriaux
+$router->get('/editorial/file/:type/:filename', 'EditorialController@serveFile');
+
+// Services éditoriaux — admin
+$router->get('/admin/services-editoriaux', 'AdminController@editorialOrdersList');
+$router->get('/admin/services-editoriaux/:id', 'AdminController@editorialOrderDetail');
+$router->post('/admin/services-editoriaux/:id/devis', 'AdminController@sendQuote');
+$router->post('/admin/services-editoriaux/:id/statut', 'AdminController@updateOrderStatus');
+$router->post('/admin/services-editoriaux/:id/livraison', 'AdminController@uploadDelivery');
+
 // Dashboard auteur (racine + sous-routes)
 $router->get('/auteur', 'AuthorDashboardController@dashboard');
 $router->get('/auteur/candidater', 'AuthorDashboardController@showApplication');

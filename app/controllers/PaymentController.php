@@ -245,12 +245,112 @@ class PaymentController extends BaseController
     }
 
     // =====================================================================
+    // COMMANDES ÉDITORIALES — paiement Stripe + Money Fusion
+    // =====================================================================
+    private function findEditorialOrder(int $orderId, int $userId): ?object
+    {
+        $row = Database::getInstance()->fetch(
+            "SELECT o.*, s.nom AS service_nom FROM editorial_orders o
+             JOIN editorial_services s ON s.id = o.service_id
+             WHERE o.id = ? AND o.user_id = ?",
+            [$orderId, $userId]
+        );
+        return $row ?: null;
+    }
+
+    public function payEditorialStripe(string $orderId): void
+    {
+        Auth::requireLogin();
+        $user = Auth::user();
+        $order = $this->findEditorialOrder((int) $orderId, $user->id);
+        if (!$order || $order->statut !== 'accepte' || $order->montant_propose === null) {
+            Session::flash('error', 'Commande indisponible pour le paiement.');
+            redirect('/auteur/mes-commandes-editoriales');
+            return;
+        }
+        if (!PaymentConfig::initStripe()) {
+            Session::flash('error', 'Paiement par carte temporairement indisponible.');
+            redirect('/auteur/mes-commandes-editoriales/' . $order->id);
+            return;
+        }
+
+        try {
+            $session = \Stripe\Checkout\Session::create([
+                'payment_method_types' => ['card'],
+                'line_items' => [[
+                    'price_data' => [
+                        'currency'     => strtolower($order->devise),
+                        'product_data' => ['name' => 'Service éditorial — ' . $order->service_nom, 'description' => mb_substr($order->titre_projet ?? '', 0, 200)],
+                        'unit_amount'  => (int) round((float) $order->montant_propose * 100),
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode' => 'payment',
+                'customer_email' => $user->email,
+                'success_url' => PaymentConfig::publicAppUrl() . '/paiement/succes?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'  => PaymentConfig::publicAppUrl() . '/auteur/mes-commandes-editoriales/' . $order->id . '?canceled=1',
+                'metadata' => ['user_id' => $user->id, 'editorial_order_id' => $order->id, 'type' => 'editorial_order'],
+            ]);
+            $this->logTransaction('autre', $user->id, $order->id, 'editorial_orders', 'stripe', $session->id, (float) $order->montant_propose, $order->devise);
+            header('Location: ' . $session->url);
+            exit;
+        } catch (\Exception $e) {
+            Session::flash('error', 'Erreur Stripe : ' . $e->getMessage());
+            redirect('/auteur/mes-commandes-editoriales/' . $order->id);
+        }
+    }
+
+    public function payEditorialMoneyFusion(string $orderId): void
+    {
+        Auth::requireLogin();
+        $user = Auth::user();
+        $order = $this->findEditorialOrder((int) $orderId, $user->id);
+        if (!$order || $order->statut !== 'accepte' || $order->montant_propose === null) {
+            Session::flash('error', 'Commande indisponible pour le paiement.');
+            redirect('/auteur/mes-commandes-editoriales');
+            return;
+        }
+        $apiUrl = PaymentConfig::moneyFusionApiUrl();
+        if (!$apiUrl) {
+            Session::flash('error', 'Mobile Money temporairement indisponible.');
+            redirect('/auteur/mes-commandes-editoriales/' . $order->id);
+            return;
+        }
+
+        $payload = [
+            'totalPrice'    => (float) $order->montant_propose,
+            'article'       => [['service_editorial' => (float) $order->montant_propose]],
+            'personal_Info' => [['userId' => $user->id, 'editorial_order_id' => (int) $order->id, 'type' => 'editorial_order']],
+            'numeroSend'    => $user->telephone ?? '',
+            'nomclient'     => $user->prenom . ' ' . $user->nom,
+            'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
+        ];
+
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($payload), CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($response);
+
+        if ($data && !empty($data->url)) {
+            $token = $data->token ?? $data->tokenPay ?? uniqid('mf_');
+            $this->logTransaction('autre', $user->id, (int) $order->id, 'editorial_orders', 'money_fusion', $token, (float) $order->montant_propose, $order->devise);
+            header('Location: ' . $data->url);
+            exit;
+        }
+
+        Session::flash('error', 'Erreur Money Fusion.');
+        redirect('/auteur/mes-commandes-editoriales/' . $order->id);
+    }
+
+    // =====================================================================
     // PAGES RETOUR
     // =====================================================================
     public function success(): void
     {
         $sessionId = $_GET['session_id'] ?? null;
         $book = null;
+        $editorialOrderId = null;
 
         if ($sessionId && PaymentConfig::initStripe()) {
             try {
@@ -261,8 +361,18 @@ class PaymentController extends BaseController
                     $book = Database::getInstance()->fetch("SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as author_display FROM books b JOIN authors a ON b.author_id=a.id JOIN users u ON a.user_id=u.id WHERE b.id=?", [(int) $session->metadata->book_id]);
                 } elseif ($type === 'subscription') {
                     $this->fulfillSubscription((int) $session->metadata->user_id, $session->metadata->plan, $sessionId);
+                } elseif ($type === 'editorial_order') {
+                    $this->fulfillEditorialOrder((int) $session->metadata->editorial_order_id, $sessionId);
+                    $editorialOrderId = (int) $session->metadata->editorial_order_id;
                 }
             } catch (\Exception $e) {}
+        }
+
+        // Redirection contextuelle pour les commandes éditoriales
+        if ($editorialOrderId) {
+            Session::flash('success', 'Paiement reçu. Notre équipe se met au travail.');
+            redirect('/auteur/mes-commandes-editoriales/' . $editorialOrderId);
+            return;
         }
 
         $this->view('payment/success', ['titre' => 'Paiement confirmé', 'book' => $book]);
@@ -395,6 +505,8 @@ class PaymentController extends BaseController
                     $this->fulfillBookPurchase((int) $s->metadata->user_id, (int) $s->metadata->book_id, $s->id);
                 } elseif ($type === 'subscription') {
                     $this->fulfillSubscription((int) $s->metadata->user_id, $s->metadata->plan, $s->id);
+                } elseif ($type === 'editorial_order') {
+                    $this->fulfillEditorialOrder((int) $s->metadata->editorial_order_id, $s->id);
                 }
             }
 
@@ -425,6 +537,8 @@ class PaymentController extends BaseController
                 $this->fulfillBookPurchase((int) $info['userId'], (int) $info['bookId'], $token);
             } elseif ($type === 'subscription' && !empty($info['userId']) && !empty($info['plan'])) {
                 $this->fulfillSubscription((int) $info['userId'], $info['plan'], $token);
+            } elseif ($type === 'editorial_order' && !empty($info['editorial_order_id'])) {
+                $this->fulfillEditorialOrder((int) $info['editorial_order_id'], $token);
             }
             $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$token]);
         } elseif (in_array($statut, ['failed', 'cancelled', 'expired'])) {
@@ -481,6 +595,44 @@ class PaymentController extends BaseController
             'Achat confirmé',
             'Tu peux maintenant lire « ' . $book->titre . ' » dans ta bibliothèque.',
             '/lire/' . $book->slug,
+            'cart'
+        );
+    }
+
+    private function fulfillEditorialOrder(int $orderId, ?string $txId): void
+    {
+        $db = Database::getInstance();
+        $order = $db->fetch(
+            "SELECT o.*, s.nom AS service_nom FROM editorial_orders o
+             JOIN editorial_services s ON s.id = o.service_id
+             WHERE o.id = ?",
+            [$orderId]
+        );
+        if (!$order) return;
+        if (in_array($order->statut, ['en_cours', 'livre'], true)) return; // idempotent
+
+        $db->update('editorial_orders', [
+            'statut'         => 'en_cours',
+            'transaction_id' => $txId,
+            'paye_at'        => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$orderId]);
+
+        if ($txId) { $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$txId]); }
+
+        Notification::create(
+            (int) $order->user_id,
+            'editorial_paid',
+            'Paiement reçu',
+            'On s\'occupe de ton projet « ' . ($order->service_nom ?? '') . ' ». Tu seras notifié dès la livraison.',
+            '/auteur/mes-commandes-editoriales/' . $orderId,
+            'check'
+        );
+
+        Notification::createForAdmins(
+            'editorial_paid_admin',
+            'Commande éditoriale payée',
+            'La commande #' . $orderId . ' (« ' . ($order->service_nom ?? '') . ' ») a été payée et passe en cours.',
+            '/admin/services-editoriaux/' . $orderId,
             'cart'
         );
     }

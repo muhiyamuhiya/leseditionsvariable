@@ -569,6 +569,210 @@ class AdminController extends BaseController
     }
 
     // =====================================================================
+    // SERVICES ÉDITORIAUX — gestion admin
+    // =====================================================================
+    public function editorialOrdersList(): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+        $statut = $_GET['statut'] ?? 'tous';
+        $q      = trim($_GET['q'] ?? '');
+
+        $where = ["1=1"];
+        $params = [];
+        $statutsValides = ['en_attente_devis','devis_envoye','accepte','en_cours','livre','annule','rembourse'];
+        if (in_array($statut, $statutsValides, true)) {
+            $where[] = "o.statut = ?";
+            $params[] = $statut;
+        }
+        if ($q !== '') {
+            $where[] = "(u.email LIKE ? OR u.prenom LIKE ? OR u.nom LIKE ? OR o.titre_projet LIKE ?)";
+            $like = '%' . $q . '%';
+            $params[] = $like; $params[] = $like; $params[] = $like; $params[] = $like;
+        }
+        $whereClause = implode(' AND ', $where);
+
+        $orders = $db->fetchAll(
+            "SELECT o.*, s.nom AS service_nom, s.icon AS service_icon,
+                    u.id AS user_id, u.email, u.prenom, u.nom
+             FROM editorial_orders o
+             JOIN editorial_services s ON s.id = o.service_id
+             JOIN users u ON u.id = o.user_id
+             WHERE {$whereClause}
+             ORDER BY o.created_at DESC",
+            $params
+        );
+
+        $this->adminView('editorial/list', [
+            'titre'  => 'Services éditoriaux',
+            'orders' => $orders,
+            'statut' => $statut,
+            'q'      => $q,
+        ]);
+    }
+
+    public function editorialOrderDetail(string $id): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+        $order = $db->fetch(
+            "SELECT o.*, s.nom AS service_nom, s.slug AS service_slug, s.icon AS service_icon, s.sur_devis,
+                    u.id AS u_id, u.email, u.prenom, u.nom
+             FROM editorial_orders o
+             JOIN editorial_services s ON s.id = o.service_id
+             JOIN users u ON u.id = o.user_id
+             WHERE o.id = ?",
+            [(int) $id]
+        );
+        if (!$order) {
+            Session::flash('admin_error', 'Commande introuvable.');
+            redirect('/admin/services-editoriaux');
+            return;
+        }
+
+        $this->adminView('editorial/detail', [
+            'titre' => 'Commande #' . $order->id,
+            'order' => $order,
+        ]);
+    }
+
+    public function sendQuote(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $db = $this->db();
+        $orderId = (int) $id;
+        $order = $db->fetch("SELECT id, user_id, statut FROM editorial_orders WHERE id = ?", [$orderId]);
+        if (!$order) { redirect('/admin/services-editoriaux'); return; }
+
+        $montant = (float) ($_POST['montant_propose'] ?? 0);
+        $devise  = strtoupper(trim($_POST['devise'] ?? 'USD'));
+        $notes   = trim($_POST['notes_admin'] ?? '');
+
+        if ($montant <= 0) {
+            Session::flash('admin_error', 'Montant invalide.');
+            redirect('/admin/services-editoriaux/' . $orderId);
+            return;
+        }
+
+        $db->update('editorial_orders', [
+            'statut'           => 'devis_envoye',
+            'montant_propose'  => $montant,
+            'devise'           => in_array($devise, ['USD','EUR','CDF','CAD'], true) ? $devise : 'USD',
+            'notes_admin'      => $notes ?: null,
+        ], 'id = ?', [$orderId]);
+
+        Notification::create(
+            (int) $order->user_id,
+            'editorial_quote',
+            'Devis reçu pour ta commande',
+            'On t\'a envoyé un devis de ' . number_format($montant, 2) . ' ' . $devise . '. Connecte-toi pour le voir.',
+            '/auteur/mes-commandes-editoriales/' . $orderId,
+            'mail'
+        );
+
+        Session::flash('admin_success', 'Devis envoyé.');
+        redirect('/admin/services-editoriaux/' . $orderId);
+    }
+
+    public function updateOrderStatus(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $db = $this->db();
+        $orderId = (int) $id;
+        $order = $db->fetch("SELECT id, user_id FROM editorial_orders WHERE id = ?", [$orderId]);
+        if (!$order) { redirect('/admin/services-editoriaux'); return; }
+
+        $newStatut = $_POST['statut'] ?? '';
+        $valides = ['en_attente_devis','devis_envoye','accepte','en_cours','livre','annule','rembourse'];
+        if (!in_array($newStatut, $valides, true)) {
+            Session::flash('admin_error', 'Statut invalide.');
+            redirect('/admin/services-editoriaux/' . $orderId);
+            return;
+        }
+
+        $update = ['statut' => $newStatut];
+        $note = trim($_POST['notes_admin'] ?? '');
+        if ($note !== '') $update['notes_admin'] = $note;
+
+        $db->update('editorial_orders', $update, 'id = ?', [$orderId]);
+
+        Notification::create(
+            (int) $order->user_id,
+            'editorial_status',
+            'Mise à jour de ta commande',
+            'Le statut est passé à : ' . $newStatut . '.',
+            '/auteur/mes-commandes-editoriales/' . $orderId,
+            'bell'
+        );
+
+        Session::flash('admin_success', 'Statut mis à jour.');
+        redirect('/admin/services-editoriaux/' . $orderId);
+    }
+
+    public function uploadDelivery(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $db = $this->db();
+        $orderId = (int) $id;
+        $order = $db->fetch("SELECT id, user_id FROM editorial_orders WHERE id = ?", [$orderId]);
+        if (!$order) { redirect('/admin/services-editoriaux'); return; }
+
+        if (empty($_FILES['delivery']['tmp_name']) || ($_FILES['delivery']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            Session::flash('admin_error', 'Aucun fichier reçu.');
+            redirect('/admin/services-editoriaux/' . $orderId);
+            return;
+        }
+
+        $allowed = [
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/zip' => 'zip',
+            'application/x-zip-compressed' => 'zip',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+        ];
+        $mime = $_FILES['delivery']['type'] ?? '';
+        if (!isset($allowed[$mime]) || $_FILES['delivery']['size'] > 100 * 1024 * 1024) {
+            Session::flash('admin_error', 'Format non supporté ou fichier trop lourd (max 100 Mo).');
+            redirect('/admin/services-editoriaux/' . $orderId);
+            return;
+        }
+
+        $ext = $allowed[$mime];
+        $name = 'delivery-' . $orderId . '-' . time() . '-' . bin2hex(random_bytes(6)) . '.' . $ext;
+        $rel = 'storage/editorial/deliveries/' . $name;
+        $abs = BASE_PATH . '/' . $rel;
+        if (!is_dir(dirname($abs))) mkdir(dirname($abs), 0755, true);
+        if (!move_uploaded_file($_FILES['delivery']['tmp_name'], $abs)) {
+            Session::flash('admin_error', 'Échec de l\'enregistrement du fichier.');
+            redirect('/admin/services-editoriaux/' . $orderId);
+            return;
+        }
+
+        $db->update('editorial_orders', [
+            'fichier_livraison_url' => $rel,
+            'statut'                => 'livre',
+            'livre_at'              => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$orderId]);
+
+        Notification::create(
+            (int) $order->user_id,
+            'editorial_delivered',
+            'Ta commande est livrée !',
+            'Connecte-toi pour télécharger ton livrable.',
+            '/auteur/mes-commandes-editoriales/' . $orderId,
+            'check'
+        );
+
+        Session::flash('admin_success', 'Livraison enregistrée et auteur notifié.');
+        redirect('/admin/services-editoriaux/' . $orderId);
+    }
+
+    // =====================================================================
     // CATÉGORIES
     // =====================================================================
     public function categories(): void
