@@ -258,11 +258,11 @@ class PaymentController extends BaseController
         return $row ?: null;
     }
 
-    public function payEditorialStripe(string $orderId): void
+    public function payEditorialStripe(string $id): void
     {
         Auth::requireLogin();
         $user = Auth::user();
-        $order = $this->findEditorialOrder((int) $orderId, $user->id);
+        $order = $this->findEditorialOrder((int) $id, $user->id);
         if (!$order || $order->statut !== 'accepte' || $order->montant_propose === null) {
             Session::flash('error', 'Commande indisponible pour le paiement.');
             redirect('/auteur/mes-commandes-editoriales');
@@ -300,11 +300,11 @@ class PaymentController extends BaseController
         }
     }
 
-    public function payEditorialMoneyFusion(string $orderId): void
+    public function payEditorialMoneyFusion(string $id): void
     {
         Auth::requireLogin();
         $user = Auth::user();
-        $order = $this->findEditorialOrder((int) $orderId, $user->id);
+        $order = $this->findEditorialOrder((int) $id, $user->id);
         if (!$order || $order->statut !== 'accepte' || $order->montant_propose === null) {
             Session::flash('error', 'Commande indisponible pour le paiement.');
             redirect('/auteur/mes-commandes-editoriales');
