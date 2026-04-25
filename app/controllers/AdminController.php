@@ -4,8 +4,9 @@ namespace App\Controllers;
 use App\Lib\Auth;
 use App\Lib\CSRF;
 use App\Lib\Database;
-use App\Lib\Session;
 use App\Lib\Mailer;
+use App\Lib\Notification;
+use App\Lib\Session;
 
 /**
  * Contrôleur du dashboard admin
@@ -326,8 +327,29 @@ class AdminController extends BaseController
     {
         Auth::requireAdmin();
         CSRF::check();
-        $this->db()->update('books', ['statut' => 'publie', 'date_publication' => date('Y-m-d H:i:s')], 'id = ?', [(int) $id]);
-        audit('book_publish', 'books', (int) $id);
+        $db = $this->db();
+        $bookId = (int) $id;
+        $db->update('books', ['statut' => 'publie', 'date_publication' => date('Y-m-d H:i:s')], 'id = ?', [$bookId]);
+        audit('book_publish', 'books', $bookId);
+
+        // Notifier l'auteur de la publication
+        $info = $db->fetch(
+            "SELECT b.titre, b.slug, u.id AS user_id
+             FROM books b JOIN authors a ON a.id = b.author_id JOIN users u ON u.id = a.user_id
+             WHERE b.id = ?",
+            [$bookId]
+        );
+        if ($info) {
+            Notification::create(
+                (int) $info->user_id,
+                'book_published',
+                'Ton livre est publié !',
+                '« ' . $info->titre . ' » est maintenant disponible sur Les éditions Variable.',
+                '/livre/' . $info->slug,
+                'book'
+            );
+        }
+
         Session::flash('admin_success', 'Livre publié.');
         redirect('/admin/livres');
     }
@@ -336,8 +358,23 @@ class AdminController extends BaseController
     {
         Auth::requireAdmin();
         CSRF::check();
-        $this->db()->update('authors', ['statut_validation' => 'valide', 'date_validation' => date('Y-m-d H:i:s'), 'valide_par_admin_id' => Auth::id()], 'id = ?', [(int) $id]);
-        audit('author_validate', 'authors', (int) $id);
+        $db = $this->db();
+        $authorId = (int) $id;
+        $db->update('authors', ['statut_validation' => 'valide', 'date_validation' => date('Y-m-d H:i:s'), 'valide_par_admin_id' => Auth::id()], 'id = ?', [$authorId]);
+        audit('author_validate', 'authors', $authorId);
+
+        $author = $db->fetch("SELECT user_id FROM authors WHERE id = ?", [$authorId]);
+        if ($author) {
+            Notification::create(
+                (int) $author->user_id,
+                'candidacy_accepted',
+                'Félicitations, tu es auteur !',
+                'Ta candidature a été acceptée. Tu peux maintenant soumettre ton premier livre.',
+                '/auteur',
+                'check'
+            );
+        }
+
         Session::flash('admin_success', 'Auteur validé.');
         redirect('/admin/candidatures');
     }
@@ -346,8 +383,24 @@ class AdminController extends BaseController
     {
         Auth::requireAdmin();
         CSRF::check();
-        $this->db()->update('authors', ['statut_validation' => 'refuse', 'notes_admin' => trim($_POST['motif'] ?? '')], 'id = ?', [(int) $id]);
-        audit('author_refuse', 'authors', (int) $id);
+        $db = $this->db();
+        $authorId = (int) $id;
+        $motif = trim($_POST['motif'] ?? '');
+        $db->update('authors', ['statut_validation' => 'refuse', 'notes_admin' => $motif], 'id = ?', [$authorId]);
+        audit('author_refuse', 'authors', $authorId);
+
+        $author = $db->fetch("SELECT user_id FROM authors WHERE id = ?", [$authorId]);
+        if ($author) {
+            Notification::create(
+                (int) $author->user_id,
+                'candidacy_rejected',
+                'Candidature non retenue',
+                'Ta candidature n\'a pas été retenue cette fois. Tu peux retenter ou nous écrire pour comprendre.',
+                '/contact',
+                'alert'
+            );
+        }
+
         Session::flash('admin_success', 'Candidature refusée.');
         redirect('/admin/candidatures');
     }

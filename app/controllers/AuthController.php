@@ -4,8 +4,9 @@ namespace App\Controllers;
 use App\Lib\Auth;
 use App\Lib\CSRF;
 use App\Lib\Database;
-use App\Lib\Session;
 use App\Lib\Mailer;
+use App\Lib\Notification;
+use App\Lib\Session;
 use App\Models\User;
 
 /**
@@ -178,6 +179,15 @@ class AuthController extends BaseController
         $user = User::find($userId);
         if ($user) {
             Mailer::sendVerificationEmail($user, $user->token_verification);
+
+            // Notifier l'équipe admin de l'inscription
+            Notification::createForAdmins(
+                'new_user',
+                'Nouvelle inscription',
+                $user->prenom . ' ' . $user->nom . ' (' . $user->email . ') vient de s\'inscrire.',
+                '/admin/lecteurs/' . (int) $user->id,
+                'mail'
+            );
         }
 
         Session::flash('success', 'Inscription réussie ! Consultez votre boîte email pour activer votre compte.');

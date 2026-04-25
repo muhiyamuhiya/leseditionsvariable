@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Lib\Auth;
 use App\Lib\Database;
+use App\Lib\Notification;
 use App\Lib\PaymentConfig;
 use App\Lib\Session;
 use App\Models\Book;
@@ -473,6 +474,15 @@ class PaymentController extends BaseController
         $db->update('books', ['total_ventes' => (int) $book->total_ventes + 1, 'revenus_cumul' => (float) $book->revenus_cumul + $prix], 'id = ?', [$bookId]);
 
         if ($txId) { $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$txId]); }
+
+        Notification::create(
+            $userId,
+            'purchase_confirmed',
+            'Achat confirmé',
+            'Tu peux maintenant lire « ' . $book->titre . ' » dans ta bibliothèque.',
+            '/lire/' . $book->slug,
+            'cart'
+        );
     }
 
     private function fulfillSubscription(int $userId, string $plan, ?string $txId): void
@@ -507,6 +517,15 @@ class PaymentController extends BaseController
         ]);
 
         if ($txId) { $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$txId]); }
+
+        Notification::create(
+            $userId,
+            'subscription_active',
+            'Abonnement actif !',
+            'Bienvenue dans ton abonnement ' . $planData['label'] . '. Lecture illimitée jusqu\'au ' . date('d/m/Y', strtotime($dateFin)) . '.',
+            '/catalogue',
+            'premium'
+        );
     }
 
     // =====================================================================

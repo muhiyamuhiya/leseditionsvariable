@@ -5,6 +5,7 @@ use App\Lib\Auth;
 use App\Lib\BookAccess;
 use App\Lib\CSRF;
 use App\Lib\Database;
+use App\Lib\Notification;
 use App\Lib\Session;
 use App\Models\Book;
 use App\Models\Category;
@@ -214,6 +215,22 @@ class BookController extends BaseController
                 'note_moyenne' => round((float) $stats->avg_note, 2),
                 'nombre_avis'  => (int) $stats->nb,
             ], 'id = ?', [$book->id]);
+        }
+
+        // Notifier l'auteur du livre (si différent du reviewer)
+        $authorUser = $db->fetch(
+            "SELECT u.id FROM authors a JOIN users u ON u.id = a.user_id WHERE a.id = ?",
+            [$book->author_id]
+        );
+        if ($authorUser && (int) $authorUser->id !== (int) $user->id) {
+            Notification::create(
+                (int) $authorUser->id,
+                'new_review',
+                'Nouvel avis sur ton livre',
+                $user->prenom . ' a laissé un avis ' . $note . '★ sur « ' . $book->titre . ' ».',
+                '/livre/' . $book->slug . '#avis',
+                'star'
+            );
         }
 
         Session::flash('avis_success', 'Ton avis a été publié !');

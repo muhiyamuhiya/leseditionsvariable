@@ -11,6 +11,7 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="fr_FR">
 
+    <meta name="csrf-token" content="<?= csrf_token() ?>">
     <link rel="icon" type="image/png" href="/assets/images/logo.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,6 +58,81 @@
     <?php require BASE_PATH . '/app/views/partials/footer.php'; ?>
 
     <script>
+    function notificationBell() {
+        return {
+            open: false,
+            loading: false,
+            unreadCount: 0,
+            notifications: [],
+
+            csrf() { return document.querySelector('meta[name="csrf-token"]')?.content || ''; },
+
+            async loadCount() {
+                try {
+                    const res = await fetch('/notifications/api/count', { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    this.unreadCount = data.count || 0;
+                } catch (e) {}
+            },
+
+            async toggle() {
+                this.open = !this.open;
+                if (this.open) await this.loadNotifications();
+            },
+
+            async loadNotifications() {
+                this.loading = true;
+                try {
+                    const res = await fetch('/notifications/api/recent', { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    this.notifications = data.notifications || [];
+                    this.unreadCount = data.unread_count || 0;
+                } catch (e) {}
+                this.loading = false;
+            },
+
+            async markAsRead(id) {
+                const notif = this.notifications.find(n => n.id == id);
+                if (notif && notif.read_at) return;
+                try {
+                    await fetch('/notifications/' + id + '/lire', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': this.csrf(), 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (notif) notif.read_at = new Date().toISOString();
+                    this.unreadCount = Math.max(0, this.unreadCount - 1);
+                } catch (e) {}
+            },
+
+            async markAllRead() {
+                try {
+                    await fetch('/notifications/lire-toutes', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-Token': this.csrf(), 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    this.unreadCount = 0;
+                    const now = new Date().toISOString();
+                    this.notifications.forEach(n => { if (!n.read_at) n.read_at = now; });
+                } catch (e) {}
+            },
+
+            iconFor(key) {
+                const icons = { bell:'🔔', check:'✅', star:'⭐', book:'📖', alert:'⚠️', mail:'✉️', cart:'🛒', premium:'✨' };
+                return icons[key] || '🔔';
+            },
+
+            timeAgo(dateStr) {
+                if (!dateStr) return '';
+                const d = new Date(dateStr.replace(' ', 'T'));
+                const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+                if (seconds < 60) return 'à l\'instant';
+                if (seconds < 3600) return 'il y a ' + Math.floor(seconds / 60) + ' min';
+                if (seconds < 86400) return 'il y a ' + Math.floor(seconds / 3600) + ' h';
+                return 'il y a ' + Math.floor(seconds / 86400) + ' j';
+            }
+        }
+    }
+
     function liveSearch() {
         return {
             q: '',

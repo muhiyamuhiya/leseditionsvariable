@@ -84,6 +84,60 @@ $devenirAuteurHref = $currentUser ? '/auteur/candidater' : '/connexion?redirect=
                 </div>
 
                 <?php if ($currentUser): ?>
+                    <!-- Cloche notifications -->
+                    <div x-data="notificationBell()"
+                         x-init="loadCount(); setInterval(() => loadCount(), 60000)"
+                         class="relative hidden sm:block">
+                        <button @click="toggle()"
+                                class="relative p-1.5 text-text-muted hover:text-accent transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+                            <span x-show="unreadCount > 0" x-cloak x-text="unreadCount > 9 ? '9+' : unreadCount"
+                                  class="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center"></span>
+                        </button>
+
+                        <div x-show="open" x-cloak @click.outside="open = false"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             class="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-2xl z-50">
+                            <div class="flex items-center justify-between p-4 border-b border-border">
+                                <h3 class="font-display font-bold text-white text-sm">Notifications</h3>
+                                <button @click="markAllRead()" x-show="unreadCount > 0" class="text-xs text-accent hover:text-accent-hover">Tout marquer lu</button>
+                            </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                <template x-if="loading">
+                                    <div class="p-8 text-center text-text-dim text-sm">Chargement…</div>
+                                </template>
+                                <template x-if="!loading && notifications.length === 0">
+                                    <div class="p-8 text-center text-text-dim">
+                                        <svg class="w-12 h-12 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0"/></svg>
+                                        <p class="text-sm">Aucune notification</p>
+                                    </div>
+                                </template>
+                                <template x-for="notif in notifications" :key="notif.id">
+                                    <a :href="notif.link_url || '#'" @click="markAsRead(notif.id)"
+                                       class="block p-4 border-b border-border/50 hover:bg-surface-2 transition-colors"
+                                       :class="!notif.read_at ? 'bg-accent/5' : ''">
+                                        <div class="flex gap-3">
+                                            <div class="flex-shrink-0 w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center">
+                                                <span x-text="iconFor(notif.icon)" class="text-base"></span>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-medium text-white text-sm truncate" x-text="notif.title"></p>
+                                                <p class="text-xs text-text-muted mt-0.5 line-clamp-2" x-text="notif.message || ''"></p>
+                                                <p class="text-[10px] text-text-dim mt-1" x-text="timeAgo(notif.created_at)"></p>
+                                            </div>
+                                            <span x-show="!notif.read_at" class="w-2 h-2 rounded-full bg-accent flex-shrink-0 mt-1.5"></span>
+                                        </div>
+                                    </a>
+                                </template>
+                            </div>
+                            <div class="p-3 border-t border-border text-center">
+                                <a href="/notifications" class="text-xs text-accent hover:text-accent-hover">Voir toutes les notifications</a>
+                            </div>
+                        </div>
+                    </div>
+
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" @click.outside="open = false"
                                 class="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-xs font-bold font-display">

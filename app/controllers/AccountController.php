@@ -5,6 +5,7 @@ use App\Lib\Auth;
 use App\Lib\CSRF;
 use App\Lib\Database;
 use App\Lib\Mailer;
+use App\Lib\Notification;
 use App\Lib\Session;
 use App\Models\Subscription;
 
@@ -311,7 +312,26 @@ class AccountController extends BaseController
         }
 
         if (Subscription::cancel($userId, $motif, $raison)) {
-            Mailer::sendSubscriptionCancellation(Auth::user(), $sub->date_fin);
+            $user = Auth::user();
+            Mailer::sendSubscriptionCancellation($user, $sub->date_fin);
+
+            // Notifier l'équipe admin
+            $motifLabels = [
+                'trop_cher'    => 'Trop cher',
+                'pas_le_temps' => 'Pas le temps de lire',
+                'catalogue'    => 'Catalogue ne convient pas',
+                'alternative'  => 'Alternative trouvée',
+                'technique'    => 'Problème technique',
+                'autre'        => 'Autre',
+            ];
+            Notification::createForAdmins(
+                'subscription_cancelled',
+                'Annulation d\'abonnement',
+                $user->prenom . ' ' . $user->nom . ' a annulé son abonnement. Raison : ' . ($motifLabels[$motif] ?? $motif),
+                '/admin/lecteurs/' . $userId,
+                'alert'
+            );
+
             Session::flash('success', 'Ton abonnement est annulé. Tu gardes l\'accès jusqu\'au ' . date('d/m/Y', strtotime($sub->date_fin)) . '.');
         } else {
             Session::flash('error', 'Annulation impossible.');

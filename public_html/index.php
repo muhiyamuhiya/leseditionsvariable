@@ -55,6 +55,14 @@ $router->get('/lire/:slug/extrait', 'ReaderController@readExtrait');
 $router->get('/lire/:slug', 'ReaderController@read');
 
 // Mon compte (dashboard lecteur)
+// Notifications (routes spécifiques avant routes :id pour éviter les collisions)
+$router->get('/notifications/api/recent', 'NotificationController@apiRecent');
+$router->get('/notifications/api/count', 'NotificationController@apiCount');
+$router->post('/notifications/lire-toutes', 'NotificationController@markAllRead');
+$router->post('/notifications/:id/lire', 'NotificationController@markRead');
+$router->post('/notifications/:id/supprimer', 'NotificationController@destroy');
+$router->get('/notifications', 'NotificationController@index');
+
 $router->get('/mon-compte/profil', 'AccountController@profile');
 $router->post('/mon-compte/profil', 'AccountController@updateProfile');
 $router->post('/mon-compte/password', 'AccountController@updatePassword');
