@@ -116,5 +116,24 @@ $error = flash('error');
             </div>
         </form>
 
+        <!-- Zone de danger : suppression de compte (RGPD) -->
+        <div class="mt-12 border-2 border-rose-500/40 rounded-xl p-5 sm:p-6 bg-rose-500/5">
+            <h3 class="text-rose-400 font-display font-semibold text-base mb-2">Zone de danger</h3>
+            <p class="text-text-muted text-sm mb-2">Supprimer mon compte. Cette action est <strong class="text-white">définitive</strong>. Tu perdras :</p>
+            <ul class="text-text-muted text-sm space-y-1 mb-5 ml-5 list-disc">
+                <li>Tes livres achetés</li>
+                <li>Ta progression de lecture</li>
+                <li>Tes avis et favoris</li>
+                <li>Tes versements en attente (si tu es auteur)</li>
+            </ul>
+            <form action="/mon-compte/supprimer-demande" method="POST"
+                  onsubmit="return confirm('Un email de confirmation va être envoyé à ton adresse. Continuer ?');">
+                <?= csrf_field() ?>
+                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold px-5 py-2.5 rounded transition-colors">
+                    Demander la suppression de mon compte
+                </button>
+            </form>
+        </div>
+
     </div>
 </section>

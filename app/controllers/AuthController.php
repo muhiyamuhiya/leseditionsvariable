@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Lib\Auth;
 use App\Lib\CSRF;
+use App\Lib\Database;
 use App\Lib\Session;
 use App\Lib\Mailer;
 use App\Models\User;
@@ -330,5 +331,86 @@ class AuthController extends BaseController
 
         Session::flash('success', 'Mot de passe modifié avec succès ! Vous pouvez maintenant vous connecter.');
         redirect('/connexion');
+    }
+
+    // =========================================================================
+    // SUPPRESSION DE COMPTE (RGPD) — confirmation par email
+    // =========================================================================
+
+    /**
+     * Récupère et valide un token de suppression. Retourne l'objet token (avec user) ou null.
+     */
+    private function fetchValidDeletionToken(string $token): ?object
+    {
+        $db = Database::getInstance();
+        return $db->fetch(
+            "SELECT t.*, u.id AS u_id, u.email AS u_email, u.prenom AS u_prenom, u.nom AS u_nom, u.statut AS u_statut
+             FROM user_deletion_tokens t
+             JOIN users u ON u.id = t.user_id
+             WHERE t.token = ? AND t.used = 0 AND t.expire_at >= NOW()",
+            [$token]
+        ) ?: null;
+    }
+
+    public function confirmDeletionForm(string $token): void
+    {
+        $row = $this->fetchValidDeletionToken($token);
+        if (!$row || $row->u_statut === 'supprime') {
+            Session::flash('error', 'Lien de suppression invalide ou expiré.');
+            redirect('/');
+            return;
+        }
+
+        $this->view('auth/confirm-deletion', [
+            'titre'   => 'Confirmation de suppression',
+            'token'   => $token,
+            'prenom'  => $row->u_prenom,
+            'email'   => $row->u_email,
+        ]);
+    }
+
+    public function confirmDeletion(string $token): void
+    {
+        CSRF::check();
+        $row = $this->fetchValidDeletionToken($token);
+        if (!$row || $row->u_statut === 'supprime') {
+            Session::flash('error', 'Lien de suppression invalide ou expiré.');
+            redirect('/');
+            return;
+        }
+
+        $confirmation = trim($_POST['confirmation'] ?? '');
+        if ($confirmation !== 'SUPPRIMER') {
+            Session::flash('error', 'Tu dois taper SUPPRIMER en majuscules pour confirmer.');
+            redirect('/supprimer-compte/confirmer/' . $token);
+            return;
+        }
+
+        $db = Database::getInstance();
+
+        // Soft delete : on anonymise mais on garde la ligne pour les statistiques agrégées
+        $emailOriginal = $row->u_email;
+        $prenomOriginal = $row->u_prenom;
+        $emailAnon = $emailOriginal . '_deleted_' . time();
+
+        $db->update('users', [
+            'statut'       => 'supprime',
+            'email'        => $emailAnon,
+            'prenom'       => 'Compte',
+            'nom'          => 'Supprimé',
+            'telephone'    => null,
+            'avatar_url'   => null,
+            'bio'          => null,
+            'deleted_at'   => date('Y-m-d H:i:s'),
+            'actif'        => 0,
+        ], 'id = ?', [$row->u_id]);
+
+        $db->update('user_deletion_tokens', ['used' => 1], 'token = ?', [$token]);
+
+        Mailer::sendDeletionFinal($emailOriginal, $prenomOriginal);
+
+        Auth::logout();
+        Session::flash('success', 'Ton compte a été supprimé. Merci d\'avoir fait partie de l\'aventure.');
+        redirect('/');
     }
 }

@@ -114,7 +114,8 @@ class AdminController extends BaseController
             'prix_unitaire_cdf'     => (float) ($_POST['prix_unitaire_cdf'] ?? 0) ?: null,
             'prix_unitaire_eur'     => (float) ($_POST['prix_unitaire_eur'] ?? 0) ?: null,
             'prix_unitaire_cad'     => (float) ($_POST['prix_unitaire_cad'] ?? 0) ?: null,
-            'accessible_abonnement' => isset($_POST['accessible_abonnement']) ? 1 : 0,
+            'accessible_abonnement_essentiel' => (int) ($_POST['accessible_abonnement_essentiel'] ?? 0),
+            'accessible_abonnement_premium'   => (int) ($_POST['accessible_abonnement_premium'] ?? 0),
             'mis_en_avant'          => isset($_POST['mis_en_avant']) ? 1 : 0,
             'nouveaute'             => isset($_POST['nouveaute']) ? 1 : 0,
             'statut'                => $_POST['statut'] ?? 'brouillon',
@@ -178,7 +179,8 @@ class AdminController extends BaseController
             'statut' => $_POST['statut'] ?? 'brouillon',
             'langue' => 'fr',
             'editeur' => 'Les éditions Variable',
-            'accessible_abonnement' => isset($_POST['accessible_abonnement']) ? 1 : 0,
+            'accessible_abonnement_essentiel' => (int) ($_POST['accessible_abonnement_essentiel'] ?? 1),
+            'accessible_abonnement_premium'   => (int) ($_POST['accessible_abonnement_premium'] ?? 1),
         ];
 
         if ($bookData['statut'] === 'publie') {

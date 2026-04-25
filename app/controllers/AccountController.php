@@ -4,7 +4,9 @@ namespace App\Controllers;
 use App\Lib\Auth;
 use App\Lib\CSRF;
 use App\Lib\Database;
+use App\Lib\Mailer;
 use App\Lib\Session;
+use App\Models\Subscription;
 
 /**
  * Dashboard lecteur
@@ -183,6 +185,122 @@ class AccountController extends BaseController
         $db->update('users', ['password_hash' => password_hash($new, PASSWORD_BCRYPT)], 'id = ?', [$userId]);
 
         Session::flash('success', 'Mot de passe changé avec succès.');
+        redirect('/mon-compte/profil');
+    }
+
+    // =====================================================================
+    // ABONNEMENT — visualisation, annulation, réactivation
+    // =====================================================================
+
+    public function subscription(): void
+    {
+        Auth::requireLogin();
+        $userId = Auth::id();
+        $db = Database::getInstance();
+
+        $sub = $db->fetch(
+            "SELECT * FROM subscriptions
+             WHERE user_id = ? AND date_fin >= NOW()
+             ORDER BY date_fin DESC LIMIT 1",
+            [$userId]
+        );
+
+        $planLabel = $sub ? (Subscription::PLANS[$sub->type]['label'] ?? $sub->type) : null;
+        $tier = $sub ? (Subscription::PLANS[$sub->type]['tier'] ?? null) : null;
+
+        $this->view('account/subscription', [
+            'titre'     => 'Mon abonnement',
+            'sub'       => $sub,
+            'planLabel' => $planLabel,
+            'tier'      => $tier,
+        ]);
+    }
+
+    public function cancelSubscriptionForm(): void
+    {
+        Auth::requireLogin();
+        $sub = Subscription::getActive(Auth::id());
+        if (!$sub || $sub->statut !== 'actif') {
+            redirect('/mon-compte/abonnement');
+            return;
+        }
+
+        $this->view('account/cancel-subscription', [
+            'titre' => 'Annuler mon abonnement',
+            'sub'   => $sub,
+            'user'  => Auth::user(),
+        ]);
+    }
+
+    public function cancelSubscription(): void
+    {
+        Auth::requireLogin();
+        CSRF::check();
+        $userId = Auth::id();
+
+        $motif = $_POST['motif'] ?? 'autre';
+        $raison = trim($_POST['raison'] ?? '') ?: null;
+
+        $motifsValides = ['trop_cher','pas_le_temps','catalogue','alternative','technique','autre'];
+        if (!in_array($motif, $motifsValides, true)) {
+            $motif = 'autre';
+        }
+
+        $sub = Subscription::getActive($userId);
+        if (!$sub || $sub->statut !== 'actif') {
+            Session::flash('error', 'Aucun abonnement actif à annuler.');
+            redirect('/mon-compte/abonnement');
+            return;
+        }
+
+        if (Subscription::cancel($userId, $motif, $raison)) {
+            Mailer::sendSubscriptionCancellation(Auth::user(), $sub->date_fin);
+            Session::flash('success', 'Ton abonnement est annulé. Tu gardes l\'accès jusqu\'au ' . date('d/m/Y', strtotime($sub->date_fin)) . '.');
+        } else {
+            Session::flash('error', 'Annulation impossible.');
+        }
+        redirect('/mon-compte/abonnement');
+    }
+
+    public function reactivateSubscription(): void
+    {
+        Auth::requireLogin();
+        CSRF::check();
+        $userId = Auth::id();
+
+        if (Subscription::reactivate($userId)) {
+            Session::flash('success', 'Ton abonnement est réactivé.');
+        } else {
+            Session::flash('error', 'Réactivation impossible.');
+        }
+        redirect('/mon-compte/abonnement');
+    }
+
+    // =====================================================================
+    // SUPPRESSION DE COMPTE (RGPD) — demande puis confirmation par email
+    // =====================================================================
+
+    public function requestDeletion(): void
+    {
+        Auth::requireLogin();
+        CSRF::check();
+        $user = Auth::user();
+        $db = Database::getInstance();
+
+        // Invalider les anciens tokens non utilisés du user
+        $db->update('user_deletion_tokens', ['used' => 1], 'user_id = ? AND used = 0', [$user->id]);
+
+        $token = bin2hex(random_bytes(32));
+        $db->insert('user_deletion_tokens', [
+            'user_id'   => $user->id,
+            'token'     => $token,
+            'expire_at' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+            'used'      => 0,
+        ]);
+
+        Mailer::sendDeletionRequest($user, $token);
+
+        Session::flash('success', "Email envoyé à {$user->email}. Clique sur le lien dans les 24h pour confirmer la suppression.");
         redirect('/mon-compte/profil');
     }
 }

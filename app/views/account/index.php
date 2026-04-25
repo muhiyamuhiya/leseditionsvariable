@@ -45,10 +45,10 @@
             <?php if ($abonnement): ?>
                 <div class="flex items-center justify-between flex-wrap gap-3">
                     <div>
-                        <span class="inline-block bg-accent/20 text-accent text-xs font-semibold px-2.5 py-1 rounded"><?= e(ucfirst($abonnement->type)) ?></span>
+                        <span class="inline-block bg-accent/20 text-accent text-xs font-semibold px-2.5 py-1 rounded"><?= e(\App\Models\Subscription::PLANS[$abonnement->type]['label'] ?? ucfirst(str_replace('_',' ', $abonnement->type))) ?></span>
                         <p class="text-text-muted text-sm mt-2">Actif jusqu'au <?= date('d/m/Y', strtotime($abonnement->date_fin)) ?></p>
                     </div>
-                    <a href="/abonnement" class="btn-secondary text-sm">Gérer</a>
+                    <a href="/mon-compte/abonnement" class="btn-secondary text-sm">Gérer</a>
                 </div>
             <?php else: ?>
                 <p class="text-text-muted text-sm mb-3">Aucun abonnement actif.</p>

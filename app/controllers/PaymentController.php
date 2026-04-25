@@ -13,9 +13,10 @@ use App\Models\Book;
 class PaymentController extends BaseController
 {
     private const PLANS = [
-        'mensuel' => ['prix' => 3, 'label' => 'Essentiel Mensuel', 'duree_jours' => 30, 'type_db' => 'mensuel'],
-        'annuel'  => ['prix' => 30, 'label' => 'Essentiel Annuel', 'duree_jours' => 365, 'type_db' => 'annuel'],
-        'premium' => ['prix' => 8, 'label' => 'Premium Mensuel', 'duree_jours' => 30, 'type_db' => 'premium_mensuel'],
+        'essentiel_mensuel' => ['prix' => 3,   'label' => 'Essentiel Mensuel', 'duree_jours' => 30,  'type_db' => 'essentiel_mensuel'],
+        'essentiel_annuel'  => ['prix' => 30,  'label' => 'Essentiel Annuel',  'duree_jours' => 365, 'type_db' => 'essentiel_annuel'],
+        'premium_mensuel'   => ['prix' => 10,  'label' => 'Premium Mensuel',   'duree_jours' => 30,  'type_db' => 'premium_mensuel'],
+        'premium_annuel'    => ['prix' => 100, 'label' => 'Premium Annuel',    'duree_jours' => 365, 'type_db' => 'premium_annuel'],
     ];
 
     // =====================================================================

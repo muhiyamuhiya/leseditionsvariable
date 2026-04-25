@@ -42,6 +42,18 @@ class Book extends BaseModel
     }
 
     /**
+     * Trouver par id
+     */
+    public static function find(int $id): object|false
+    {
+        $db = Database::getInstance();
+        return $db->fetch(
+            self::baseSelect() . " WHERE b.id = ?",
+            [$id]
+        );
+    }
+
+    /**
      * Livres publiés avec filtres et pagination
      */
     public static function findPublished(int $limit = 20, int $offset = 0, ?string $categorySlug = null, ?string $search = null, string $orderBy = 'b.created_at DESC'): array

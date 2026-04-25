@@ -39,6 +39,12 @@ class Auth
             return false;
         }
 
+        // Compte supprimé (soft delete RGPD)
+        if (($user->statut ?? 'actif') === 'supprime') {
+            Session::flash('error', 'Ce compte a été supprimé.');
+            return false;
+        }
+
         // Email non vérifié
         if (!$user->email_verifie) {
             Session::flash('error', 'Veuillez d\'abord vérifier votre adresse email. Consultez votre boîte de réception.');

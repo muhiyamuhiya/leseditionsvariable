@@ -111,4 +111,58 @@ class Mailer
             $body
         );
     }
+
+    /**
+     * Confirmation d'annulation d'abonnement (l'accès reste actif jusqu'à dateFin)
+     */
+    public static function sendSubscriptionCancellation(object $user, string $dateFin): bool
+    {
+        $appName = env('APP_NAME', 'Les éditions Variable');
+        $dateLisible = date('d/m/Y', strtotime($dateFin));
+        $body = "
+        <h2>Ton abonnement a été annulé</h2>
+        <p>Bonjour {$user->prenom},</p>
+        <p>Nous avons bien enregistré l'annulation de ton abonnement. Tu gardes l'accès au catalogue jusqu'au <strong>{$dateLisible}</strong>.</p>
+        <p>Tu peux le réactiver à tout moment avant cette date depuis ton compte.</p>
+        <br>
+        <p>À bientôt sur {$appName} !</p>
+        ";
+        return self::send($user->email, "Annulation de ton abonnement — {$appName}", $body);
+    }
+
+    /**
+     * Email avec lien de confirmation pour suppression de compte (RGPD)
+     */
+    public static function sendDeletionRequest(object $user, string $token): bool
+    {
+        $url = env('APP_URL') . '/supprimer-compte/confirmer/' . $token;
+        $appName = env('APP_NAME', 'Les éditions Variable');
+        $body = "
+        <h2>Confirmation de suppression de compte</h2>
+        <p>Bonjour {$user->prenom},</p>
+        <p>Tu as demandé la suppression de ton compte sur {$appName}. Pour confirmer, clique sur ce lien dans les 24 heures :</p>
+        <p><a href=\"{$url}\">{$url}</a></p>
+        <p>Si tu n'as pas demandé cette suppression, ignore simplement cet email — ton compte ne sera pas supprimé.</p>
+        <br>
+        <p>L'équipe {$appName}</p>
+        ";
+        return self::send($user->email, "Confirmation de suppression de compte — {$appName}", $body);
+    }
+
+    /**
+     * Email final après suppression effective
+     */
+    public static function sendDeletionFinal(string $email, string $prenom): bool
+    {
+        $appName = env('APP_NAME', 'Les éditions Variable');
+        $body = "
+        <h2>Ton compte a été supprimé</h2>
+        <p>Bonjour {$prenom},</p>
+        <p>Ton compte sur {$appName} a été supprimé conformément à ta demande.</p>
+        <p>Merci d'avoir fait partie de l'aventure.</p>
+        <br>
+        <p>L'équipe {$appName}</p>
+        ";
+        return self::send($email, "Ton compte a été supprimé — {$appName}", $body);
+    }
 }

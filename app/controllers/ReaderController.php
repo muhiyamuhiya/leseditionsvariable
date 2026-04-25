@@ -44,11 +44,16 @@ class ReaderController extends BaseController
         $user = Auth::user();
         $db = Database::getInstance();
 
-        // Matrice d'accès centralisée — filtre sur source='achat_unitaire' uniquement
+        // Matrice d'accès centralisée — distingue achat / Essentiel / Premium
         $hasFullAccess = BookAccess::canReadFull($user, $book->id);
 
         if ($mode === 'full' && !$hasFullAccess) {
-            Session::flash('error', 'Tu dois acheter ce livre ou souscrire un abonnement pour le lire en entier.');
+            $access = BookAccess::getRequiredAccess($user, $book->id);
+            Session::flash('error', $access['message'] ?? 'Accès refusé.');
+            if (!empty($access['cta_url']) && !empty($access['cta_label'])) {
+                Session::flash('cta_url', $access['cta_url']);
+                Session::flash('cta_label', $access['cta_label']);
+            }
             redirect('/livre/' . $book->slug);
             return;
         }

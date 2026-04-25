@@ -17,6 +17,7 @@ CREATE TABLE users (
     pays VARCHAR(2) DEFAULT 'CD',
     devise_preferee VARCHAR(3) DEFAULT 'USD',
     role ENUM('lecteur', 'auteur', 'admin') DEFAULT 'lecteur',
+    statut VARCHAR(20) DEFAULT 'actif',
     avatar_url VARCHAR(500),
     bio TEXT,
     google_id VARCHAR(100),
@@ -35,10 +36,25 @@ CREATE TABLE users (
     code_parrainage VARCHAR(20) UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL,
     INDEX idx_email (email),
     INDEX idx_role (role),
+    INDEX idx_users_statut (statut),
     INDEX idx_parrain (parrain_id),
     FOREIGN KEY (parrain_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- Table: user_deletion_tokens (RGPD — confirmation par email avant soft-delete)
+CREATE TABLE user_deletion_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    expire_at DATETIME NOT NULL,
+    used TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token (token),
+    INDEX idx_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- Table: authors
@@ -133,7 +149,8 @@ CREATE TABLE books (
     prix_unitaire_xof DECIMAL(10,2),
     prix_unitaire_eur DECIMAL(8,2),
     prix_unitaire_cad DECIMAL(8,2),
-    accessible_abonnement BOOLEAN DEFAULT TRUE,
+    accessible_abonnement_essentiel BOOLEAN DEFAULT TRUE,
+    accessible_abonnement_premium BOOLEAN DEFAULT TRUE,
     exclusif_achat BOOLEAN DEFAULT FALSE,
     statut ENUM('brouillon', 'en_revue', 'publie', 'retire') DEFAULT 'brouillon',
     date_publication DATETIME,
@@ -161,7 +178,7 @@ CREATE TABLE books (
 CREATE TABLE subscriptions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
-    type ENUM('mensuel', 'annuel', 'premium_mensuel', 'premium_annuel') NOT NULL,
+    type ENUM('essentiel_mensuel', 'essentiel_annuel', 'premium_mensuel', 'premium_annuel') NOT NULL,
     date_debut DATETIME NOT NULL,
     date_fin DATETIME NOT NULL,
     prix_paye DECIMAL(8,2) NOT NULL,
@@ -174,6 +191,7 @@ CREATE TABLE subscriptions (
     statut ENUM('actif', 'en_pause', 'annule', 'expire', 'echec_paiement') DEFAULT 'actif',
     date_annulation DATETIME,
     raison_annulation TEXT,
+    motif_annulation VARCHAR(50) DEFAULT NULL,
     nb_tentatives_renouvellement INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

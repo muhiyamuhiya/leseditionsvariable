@@ -59,6 +59,13 @@ $router->get('/mon-compte/profil', 'AccountController@profile');
 $router->post('/mon-compte/profil', 'AccountController@updateProfile');
 $router->post('/mon-compte/password', 'AccountController@updatePassword');
 $router->get('/mon-compte/favoris', 'AccountController@favorites');
+$router->get('/mon-compte/abonnement/annuler', 'AccountController@cancelSubscriptionForm');
+$router->post('/mon-compte/abonnement/annuler', 'AccountController@cancelSubscription');
+$router->post('/mon-compte/abonnement/reactiver', 'AccountController@reactivateSubscription');
+$router->get('/mon-compte/abonnement', 'AccountController@subscription');
+$router->post('/mon-compte/supprimer-demande', 'AccountController@requestDeletion');
+$router->get('/supprimer-compte/confirmer/:token', 'AuthController@confirmDeletionForm');
+$router->post('/supprimer-compte/confirmer/:token', 'AuthController@confirmDeletion');
 $router->get('/mon-compte', 'AccountController@index');
 $router->get('/ma-bibliotheque', 'AccountController@index');
 

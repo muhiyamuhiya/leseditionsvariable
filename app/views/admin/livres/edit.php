@@ -71,8 +71,50 @@
         <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
     </div>
 
+    <div>
+        <label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Niveau d'accès aux abonnés</label>
+        <?php
+            // 3 cas dérivés des deux booléens
+            $accessMode = 'achat_only';
+            if (!empty($book->accessible_abonnement_essentiel) && !empty($book->accessible_abonnement_premium)) {
+                $accessMode = 'essentiel_premium';
+            } elseif (empty($book->accessible_abonnement_essentiel) && !empty($book->accessible_abonnement_premium)) {
+                $accessMode = 'premium_only';
+            }
+        ?>
+        <div class="space-y-2">
+            <label class="flex items-start gap-2 text-sm text-text-muted cursor-pointer">
+                <input type="radio" name="access_mode" value="essentiel_premium" <?= $accessMode === 'essentiel_premium' ? 'checked' : '' ?> class="accent-accent mt-0.5">
+                <span><strong class="text-white">Inclus dans Essentiel + Premium</strong> <span class="text-text-dim">— par défaut</span></span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-text-muted cursor-pointer">
+                <input type="radio" name="access_mode" value="premium_only" <?= $accessMode === 'premium_only' ? 'checked' : '' ?> class="accent-accent mt-0.5">
+                <span><strong class="text-white">Inclus dans Premium uniquement</strong> <span class="text-text-dim">— exclusivité Premium</span></span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-text-muted cursor-pointer">
+                <input type="radio" name="access_mode" value="achat_only" <?= $accessMode === 'achat_only' ? 'checked' : '' ?> class="accent-accent mt-0.5">
+                <span><strong class="text-white">Achat unitaire uniquement</strong> <span class="text-text-dim">— jamais inclus dans un abonnement</span></span>
+            </label>
+        </div>
+        <input type="hidden" name="accessible_abonnement_essentiel" value="0">
+        <input type="hidden" name="accessible_abonnement_premium" value="0">
+        <script>
+        // Synchroniser les hidden inputs depuis le radio choisi
+        document.querySelectorAll('input[name="access_mode"]').forEach(r => r.addEventListener('change', function() {
+            const ess = document.querySelector('input[name="accessible_abonnement_essentiel"]');
+            const prem = document.querySelector('input[name="accessible_abonnement_premium"]');
+            ess.value = this.value === 'essentiel_premium' ? 1 : 0;
+            prem.value = (this.value === 'essentiel_premium' || this.value === 'premium_only') ? 1 : 0;
+        }));
+        // Init au chargement
+        (function init() {
+            const checked = document.querySelector('input[name="access_mode"]:checked');
+            if (checked) checked.dispatchEvent(new Event('change'));
+        })();
+        </script>
+    </div>
+
     <div class="flex flex-wrap gap-6">
-        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" <?= $book->accessible_abonnement ? 'checked' : '' ?> class="accent-accent"> Accessible abonnement</label>
         <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="mis_en_avant" <?= $book->mis_en_avant ? 'checked' : '' ?> class="accent-accent"> Mis en avant</label>
         <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="nouveaute" <?= $book->nouveaute ? 'checked' : '' ?> class="accent-accent"> Nouveauté</label>
     </div>
