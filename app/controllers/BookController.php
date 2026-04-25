@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Lib\Auth;
+use App\Lib\BookAccess;
 use App\Lib\CSRF;
 use App\Lib\Database;
 use App\Lib\Session;
@@ -86,9 +87,8 @@ class BookController extends BaseController
         if ($user) {
             $db = Database::getInstance();
 
-            // A acheté ?
-            $ub = $db->fetch("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?", [$user->id, $book->id]);
-            $aAchete = (bool) $ub;
+            // A acheté ? (filtre sur source='achat_unitaire' — un simple favori ne compte pas)
+            $aAchete = BookAccess::hasBought($user, $book->id);
 
             // Est abonné actif ?
             $sub = $db->fetch(

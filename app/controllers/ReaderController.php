@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Lib\Auth;
+use App\Lib\BookAccess;
 use App\Lib\Database;
 use App\Lib\Session;
 use App\Models\Book;
@@ -43,13 +44,16 @@ class ReaderController extends BaseController
         $user = Auth::user();
         $db = Database::getInstance();
 
-        // Vérifier les droits d'accès pour le mode full
-        $ub = $db->fetch("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?", [$user->id, $book->id]);
-        $sub = $db->fetch("SELECT id FROM subscriptions WHERE user_id = ? AND statut = 'actif' AND date_fin > NOW()", [$user->id]);
-        $hasFullAccess = (bool) $ub || (bool) $sub;
+        // Matrice d'accès centralisée — filtre sur source='achat_unitaire' uniquement
+        $hasFullAccess = BookAccess::canReadFull($user, $book->id);
 
         if ($mode === 'full' && !$hasFullAccess) {
             Session::flash('error', 'Tu dois acheter ce livre ou souscrire un abonnement pour le lire en entier.');
+            redirect('/livre/' . $book->slug);
+            return;
+        }
+
+        if ($mode === 'extrait' && !BookAccess::canReadExtract($user)) {
             redirect('/livre/' . $book->slug);
             return;
         }
@@ -95,6 +99,11 @@ class ReaderController extends BaseController
 
     /**
      * Servir le PDF en streaming sécurisé
+     *
+     * SÉCURITÉ : chaque appel re-valide les droits du user pour le $fileType demandé.
+     * On NE FAIT PAS confiance à la session de lecture seule : un user qui a ouvert
+     * l'extrait pourrait sinon appeler /lire/pdf/<token>/full et récupérer le livre
+     * complet sans l'avoir acheté.
      */
     public function streamPDF(string $sessionToken, string $fileType): void
     {
@@ -105,14 +114,14 @@ class ReaderController extends BaseController
         }
 
         $db = Database::getInstance();
-        $userId = Auth::id();
+        $user = Auth::user();
 
         $session = $db->fetch(
             "SELECT rs.*, b.fichier_complet_path, b.fichier_extrait_path
              FROM reading_sessions rs
              JOIN books b ON rs.book_id = b.id
              WHERE rs.session_token = ? AND rs.user_id = ? AND rs.statut = 'active'",
-            [$sessionToken, $userId]
+            [$sessionToken, $user->id]
         );
 
         if (!$session) {
@@ -121,11 +130,36 @@ class ReaderController extends BaseController
             exit;
         }
 
-        // Sélectionner le bon fichier
+        // Validation des droits selon le type demandé — ne pas se fier à la session seule
         if ($fileType === 'full') {
+            if (!BookAccess::canReadFull($user, (int) $session->book_id)) {
+                http_response_code(403);
+                exit('Accès refusé');
+            }
             $filePath = $session->fichier_complet_path;
+        } elseif ($fileType === 'extrait') {
+            if (!BookAccess::canReadExtract($user)) {
+                http_response_code(403);
+                exit('Accès refusé');
+            }
+            // PAS de fallback sur le fichier complet : c'est exactement la faille à fermer
+            $filePath = $session->fichier_extrait_path;
+            if (!$filePath) {
+                http_response_code(404);
+                exit('Extrait non disponible pour ce livre.');
+            }
+            // Garde-fou : refuser de servir si l'extrait est en réalité une copie du livre
+            // complet (Ghostscript pas installé → fallback de génération qui copie tout).
+            $absoluteExtrait = BASE_PATH . '/' . $filePath;
+            $absoluteFull    = $session->fichier_complet_path ? BASE_PATH . '/' . $session->fichier_complet_path : null;
+            if ($absoluteFull && file_exists($absoluteExtrait) && file_exists($absoluteFull)
+                && filesize($absoluteExtrait) === filesize($absoluteFull)) {
+                http_response_code(403);
+                exit('Extrait non encore généré pour ce livre. Réessaie plus tard.');
+            }
         } else {
-            $filePath = $session->fichier_extrait_path ?: $session->fichier_complet_path;
+            http_response_code(400);
+            exit('Type de fichier invalide');
         }
 
         $absolutePath = BASE_PATH . '/' . $filePath;
