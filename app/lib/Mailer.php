@@ -9,10 +9,70 @@ namespace App\Lib;
 class Mailer
 {
     /**
-     * Envoyer un email (simulation en développement)
-     * En mode local, écrit dans logs/mails.log au lieu d'envoyer réellement
+     * Envoyer un email — route automatiquement selon APP_ENV :
+     *   - production → Resend API (HTTP)
+     *   - autre (dev/staging) → logs/mails.log
      */
     public static function send(string $to, string $subject, string $body): bool
+    {
+        $env = function_exists('env') ? env('APP_ENV', 'development') : 'development';
+
+        if ($env === 'production') {
+            return self::sendViaResend($to, $subject, $body);
+        }
+
+        return self::sendToLogFile($to, $subject, $body);
+    }
+
+    /**
+     * Envoi réel via l'API Resend (production)
+     */
+    private static function sendViaResend(string $to, string $subject, string $html): bool
+    {
+        $apiKey = env('RESEND_API_KEY', '');
+        if ($apiKey === '') {
+            error_log('Resend non configuré : RESEND_API_KEY manquante. Email vers ' . $to . ' non envoyé.');
+            return self::sendToLogFile($to, $subject, $html); // fallback log
+        }
+
+        $fromEmail = env('MAIL_FROM_EMAIL', 'contact@leseditionsvariable.com');
+        $fromName  = env('MAIL_FROM_NAME', 'Les éditions Variable');
+        $from      = $fromName . ' <' . $fromEmail . '>';
+
+        $payload = json_encode([
+            'from'    => $from,
+            'to'      => [$to],
+            'subject' => $subject,
+            'html'    => $html,
+        ]);
+
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return true;
+        }
+
+        error_log("Resend a échoué (HTTP {$httpCode}) pour {$to} — {$subject} : " . $response);
+        return false;
+    }
+
+    /**
+     * Envoi simulé : écriture dans logs/mails.log (dev/staging)
+     */
+    private static function sendToLogFile(string $to, string $subject, string $body): bool
     {
         $logFile = BASE_PATH . '/logs/mails.log';
         $date = date('Y-m-d H:i:s');
