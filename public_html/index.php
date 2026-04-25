@@ -126,8 +126,15 @@ $router->get('/auteur/dashboard', 'AuthorDashboardController@dashboard');
 
 // Pages statiques
 $router->get('/a-propos', 'PageController@aPropos');
+$router->get('/presse', 'PageController@presse');
 $router->get('/contact', 'PageController@contact');
 $router->get('/publier', 'PageController@publier');
+$router->get('/auteurs', 'PageController@auteurs');
+$router->get('/aide', 'PageController@aide');
+$router->get('/newsletter', 'PageController@newsletterPage');
+$router->post('/newsletter/subscribe', 'NewsletterController@subscribe');
+$router->get('/blog', 'BlogController@index');
+$router->get('/blog/:slug', 'BlogController@show');
 $router->get('/devenir-auteur', 'PageController@publier');
 $router->get('/cgu', 'PageController@cgu');
 $router->get('/cgv', 'PageController@cgv');
