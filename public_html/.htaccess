@@ -1,7 +1,8 @@
 # ============================================
-# Les éditions Variable — Réécriture d'URL
+# Les éditions Variable — Configuration Apache
 # ============================================
 
+# ----- Réécriture d'URL -----
 RewriteEngine On
 
 # Forcer HTTPS en production (décommenter en prod)
@@ -15,3 +16,71 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 # Tout le reste passe par index.php
 RewriteRule ^(.*)$ index.php [QSA,L]
+
+# ----- Compression GZIP -----
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json
+    AddOutputFilterByType DEFLATE application/xml application/rss+xml application/atom+xml
+    AddOutputFilterByType DEFLATE image/svg+xml application/font-woff application/font-woff2
+    AddOutputFilterByType DEFLATE font/ttf font/otf font/woff font/woff2
+</IfModule>
+
+# ----- Cache headers -----
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # HTML : pas de cache (toujours frais)
+    ExpiresByType text/html "access plus 0 seconds"
+
+    # CSS/JS : 1 an (cache busting via versionning ou hash de fichier en prod)
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+
+    # Images : 1 an
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+
+    # Polices : 1 an
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+
+    # PDF : 30 jours
+    ExpiresByType application/pdf "access plus 30 days"
+</IfModule>
+
+# Cache-Control pour les ressources statiques (en complément de mod_expires)
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|jpg|jpeg|png|webp|svg|gif|ico|woff|woff2|ttf|otf)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(html|php)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# ----- Sécurité (en-têtes HTTP) -----
+<IfModule mod_headers.c>
+    # Empêche le MIME-sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    # Empêche le clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # Politique referrer
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Protection XSS legacy (toujours utile sur certains anciens navigateurs)
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Bloquer l'accès aux fichiers sensibles
+<FilesMatch "^\.(?:env|git|htaccess)">
+    Require all denied
+</FilesMatch>

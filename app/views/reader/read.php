@@ -164,11 +164,12 @@ canvas.addEventListener('touchend', e => {
 });
 
 // Sauvegarde progression
+const CSRF_TOKEN = '<?= csrf_token() ?>';
 function saveProgress() {
     const elapsed = Math.round((Date.now() - startTime) / 1000);
     fetch('/lire/progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
         body: JSON.stringify({ session_token: CONFIG.sessionToken, page: currentPage, temps_secondes: elapsed })
     }).catch(() => {});
 }

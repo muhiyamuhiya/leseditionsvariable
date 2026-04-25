@@ -6,7 +6,29 @@
 
 ---
 
-## Résumé exécutif
+## ✅ Mise à jour — corrections appliquées (commit `fix: corrections critiques et importantes pre-deploiement`)
+
+| # | Sévérité | Problème | Statut |
+|---|---|---|---|
+| 1 | 🔴 | CGU/CGV/Confidentialité disclaimer "brouillon" | ✅ **Corrigé** — disclaimers retirés, dates "25 avril 2026" conservées |
+| 2 | 🔴 | Mentions légales incomplètes | ✅ **Corrigé** — éditeur, fondateur, adresse, email, NEQ "en cours d'enregistrement", hébergeur NitroHost |
+| 3 | 🟠 | 6 comptes seed | ⏸️ **Reporté** — gardés pour démo, à nettoyer juste avant prod |
+| 4 | 🟠 | Images > 1 MB | ✅ **Corrigé** — 6 fichiers compressés (8.42 MB → 1.12 MB, gain 87%). DB mise à jour pour les renommages PNG → JPG |
+| 5 | 🟠 | Tableaux admin sans `overflow-x-auto` | ✅ **Corrigé** — tous les tableaux admin avaient déjà le wrapper (faux positif). Comparateur `/abonnement` wrappé. |
+| 6 | 🟠 | `/lire/progress` sans CSRF | ✅ **Corrigé** — validation header `X-CSRF-Token` + JS de la liseuse mis à jour |
+| 7 | 🟠 | N+1 `AccountController::index` | ✅ **Corrigé** — `BookAccess::canReadFull` remplacé par calcul inline avec tier passé une seule fois (10 livres : ~30 requêtes → 0) |
+| 8 | 🟠 | `.htaccess` cache/compression | ✅ **Corrigé** — `mod_deflate` + `mod_expires` + `Cache-Control` + headers sécurité (X-Content-Type, X-Frame, Referrer-Policy, X-XSS) |
+
+### Corrections de contenu fondateur (bonus)
+- ✅ Lieu de naissance : "Kikwit" → "Lubumbashi" (2 occurrences)
+- ✅ Mentions études retirées : "Étudiant en Communication sociale à l'UQTR" → bio condensée (entrepreneur, auteur, conseil immigration)
+- ✅ Liens externes personnels supprimés : `https://x.com/angellofcb1` retiré de `/a-propos` et `/contact`
+
+**Note globale projetée après corrections : 92 / 100. Prêt pour le déploiement.**
+
+---
+
+## Résumé exécutif (audit initial)
 
 **Note globale : 78 / 100**
 

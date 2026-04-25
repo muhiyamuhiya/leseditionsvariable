@@ -20,13 +20,13 @@ class BlogController extends BaseController
                 'date'    => '2026-04-25',
                 'excerpt' => "L'histoire de la maison d'édition née à Kinshasa qui veut changer la donne pour les auteurs africains.",
                 'content' => <<<HTML
-<p>J'ai grandi à Kikwit, dans une maison où on lisait. Ma mère gardait dans une malle quelques romans rapportés de Kinshasa. Mon père, lui, lisait le journal en buvant son café du matin. Mais les livres, les vrais, ceux qui te font rêver, étaient rares. Une bibliothèque municipale qui fermait souvent. Une seule librairie en ville qui vendait les manuels scolaires plus que les romans.</p>
+<p>J'ai grandi à Lubumbashi, dans une maison où on lisait. Ma mère gardait dans une malle quelques romans rapportés de Kinshasa. Mon père, lui, lisait le journal en buvant son café du matin. Mais les livres, les vrais, ceux qui te font rêver, étaient rares. Une bibliothèque municipale qui fermait souvent. Une seule librairie en ville qui vendait les manuels scolaires plus que les romans.</p>
 
 <p>Quand j'ai commencé à écrire — d'abord des poèmes maladroits sur des feuilles arrachées, puis des nouvelles, puis ce premier livre qui s'appelle <em>« Je n'ai pas choisi ma naissance, mais j'ai choisi mon destin »</em> — j'ai compris une chose : je ne saurais jamais qui me lirait. L'édition traditionnelle, depuis Kinshasa, c'est presque impossible. Les grands éditeurs sont à Paris ou Dakar. Et même quand on y arrive, on touche 5 à 10% du prix de vente. Le reste va aux intermédiaires.</p>
 
 <h2>Le déclic</h2>
 
-<p>L'idée de Variable m'est venue à Trois-Rivières, au Québec, où je poursuis mes études en communication sociale. J'étais dans un café, je lisais un livre canadien sur ma tablette, j'ai pensé : <em>pourquoi un jeune de Kinshasa ne pourrait-il pas faire pareil ?</em> Pourquoi est-ce que la lecture serait un luxe, alors qu'on a tous un téléphone dans la poche ?</p>
+<p>L'idée de Variable m'est venue à Trois-Rivières, au Québec, où je vis aujourd'hui. J'étais dans un café, je lisais un livre canadien sur ma tablette, j'ai pensé : <em>pourquoi un jeune de Kinshasa ne pourrait-il pas faire pareil ?</em> Pourquoi est-ce que la lecture serait un luxe, alors qu'on a tous un téléphone dans la poche ?</p>
 
 <p>Et en parallèle, pourquoi est-ce qu'un auteur de Bukavu, de Yaoundé ou de Bamako devrait attendre trois ans qu'un éditeur parisien daigne le lire, pour ensuite toucher des miettes ?</p>
 

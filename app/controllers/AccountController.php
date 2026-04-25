@@ -41,12 +41,14 @@ class AccountController extends BaseController
             [$user->id]
         );
 
-        // Calculer le statut d'accès courant pour chaque livre
-        foreach ($livres as $livre) {
-            $livre->access_status = $this->computeAccessStatus($user, $livre);
-        }
-
+        // Récupérer l'abonnement une seule fois et le passer à chaque calcul
+        // (évite un N+1 : BookAccess::canReadFull faisait 3-4 requêtes par livre)
         $abonnement = Subscription::getActive($user->id);
+        $tier = Subscription::tierOf($abonnement);
+
+        foreach ($livres as $livre) {
+            $livre->access_status = $this->computeAccessStatus($user, $livre, $tier);
+        }
 
         $stats = $db->fetch(
             "SELECT COUNT(*) as nb_livres, SUM(total_pages_lues) as pages_lues, SUM(total_temps_lecture) as temps_total
@@ -79,9 +81,11 @@ class AccountController extends BaseController
     }
 
     /**
-     * Statut d'accès courant à un livre dans la bibliothèque
+     * Statut d'accès courant à un livre dans la bibliothèque.
+     * Utilise les colonnes déjà présentes dans $livre + le tier d'abo ($currentTier)
+     * pour éviter tout appel SQL (performance : O(1) par livre au lieu de O(N) requêtes).
      */
-    private function computeAccessStatus(object $user, object $livre): array
+    private function computeAccessStatus(object $user, object $livre, ?string $currentTier): array
     {
         if ($livre->source === 'achat_unitaire') {
             $progress = (float) ($livre->pourcentage_complete ?? 0);
@@ -95,8 +99,15 @@ class AccountController extends BaseController
         }
 
         if ($livre->source === 'abonnement') {
-            // canReadFull re-vérifie tier + date_fin de l'abo courant
-            $canRead = \App\Lib\BookAccess::canReadFull($user, (int) $livre->id);
+            // Calcul tier-aware sans requête SQL (les colonnes accessible_abonnement_*
+            // sont déjà chargées dans $livre via le SELECT initial)
+            $canRead = false;
+            if ($currentTier === 'premium' && !empty($livre->accessible_abonnement_premium)) {
+                $canRead = true;
+            } elseif ($currentTier === 'essentiel' && !empty($livre->accessible_abonnement_essentiel)) {
+                $canRead = true;
+            }
+
             if ($canRead) {
                 $progress = (float) ($livre->pourcentage_complete ?? 0);
                 return [

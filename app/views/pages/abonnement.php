@@ -98,7 +98,8 @@ $activeType = $activeSub ? $activeSub->type : null;
             <div class="px-5 sm:px-7 py-4 border-b border-border">
                 <h2 class="font-display font-semibold text-lg text-white">Comparer Essentiel et Premium</h2>
             </div>
-            <table class="w-full text-sm">
+            <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[480px]">
                 <thead>
                     <tr class="text-text-dim border-b border-border">
                         <th class="text-left px-5 sm:px-7 py-3 font-medium">Fonctionnalité</th>
@@ -128,6 +129,7 @@ $activeType = $activeSub ? $activeSub->type : null;
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <p class="text-text-dim text-center text-xs mt-8">Annule quand tu veux. Sans engagement. Paiement par Mobile Money ou carte bancaire.</p>

@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Lib\Auth;
 use App\Lib\BookAccess;
+use App\Lib\CSRF;
 use App\Lib\Database;
 use App\Lib\Session;
 use App\Models\Book;
@@ -240,6 +241,14 @@ class ReaderController extends BaseController
     {
         if (!Auth::check()) {
             $this->json(['error' => 'not_logged_in'], 401);
+            return;
+        }
+
+        // Validation CSRF via header (le sessionToken déjà non-guessable suffit en pratique,
+        // mais on ajoute la protection en profondeur)
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!CSRF::validate($csrfToken)) {
+            $this->json(['error' => 'csrf'], 403);
             return;
         }
 

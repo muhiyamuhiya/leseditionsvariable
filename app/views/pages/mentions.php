@@ -1,10 +1,6 @@
 <section class="py-12 sm:py-16">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
 
-        <div class="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-lg mb-6 text-xs">
-            ⚠️ <strong>Brouillon de travail.</strong> Plusieurs informations administratives sont encore à compléter (NEQ, adresse postale, hébergeur exact). À finaliser avant mise en production.
-        </div>
-
         <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-white mb-3">Mentions légales</h1>
         <p class="text-text-dim text-sm mb-10">Dernière mise à jour : 25 avril 2026</p>
 
@@ -13,19 +9,18 @@
                     [&_p]:text-sm [&_strong]:text-white [&_ul]:list-disc [&_ul]:pl-6 [&_li]:text-sm">
 
 <h2>1. Éditeur du site</h2>
-<p><strong>Les éditions Variable</strong></p>
-<p>Fondateur et directeur de la publication : <strong>Angello Luvungu Muhiya</strong></p>
-<p>Adresse de domiciliation : <em>à compléter (Trois-Rivières, Québec, Canada)</em></p>
-<p>Email : <a href="mailto:contact@leseditionsvariable.com" class="text-accent">contact@leseditionsvariable.com</a></p>
-<p>Téléphone : <em>à compléter</em></p>
-<p>Numéro d'entreprise du Québec (NEQ) : <em>à compléter une fois l'immatriculation finalisée</em></p>
+<p><strong>Éditeur :</strong> Les éditions Variable</p>
+<p><strong>Fondateur :</strong> Angello Luvungu Muhiya</p>
+<p><strong>Adresse :</strong> Trois-Rivières, Québec, Canada</p>
+<p><strong>Email :</strong> <a href="mailto:contact@leseditionsvariable.com" class="text-accent">contact@leseditionsvariable.com</a></p>
+<p><strong>Téléphone :</strong> Sur demande à <a href="mailto:contact@leseditionsvariable.com" class="text-accent">contact@leseditionsvariable.com</a></p>
+<p><strong>Numéro d'entreprise :</strong> En cours d'enregistrement</p>
 
 <h2>2. Directeur de la publication</h2>
 <p>Angello Luvungu Muhiya, fondateur de Les éditions Variable.</p>
 
 <h2>3. Hébergement</h2>
-<p>Le site est hébergé par <strong>NitroHost</strong> (à confirmer).</p>
-<p>Adresse de l'hébergeur : <em>à compléter</em></p>
+<p>Le site est hébergé par <strong>NitroHost</strong> — <a href="https://nitrohost.com" target="_blank" rel="noopener" class="text-accent">https://nitrohost.com</a></p>
 
 <h2>4. Conception et réalisation</h2>
 <p>Le site est conçu et développé en interne par Les éditions Variable.</p>

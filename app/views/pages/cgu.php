@@ -1,10 +1,6 @@
 <section class="py-12 sm:py-16">
     <div class="max-w-3xl mx-auto px-4 sm:px-6">
 
-        <div class="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-4 py-3 rounded-lg mb-6 text-xs">
-            ⚠️ <strong>Brouillon de travail.</strong> Ce document est un texte structuré servant de base. Il doit être validé par un juriste avant mise en production.
-        </div>
-
         <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-white mb-3">Conditions Générales d'Utilisation</h1>
         <p class="text-text-dim text-sm mb-10">Dernière mise à jour : 25 avril 2026</p>
 

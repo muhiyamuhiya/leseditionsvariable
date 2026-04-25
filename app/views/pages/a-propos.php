@@ -69,11 +69,10 @@
                 <div class="flex-1 text-center sm:text-left">
                     <h2 class="font-display font-bold text-2xl text-white">Angello Luvungu Muhiya</h2>
                     <p class="text-accent text-sm mb-4">Fondateur</p>
-                    <p class="text-text-muted text-sm leading-relaxed mb-3">Né à Kikwit, RDC. Étudiant en Communication sociale à l'UQTR (Trois-Rivières, Québec). Entrepreneur, auteur lui-même (« Je n'ai pas choisi ma naissance, mais j'ai choisi mon destin »), conseil en immigration et passionné par la puissance des mots pour transformer des destins.</p>
+                    <p class="text-text-muted text-sm leading-relaxed mb-3">Né à Lubumbashi, RDC. Entrepreneur, auteur lui-même (« Je n'ai pas choisi ma naissance, mais j'ai choisi mon destin »), conseil en immigration et passionné par la puissance des mots pour transformer des destins.</p>
                     <blockquote class="border-l-2 border-accent pl-4 italic text-text-muted text-sm">
                         « J'ai grandi dans un pays où lire était un privilège. Aujourd'hui, je veux faire de la lecture un droit. Variable, c'est ma façon de rendre ce que la lecture m'a donné : l'espoir. »
                     </blockquote>
-                    <a href="https://x.com/angellofcb1" target="_blank" rel="noopener" class="inline-block mt-4 text-accent hover:text-accent-hover text-sm">Suivre sur X →</a>
                 </div>
             </div>
         </div>
