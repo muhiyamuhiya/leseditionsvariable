@@ -12,7 +12,9 @@ SET FOREIGN_KEY_CHECKS=0;
 -- MySQL 8+ / utf8mb4_unicode_ci
 -- =============================================================================
 
-USE leseditionsvariable;
+-- Pas de USE ici : la base est sélectionnée par phpMyAdmin (ou l'outil d'import).
+-- Sur cPanel mutualisé (NitroHost), le nom de la base est préfixé (ex: lesediti_variable).
+-- USE leseditionsvariable;
 
 -- Table: users
 CREATE TABLE users (
