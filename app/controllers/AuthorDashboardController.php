@@ -146,9 +146,95 @@ class AuthorDashboardController extends BaseController
             'pages_lues' => $db->fetch("SELECT COALESCE(SUM(b.total_pages_lues_cumul), 0) as v FROM books b WHERE b.author_id = ?", [$author->id])->v ?? 0,
         ];
 
+        // Construire les alertes contextuelles (action requise par l'auteur)
+        $alertes = [];
+
+        $devisRecus = $db->fetchAll(
+            "SELECT o.id, o.titre_projet, o.montant_propose, o.devise, s.nom AS service_nom
+             FROM editorial_orders o JOIN editorial_services s ON s.id = o.service_id
+             WHERE o.user_id = ? AND o.statut = 'devis_envoye'
+             ORDER BY o.updated_at DESC",
+            [$user->id]
+        );
+        foreach ($devisRecus as $d) {
+            $alertes[] = [
+                'icon'    => '💰',
+                'title'   => 'Tu as un nouveau devis',
+                'message' => $d->service_nom . ' — ' . number_format((float) $d->montant_propose, 2) . ' ' . $d->devise,
+                'url'     => '/auteur/mes-commandes-editoriales/' . (int) $d->id,
+            ];
+        }
+
+        $aPayer = $db->fetchAll(
+            "SELECT o.id, o.titre_projet, o.montant_propose, o.devise, s.nom AS service_nom
+             FROM editorial_orders o JOIN editorial_services s ON s.id = o.service_id
+             WHERE o.user_id = ? AND o.statut = 'accepte' AND o.montant_propose IS NOT NULL
+             ORDER BY o.updated_at DESC",
+            [$user->id]
+        );
+        foreach ($aPayer as $p) {
+            $alertes[] = [
+                'icon'    => '💳',
+                'title'   => 'Commande prête à payer',
+                'message' => $p->service_nom . ' — ' . number_format((float) $p->montant_propose, 2) . ' ' . $p->devise,
+                'url'     => '/auteur/mes-commandes-editoriales/' . (int) $p->id . '/payer',
+            ];
+        }
+
+        $livraisons = $db->fetchAll(
+            "SELECT o.id, s.nom AS service_nom
+             FROM editorial_orders o JOIN editorial_services s ON s.id = o.service_id
+             WHERE o.user_id = ? AND o.statut = 'livre'
+               AND o.livre_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+             ORDER BY o.livre_at DESC",
+            [$user->id]
+        );
+        foreach ($livraisons as $l) {
+            $alertes[] = [
+                'icon'    => '📦',
+                'title'   => 'Ta commande est livrée !',
+                'message' => $l->service_nom . ' — télécharge ton livrable',
+                'url'     => '/auteur/mes-commandes-editoriales/' . (int) $l->id,
+            ];
+        }
+
+        $livresEnRevue = $db->fetchAll(
+            "SELECT id, titre FROM books WHERE author_id = ? AND statut = 'en_revue' ORDER BY updated_at DESC",
+            [$author->id]
+        );
+        foreach ($livresEnRevue as $l) {
+            $alertes[] = [
+                'icon'    => '⏳',
+                'title'   => 'Livre en cours de validation',
+                'message' => '« ' . $l->titre . ' » sera publié dès validation par l\'admin',
+                'url'     => '/auteur/livres',
+            ];
+        }
+
+        $nouveauxAvis = (int) ($db->fetch(
+            "SELECT COUNT(*) AS v FROM reviews r
+             JOIN books b ON b.id = r.book_id
+             WHERE b.author_id = ? AND r.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+            [$author->id]
+        )->v ?? 0);
+        if ($nouveauxAvis > 0) {
+            $alertes[] = [
+                'icon'    => '⭐',
+                'title'   => $nouveauxAvis . ' nouvel' . ($nouveauxAvis > 1 ? 's' : '') . ' avis cette semaine',
+                'message' => 'Sur tes livres publiés',
+                'url'     => '/auteur/livres',
+            ];
+        }
+
         $dernLivres = $db->fetchAll("SELECT b.*, c.nom as cat_nom FROM books b LEFT JOIN categories c ON b.category_id = c.id WHERE b.author_id = ? ORDER BY b.created_at DESC LIMIT 3", [$author->id]);
 
-        $this->authorView('dashboard', ['titre' => 'Tableau de bord', 'author' => $author, 'stats' => $stats, 'dernLivres' => $dernLivres]);
+        $this->authorView('dashboard', [
+            'titre'      => 'Tableau de bord',
+            'author'     => $author,
+            'stats'      => $stats,
+            'alertes'    => $alertes,
+            'dernLivres' => $dernLivres,
+        ]);
     }
 
     // =====================================================================

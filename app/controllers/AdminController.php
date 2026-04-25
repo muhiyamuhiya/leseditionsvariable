@@ -41,17 +41,51 @@ class AdminController extends BaseController
 
         $stats = [
             'ca_mois'      => $db->fetch("SELECT COALESCE(SUM(prix_paye_usd),0) as v FROM sales WHERE statut='payee' AND MONTH(date_vente)=MONTH(NOW()) AND YEAR(date_vente)=YEAR(NOW())")->v ?? 0,
-            'abonnes'      => $db->fetch("SELECT COUNT(*) as v FROM subscriptions WHERE statut='actif' AND date_fin >= NOW()")->v ?? 0,
+            'abonnes'      => $db->fetch("SELECT COUNT(DISTINCT user_id) as v FROM subscriptions WHERE statut IN ('actif','annule') AND date_fin >= NOW()")->v ?? 0,
             'livres'       => $db->fetch("SELECT COUNT(*) as v FROM books WHERE statut='publie'")->v ?? 0,
             'auteurs'      => $db->fetch("SELECT COUNT(*) as v FROM authors WHERE statut_validation='valide'")->v ?? 0,
-            'candidatures' => $db->fetch("SELECT COUNT(*) as v FROM authors WHERE statut_validation='en_attente'")->v ?? 0,
-            'livres_revue' => $db->fetch("SELECT COUNT(*) as v FROM books WHERE statut='en_revue'")->v ?? 0,
+            'lecteurs'     => $db->fetch("SELECT COUNT(*) as v FROM users WHERE role='lecteur' AND (statut='actif' OR statut IS NULL)")->v ?? 0,
         ];
 
-        $topLivres = $db->fetchAll("SELECT b.titre, b.total_ventes, b.slug FROM books b WHERE b.statut='publie' ORDER BY b.total_ventes DESC LIMIT 5");
-        $topAuteurs = $db->fetchAll("SELECT a.*, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as display_name, a.total_ventes_cumul FROM authors a JOIN users u ON a.user_id=u.id WHERE a.statut_validation='valide' ORDER BY a.total_ventes_cumul DESC LIMIT 5");
+        // Compteurs "action requise"
+        $alerts = [
+            'candidatures'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM authors WHERE statut_validation='en_attente'")->v ?? 0),
+            'livres_revue'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM books WHERE statut='en_revue'")->v ?? 0),
+            'commandes_devis'   => (int) ($db->fetch("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_attente_devis'")->v ?? 0),
+            'commandes_livrer'  => (int) ($db->fetch("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_cours'")->v ?? 0),
+            'paiements_echoues' => (int) ($db->fetch("SELECT COUNT(*) as v FROM transactions_log WHERE statut='echoue' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->v ?? 0),
+            'abos_annules'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM subscriptions WHERE statut='annule' AND date_annulation >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->v ?? 0),
+        ];
+        $alerts['total'] = $alerts['candidatures'] + $alerts['livres_revue'] + $alerts['commandes_devis'] + $alerts['commandes_livrer'];
 
-        $this->adminView('dashboard', ['titre' => 'Tableau de bord', 'stats' => $stats, 'topLivres' => $topLivres, 'topAuteurs' => $topAuteurs]);
+        $candidaturesRecentes = $db->fetchAll(
+            "SELECT a.id, a.created_at, u.prenom, u.nom, u.email, u.avatar_url
+             FROM authors a JOIN users u ON u.id = a.user_id
+             WHERE a.statut_validation = 'en_attente'
+             ORDER BY a.created_at DESC LIMIT 5"
+        );
+
+        $commandesRecentes = $db->fetchAll(
+            "SELECT o.id, o.titre_projet, o.statut, o.created_at, o.montant_propose, o.devise,
+                    s.nom AS service_nom, s.icon AS service_icon,
+                    u.prenom, u.nom
+             FROM editorial_orders o
+             JOIN editorial_services s ON s.id = o.service_id
+             JOIN users u ON u.id = o.user_id
+             WHERE o.statut IN ('en_attente_devis','en_cours')
+             ORDER BY o.created_at DESC LIMIT 5"
+        );
+
+        $topLivres = $db->fetchAll("SELECT b.titre, b.total_ventes, b.slug FROM books b WHERE b.statut='publie' ORDER BY b.total_ventes DESC LIMIT 5");
+
+        $this->adminView('dashboard', [
+            'titre'                => 'Tableau de bord',
+            'stats'                => $stats,
+            'alerts'               => $alerts,
+            'candidaturesRecentes' => $candidaturesRecentes,
+            'commandesRecentes'    => $commandesRecentes,
+            'topLivres'            => $topLivres,
+        ]);
     }
 
     // =====================================================================

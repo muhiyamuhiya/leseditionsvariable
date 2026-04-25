@@ -42,16 +42,25 @@
         <nav class="flex-grow overflow-y-auto py-4 px-3 space-y-6 text-sm">
             <?php
             $uri = strtok($_SERVER['REQUEST_URI'] ?? '/auteur', '?');
-            function authorNav($href, $label, $icon, $uri) {
+            $_authorDb = App\Lib\Database::getInstance();
+            $_authorRecord = App\Lib\Auth::getAuthorRecord();
+            $_authorId = $_authorRecord ? (int) $_authorRecord->id : 0;
+            $_authorUserId = (int) (App\Lib\Auth::id() ?? 0);
+            $_authorBooksRevue = $_authorId ? (int) ($_authorDb->fetch("SELECT COUNT(*) AS c FROM books WHERE author_id = ? AND statut = 'en_revue'", [$_authorId])->c ?? 0) : 0;
+            $_authorOrdersAlert = $_authorUserId ? (int) ($_authorDb->fetch("SELECT COUNT(*) AS c FROM editorial_orders WHERE user_id = ? AND statut IN ('devis_envoye','accepte','livre')", [$_authorUserId])->c ?? 0) : 0;
+            function authorNav($href, $label, $icon, $uri, $badge = null) {
                 $active = ($uri === $href || ($href !== '/auteur' && str_starts_with($uri, $href)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';
-                return '<a href="' . $href . '" @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-r-lg transition-colors ' . $cls . '"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' . $icon . '</svg><span>' . $label . '</span></a>';
+                $html = '<a href="' . $href . '" @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-r-lg transition-colors ' . $cls . '"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' . $icon . '</svg><span>' . $label . '</span>';
+                if ($badge) $html .= '<span class="ml-auto text-[10px] font-bold bg-accent text-black px-1.5 py-0.5 rounded-full">' . $badge . '</span>';
+                $html .= '</a>';
+                return $html;
             }
             ?>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Mon activité</p>
                 <?= authorNav('/auteur', 'Tableau de bord', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>', $uri) ?>
-                <?= authorNav('/auteur/livres', 'Mes livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri) ?>
+                <?= authorNav('/auteur/livres', 'Mes livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri, $_authorBooksRevue ?: null) ?>
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Création</p>
@@ -68,7 +77,7 @@
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Services éditoriaux</p>
                 <?= authorNav('/auteur/services-editoriaux', 'Catalogue services', '<path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>', $uri) ?>
-                <?= authorNav('/auteur/mes-commandes-editoriales', 'Mes commandes', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>', $uri) ?>
+                <?= authorNav('/auteur/mes-commandes-editoriales', 'Mes commandes', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>', $uri, $_authorOrdersAlert ?: null) ?>
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Profil</p>

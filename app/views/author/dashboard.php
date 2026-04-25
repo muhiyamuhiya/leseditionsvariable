@@ -2,6 +2,31 @@
 
 <p class="text-text-muted mb-6">Bienvenue, <?= e(App\Lib\Auth::user()->prenom ?? '') ?>.</p>
 
+<!-- Bandeau alertes -->
+<?php if (!empty($alertes)): ?>
+<div class="bg-gradient-to-r from-amber-500/15 to-purple-500/15 border border-amber-500/30 rounded-xl p-4 sm:p-5 mb-6">
+    <h2 class="font-display font-bold text-lg sm:text-xl text-white mb-4 flex items-center gap-2">
+        <span aria-hidden="true">🔔</span>
+        À ton attention
+        <span class="bg-rose-500 text-white text-xs px-2 py-0.5 rounded-full"><?= count($alertes) ?></span>
+    </h2>
+    <div class="space-y-2">
+        <?php foreach ($alertes as $a): ?>
+            <a href="<?= e($a['url']) ?>" class="flex items-center justify-between bg-white/5 hover:bg-white/10 rounded-lg p-3 transition-colors">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="text-2xl flex-shrink-0" aria-hidden="true"><?= $a['icon'] ?></span>
+                    <div class="min-w-0">
+                        <p class="font-medium text-white text-sm truncate"><?= e($a['title']) ?></p>
+                        <p class="text-text-dim text-xs truncate"><?= e($a['message']) ?></p>
+                    </div>
+                </div>
+                <span class="text-accent text-lg ml-2 flex-shrink-0">→</span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-surface border border-border rounded-xl p-5"><p class="text-text-dim text-xs uppercase tracking-wider">Livres publiés</p><p class="font-display font-bold text-2xl text-accent mt-1"><?= $stats['livres'] ?></p></div>
     <div class="bg-surface border border-border rounded-xl p-5"><p class="text-text-dim text-xs uppercase tracking-wider">Ventes ce mois</p><p class="font-display font-bold text-2xl text-white mt-1"><?= $stats['ventes_mois'] ?></p></div>
