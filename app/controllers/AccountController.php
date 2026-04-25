@@ -130,6 +130,7 @@ class AccountController extends BaseController
 
         $favoris = $db->fetchAll(
             "SELECT b.id, b.slug, b.titre, b.prix_unitaire_usd, b.couverture_url_web,
+                    b.accessible_abonnement_essentiel, b.accessible_abonnement_premium,
                     COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
                     a.slug AS author_slug,
                     c.nom AS category_nom,

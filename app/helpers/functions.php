@@ -179,6 +179,52 @@ function book_author_name(object $livre): string
 }
 
 /**
+ * Badge tier à afficher sur une carte livre selon le statut de l'utilisateur courant.
+ * Retourne null s'il ne faut afficher aucun badge (livre standard accessible, admin, auteur propriétaire).
+ *
+ * Le livre doit fournir accessible_abonnement_essentiel et accessible_abonnement_premium.
+ */
+function book_tier_badge(?object $user, object $book): ?array
+{
+    if ($user && ($user->role ?? '') === 'admin') return null;
+
+    if ($user && ($user->role ?? '') === 'auteur') {
+        $db = \App\Lib\Database::getInstance();
+        $author = $db->fetch("SELECT id FROM authors WHERE user_id = ?", [$user->id]);
+        if ($author) {
+            $owns = $db->fetch("SELECT 1 FROM books WHERE id = ? AND author_id = ?", [(int) $book->id, $author->id]);
+            if ($owns) return null;
+        }
+    }
+
+    $sub = $user ? \App\Models\Subscription::getActive($user->id) : null;
+    $isPremium = $sub && in_array($sub->type, ['premium_mensuel', 'premium_annuel'], true);
+
+    $essentiel = (bool) ($book->accessible_abonnement_essentiel ?? false);
+    $premium   = (bool) ($book->accessible_abonnement_premium ?? false);
+
+    // Achat unitaire uniquement (jamais inclus dans aucun abo)
+    if (!$essentiel && !$premium) {
+        return [
+            'label'   => 'Achat unique',
+            'icon'    => '⚡',
+            'classes' => 'bg-amber-500/90 text-white border-amber-600',
+        ];
+    }
+
+    // Premium uniquement, l'utilisateur n'est pas Premium → pousser à l'upgrade
+    if (!$essentiel && $premium && !$isPremium) {
+        return [
+            'label'   => 'Premium',
+            'icon'    => '✨',
+            'classes' => 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-600',
+        ];
+    }
+
+    return null;
+}
+
+/**
  * Enregistrer une action admin dans audit_log
  */
 function audit(string $action, ?string $entityType = null, ?int $entityId = null, ?array $oldValues = null, ?array $newValues = null): void

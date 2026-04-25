@@ -86,7 +86,7 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
 
             <div class="carousel-container max-w-[1400px] mx-auto px-4 sm:px-6">
                 <?php foreach ($rangee['livres'] as $livre): ?>
-                <?php $coverUrl = book_cover_url($livre); ?>
+                <?php $coverUrl = book_cover_url($livre); $tierBadge = book_tier_badge(\App\Lib\Auth::user(), $livre); ?>
                 <a href="/livre/<?= e($livre->slug) ?>" class="group block flex-shrink-0" style="width:150px;min-width:150px;">
                     <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-gradient-to-br <?= book_cover_gradient($livre->id) ?> transition-transform duration-300 group-hover:scale-105 group-hover:ring-2 group-hover:ring-accent">
                         <?php if ($coverUrl): ?>
@@ -98,6 +98,9 @@ if (!empty($recommandes))  $rangees[] = ['key' => 'recommandes', 'titre' => 'Rec
                             </div>
                         <?php endif; ?>
                         <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($livre->category_nom ?? '') ?></span>
+                        <?php if ($tierBadge): ?>
+                            <span class="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-sm <?= $tierBadge['classes'] ?>"><?= $tierBadge['icon'] ?> <?= e($tierBadge['label']) ?></span>
+                        <?php endif; ?>
                     </div>
                     <div class="mt-2.5 px-0.5">
                         <p class="text-white text-[13px] font-medium leading-snug line-clamp-2 group-hover:text-accent transition-colors"><?= e($livre->titre) ?></p>

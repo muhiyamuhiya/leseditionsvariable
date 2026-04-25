@@ -26,7 +26,7 @@
             <!-- Grille favoris -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5">
                 <?php foreach ($favoris as $livre): ?>
-                    <?php $coverUrl = book_cover_url($livre); ?>
+                    <?php $coverUrl = book_cover_url($livre); $tierBadge = book_tier_badge(\App\Lib\Auth::user(), $livre); ?>
                     <div x-data="{ visible: true, loading: false }"
                          x-show="visible"
                          x-transition:leave="transition ease-in duration-500"
@@ -46,6 +46,9 @@
                                 <?php endif; ?>
                                 <?php if (!empty($livre->category_nom)): ?>
                                     <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($livre->category_nom) ?></span>
+                                <?php endif; ?>
+                                <?php if ($tierBadge): ?>
+                                    <span class="absolute top-2 right-10 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-sm <?= $tierBadge['classes'] ?>"><?= $tierBadge['icon'] ?> <?= e($tierBadge['label']) ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="mt-2.5 px-0.5">
