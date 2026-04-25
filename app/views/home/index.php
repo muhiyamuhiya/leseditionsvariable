@@ -1,16 +1,17 @@
 <?php
 // Couleurs de catégories
+// Palette restreinte aux couleurs autorisées (amber/blue/emerald/purple/pink/red/gray)
 $catColors = [
     'biographies-memoires'     => 'from-blue-800 to-blue-950',
-    'developpement-personnel'  => 'from-teal-800 to-teal-950',
-    'spiritualite-religion'    => 'from-violet-800 to-violet-950',
+    'developpement-personnel'  => 'from-emerald-800 to-emerald-950',
+    'spiritualite-religion'    => 'from-purple-800 to-purple-950',
     'roman-fiction'            => 'from-red-800 to-red-950',
-    'essais-societe'           => 'from-slate-700 to-slate-900',
+    'essais-societe'           => 'from-gray-700 to-gray-900',
     'histoire-afrique'         => 'from-amber-800 to-amber-950',
-    'poesie-theatre'           => 'from-purple-800 to-purple-950',
-    'business-entrepreneuriat' => 'from-emerald-800 to-emerald-950',
-    'sante-bien-etre'          => 'from-pink-800 to-pink-950',
-    'jeunesse-education'       => 'from-cyan-800 to-cyan-950',
+    'poesie-theatre'           => 'from-pink-800 to-pink-950',
+    'business-entrepreneuriat' => 'from-emerald-800 to-amber-900',
+    'sante-bien-etre'          => 'from-rose-800 to-rose-950',
+    'jeunesse-education'       => 'from-blue-700 to-purple-900',
 ];
 
 // Icônes SVG par rangée

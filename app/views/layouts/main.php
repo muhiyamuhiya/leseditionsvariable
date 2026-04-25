@@ -37,6 +37,19 @@
                         'text-dim': '#6B6B7D',
                         accent: '#F59E0B',
                         'accent-hover': '#FBBF24',
+                    },
+                    screens: {
+                        // Breakpoints standards Tailwind explicités pour clarté
+                        'xs': '375px',  // iPhone SE / petits téléphones
+                        'sm': '640px',  // gros téléphones / petites tablettes
+                        'md': '768px',  // tablettes
+                        'lg': '1024px', // petits laptops
+                        'xl': '1280px', // desktop standard
+                        '2xl': '1536px', // grand écran
+                    },
+                    spacing: {
+                        'safe-bottom': 'env(safe-area-inset-bottom)',
+                        'safe-top': 'env(safe-area-inset-top)',
                     }
                 }
             }
