@@ -202,7 +202,8 @@ class AuthorDashboardController extends BaseController
             'prix_unitaire_usd'     => (float) ($_POST['prix_unitaire_usd'] ?? 9.99),
             'statut'                => 'en_revue',
             'editeur'               => 'Les éditions Variable',
-            'accessible_abonnement' => isset($_POST['accessible_abonnement']) ? 1 : 0,
+            'accessible_abonnement_essentiel' => isset($_POST['accessible_abonnement_essentiel']) ? 1 : 0,
+            'accessible_abonnement_premium'   => isset($_POST['accessible_abonnement_premium']) ? 1 : 0,
         ];
 
         $id = $db->insert('books', $bookData);
@@ -272,7 +273,8 @@ class AuthorDashboardController extends BaseController
             'description_longue' => trim($_POST['description_longue'] ?? ''),
             'mots_cles'          => trim($_POST['mots_cles'] ?? ''),
             'prix_unitaire_usd'  => (float)($_POST['prix_unitaire_usd'] ?? 9.99),
-            'accessible_abonnement' => isset($_POST['accessible_abonnement']) ? 1 : 0,
+            'accessible_abonnement_essentiel' => isset($_POST['accessible_abonnement_essentiel']) ? 1 : 0,
+            'accessible_abonnement_premium'   => isset($_POST['accessible_abonnement_premium']) ? 1 : 0,
         ];
 
         if (!empty($_FILES['couverture']['tmp_name'])) {

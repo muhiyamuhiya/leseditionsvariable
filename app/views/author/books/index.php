@@ -20,6 +20,7 @@
             <td class="py-3 px-2 text-text-muted hidden md:table-cell"><?= $l->total_ventes ?></td>
             <td class="py-3 px-2">
                 <a href="/auteur/livres/<?= $l->id ?>/editer" class="text-text-muted hover:text-accent text-xs">Éditer</a>
+                <?php if (!empty($l->fichier_complet_path)): ?><a href="/lire/<?= e($l->slug) ?>" target="_blank" class="text-accent hover:text-accent-hover text-xs ml-2">Lire</a><?php endif; ?>
                 <?php if ($l->statut === 'publie'): ?><a href="/livre/<?= e($l->slug) ?>" target="_blank" class="text-text-dim hover:text-accent text-xs ml-2">Voir</a><?php endif; ?>
             </td>
         </tr>

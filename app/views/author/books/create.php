@@ -17,6 +17,9 @@
     </div>
     <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Couverture (image)</label><input type="file" name="couverture" accept="image/jpeg,image/png,image/webp" class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20"><p class="text-text-dim text-xs mt-1">JPEG/PNG/WebP, max 2 Mo, recommandé 600x900px</p></div>
     <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Manuscrit PDF *</label><input type="file" name="manuscrit" accept="application/pdf" required class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20"><p class="text-text-dim text-xs mt-1">PDF uniquement, max 50 Mo</p></div>
-    <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" checked class="accent-accent"> Inclus dans l'abonnement</label>
+    <div class="flex flex-wrap gap-6">
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_essentiel" value="1" checked class="accent-accent"> Inclus dans Essentiel</label>
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_premium" value="1" checked class="accent-accent"> Inclus dans Premium</label>
+    </div>
     <div class="flex gap-3 pt-4"><button type="submit" class="btn-primary">Soumettre pour validation</button><a href="/auteur/livres" class="btn-secondary">Annuler</a></div>
 </form>

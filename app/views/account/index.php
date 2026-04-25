@@ -66,24 +66,34 @@
         <?php else: ?>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <?php foreach ($livres as $l): ?>
-                <a href="/livre/<?= e($l->slug) ?>" class="card-book block">
-                    <div class="card-book-cover aspect-[2/3] bg-gradient-to-br <?= book_cover_gradient($l->book_id) ?> flex flex-col items-center justify-between p-3 relative">
-                        <p class="self-start text-[9px] font-medium tracking-wider uppercase text-accent/80"><?= e($l->category_nom ?? '') ?></p>
-                        <p class="font-display font-semibold text-white text-center text-sm leading-snug px-1"><?= e($l->titre) ?></p>
-                        <?php if ($l->pourcentage_complete > 0): ?>
-                            <div class="w-full">
-                                <div class="w-full bg-white/20 rounded-full h-1"><div class="bg-accent h-1 rounded-full" style="width:<?= min(100, $l->pourcentage_complete) ?>%"></div></div>
-                                <p class="text-white/50 text-[9px] text-center mt-0.5"><?= number_format($l->pourcentage_complete, 0) ?>%</p>
-                            </div>
-                        <?php else: ?>
-                            <span></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="mt-2 px-0.5">
-                        <p class="text-white text-[13px] font-medium truncate"><?= e($l->titre) ?></p>
-                        <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e($l->author_display) ?></p>
-                    </div>
-                </a>
+                    <?php $coverUrl = book_cover_url($l); ?>
+                    <a href="/livre/<?= e($l->slug) ?>" class="card-book block group">
+                        <div class="relative aspect-[2/3] overflow-hidden rounded-lg <?= $coverUrl ? '' : 'bg-gradient-to-br ' . book_cover_gradient($l->book_id) ?>">
+                            <?php if ($coverUrl): ?>
+                                <img src="<?= e($coverUrl) ?>" alt="<?= e($l->titre) ?>" class="w-full h-full object-cover" loading="lazy">
+                                <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50"></div>
+                            <?php else: ?>
+                                <div class="w-full h-full flex flex-col items-center justify-between p-3">
+                                    <p class="self-start text-[9px] font-medium tracking-wider uppercase text-accent/80"><?= e($l->category_nom ?? '') ?></p>
+                                    <p class="font-display font-semibold text-white text-center text-sm leading-snug px-1 drop-shadow-lg"><?= e($l->titre) ?></p>
+                                    <span></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($l->pourcentage_complete > 0): ?>
+                                <div class="absolute bottom-2 left-2 right-2">
+                                    <div class="w-full bg-black/40 rounded-full h-1"><div class="bg-accent h-1 rounded-full" style="width:<?= min(100, $l->pourcentage_complete) ?>%"></div></div>
+                                    <p class="text-white text-[10px] text-center mt-0.5 drop-shadow"><?= number_format($l->pourcentage_complete, 0) ?>%</p>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($coverUrl) && !empty($l->category_nom)): ?>
+                                <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($l->category_nom) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="mt-2 px-0.5">
+                            <p class="text-white text-[13px] font-medium truncate group-hover:text-accent transition-colors"><?= e($l->titre) ?></p>
+                            <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e($l->author_display) ?></p>
+                        </div>
+                    </a>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>

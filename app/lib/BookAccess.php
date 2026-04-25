@@ -23,6 +23,15 @@ class BookAccess
 
         $db = Database::getInstance();
 
+        // Auteur sur ses propres livres : preview autorisée
+        if ($user->role === 'auteur') {
+            $author = $db->fetch("SELECT id FROM authors WHERE user_id = ?", [$user->id]);
+            if ($author) {
+                $owns = $db->fetch("SELECT 1 FROM books WHERE id = ? AND author_id = ?", [$bookId, $author->id]);
+                if ($owns) return true;
+            }
+        }
+
         // Achat unitaire
         $bought = $db->fetch(
             "SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ? AND source = 'achat_unitaire'",

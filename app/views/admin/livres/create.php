@@ -55,7 +55,10 @@
         <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
     </div>
 
-    <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" checked class="accent-accent"> Accessible abonnement</label>
+    <div class="flex flex-wrap gap-6">
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_essentiel" value="1" checked class="accent-accent"> Accessible Essentiel</label>
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_premium" value="1" checked class="accent-accent"> Accessible Premium</label>
+    </div>
     <div class="flex gap-3 pt-4">
         <button type="submit" class="btn-primary">Créer le livre</button>
         <a href="/admin/livres" class="btn-secondary">Annuler</a>

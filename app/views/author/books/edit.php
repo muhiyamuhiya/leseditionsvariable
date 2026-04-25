@@ -14,7 +14,10 @@
         <?php if (!empty($book->couverture_url_web)): ?><div class="mb-3"><img src="<?= e($book->couverture_url_web) ?>" class="h-24 rounded"></div><?php endif; ?>
         <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp" class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
     </div>
-    <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement" <?= $book->accessible_abonnement ? 'checked' : '' ?> class="accent-accent"> Inclus dans l'abonnement</label>
+    <div class="flex flex-wrap gap-6">
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_essentiel" value="1" <?= $book->accessible_abonnement_essentiel ? 'checked' : '' ?> class="accent-accent"> Inclus dans Essentiel</label>
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_premium" value="1" <?= $book->accessible_abonnement_premium ? 'checked' : '' ?> class="accent-accent"> Inclus dans Premium</label>
+    </div>
     <p class="text-text-dim text-xs">Statut actuel : <strong class="text-white"><?= ucfirst(str_replace('_',' ',$book->statut)) ?></strong> — Seul l'admin peut changer le statut de publication.</p>
     <div class="flex gap-3 pt-4"><button type="submit" class="btn-primary">Enregistrer</button><a href="/auteur/livres" class="btn-secondary">Annuler</a></div>
 </form>

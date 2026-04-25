@@ -21,6 +21,7 @@ class AccountController extends BaseController
 
         $livres = $db->fetchAll(
             "SELECT b.titre, b.slug, b.nombre_pages, b.prix_unitaire_usd, b.author_id,
+                    b.couverture_url_web,
                     COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
                     ub.date_ajout, ub.favori, ub.source,
                     rp.derniere_page_lue, rp.pourcentage_complete, b.id as book_id,
@@ -32,6 +33,7 @@ class AccountController extends BaseController
              LEFT JOIN categories c ON b.category_id = c.id
              LEFT JOIN reading_progress rp ON rp.user_id = ub.user_id AND rp.book_id = ub.book_id
              WHERE ub.user_id = ?
+               AND ub.source IN ('achat_unitaire','abonnement')
              ORDER BY ub.date_ajout DESC",
             [$user->id]
         );

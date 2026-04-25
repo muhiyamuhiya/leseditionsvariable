@@ -29,7 +29,8 @@
 
             <?php if ($book->fichier_complet_path): ?>
             <div class="mt-4 space-y-2">
-                <a href="/lire/<?= e($book->slug) ?>/extrait" target="_blank" class="block text-accent text-xs hover:text-accent-hover">Prévisualiser le PDF</a>
+                <a href="/lire/<?= e($book->slug) ?>" target="_blank" class="block w-full text-center bg-accent text-black font-semibold text-sm py-2 px-3 rounded hover:bg-accent-hover transition-colors">Lire le PDF complet (mode admin)</a>
+                <a href="/lire/<?= e($book->slug) ?>/extrait" target="_blank" class="block text-accent text-xs hover:text-accent-hover">Prévisualiser l'extrait (10 pages)</a>
             </div>
             <?php endif; ?>
         </div>
@@ -47,7 +48,8 @@
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Langue</p><p class="text-white"><?= e(ucfirst($book->langue ?? 'fr')) ?></p></div>
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">ISBN</p><p class="text-white"><?= e($book->isbn ?? '-') ?></p></div>
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Prix USD</p><p class="text-accent font-semibold"><?= number_format($book->prix_unitaire_usd, 2) ?> $</p></div>
-                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Abonnement</p><p class="text-white"><?= $book->accessible_abonnement ? 'Oui' : 'Non' ?></p></div>
+                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Essentiel</p><p class="text-white"><?= $book->accessible_abonnement_essentiel ? 'Oui' : 'Non' ?></p></div>
+                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Premium</p><p class="text-white"><?= $book->accessible_abonnement_premium ? 'Oui' : 'Non' ?></p></div>
             </div>
         </div>
 

@@ -114,7 +114,7 @@
                 <!-- Prix -->
                 <div class="mt-6">
                     <span class="font-display font-bold text-3xl sm:text-4xl text-accent"><?= number_format($book->prix_unitaire_usd, 2) ?>&nbsp;$</span>
-                    <?php if ($book->accessible_abonnement): ?>
+                    <?php if (($book->accessible_abonnement_essentiel || $book->accessible_abonnement_premium)): ?>
                         <span class="ml-3 text-sm text-emerald-400 font-medium">Inclus avec l'abonnement</span>
                     <?php endif; ?>
                 </div>
@@ -138,7 +138,7 @@
                         <?php endif; ?>
                     <?php else: ?>
                         <a href="/achat/livre/<?= $book->id ?>" class="btn-primary text-base px-8 py-3">Acheter pour <?= number_format($book->prix_unitaire_usd, 2) ?>&nbsp;$</a>
-                        <?php if ($book->accessible_abonnement): ?>
+                        <?php if (($book->accessible_abonnement_essentiel || $book->accessible_abonnement_premium)): ?>
                             <a href="/abonnement" class="btn-secondary text-base px-6 py-3">Ou lire avec l'abonnement</a>
                         <?php endif; ?>
                     <?php endif; ?>
