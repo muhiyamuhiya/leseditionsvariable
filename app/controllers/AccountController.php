@@ -20,8 +20,9 @@ class AccountController extends BaseController
         $db = Database::getInstance();
 
         $livres = $db->fetchAll(
-            "SELECT b.titre, b.slug, b.nombre_pages, b.prix_unitaire_usd, b.author_id,
+            "SELECT b.id, b.titre, b.slug, b.nombre_pages, b.prix_unitaire_usd, b.author_id,
                     b.couverture_url_web,
+                    b.accessible_abonnement_essentiel, b.accessible_abonnement_premium,
                     COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
                     ub.date_ajout, ub.favori, ub.source,
                     rp.derniere_page_lue, rp.pourcentage_complete, b.id as book_id,
@@ -34,20 +35,30 @@ class AccountController extends BaseController
              LEFT JOIN reading_progress rp ON rp.user_id = ub.user_id AND rp.book_id = ub.book_id
              WHERE ub.user_id = ?
                AND ub.source IN ('achat_unitaire','abonnement')
+               AND b.statut = 'publie'
              ORDER BY ub.date_ajout DESC",
             [$user->id]
         );
 
-        $abonnement = $db->fetch(
-            "SELECT * FROM subscriptions WHERE user_id = ? AND statut = 'actif' AND date_fin > NOW() ORDER BY date_fin DESC LIMIT 1",
-            [$user->id]
-        );
+        // Calculer le statut d'accès courant pour chaque livre
+        foreach ($livres as $livre) {
+            $livre->access_status = $this->computeAccessStatus($user, $livre);
+        }
+
+        $abonnement = Subscription::getActive($user->id);
 
         $stats = $db->fetch(
             "SELECT COUNT(*) as nb_livres, SUM(total_pages_lues) as pages_lues, SUM(total_temps_lecture) as temps_total
              FROM reading_progress WHERE user_id = ?",
             [$user->id]
         );
+
+        // Le compteur "Livres lus" doit refléter la biblio (achat + abo), pas seulement reading_progress
+        $nbBiblio = (int) ($db->fetch(
+            "SELECT COUNT(*) AS n FROM user_books ub JOIN books b ON b.id = ub.book_id
+             WHERE ub.user_id = ? AND ub.source IN ('achat_unitaire','abonnement') AND b.statut = 'publie'",
+            [$user->id]
+        )->n ?? 0);
 
         $nbFavoris = (int) ($db->fetch(
             "SELECT COUNT(*) AS n FROM user_books ub JOIN books b ON b.id = ub.book_id
@@ -61,8 +72,51 @@ class AccountController extends BaseController
             'livres'     => $livres,
             'abonnement' => $abonnement,
             'stats'      => $stats,
+            'nbBiblio'   => $nbBiblio,
             'nbFavoris'  => $nbFavoris,
         ]);
+    }
+
+    /**
+     * Statut d'accès courant à un livre dans la bibliothèque
+     */
+    private function computeAccessStatus(object $user, object $livre): array
+    {
+        if ($livre->source === 'achat_unitaire') {
+            $progress = (float) ($livre->pourcentage_complete ?? 0);
+            return [
+                'can_read'    => true,
+                'badge_label' => 'Acheté',
+                'badge_color' => 'amber',
+                'cta_label'   => $progress > 0 ? 'Continuer' : 'Lire',
+                'cta_url'     => '/lire/' . $livre->slug,
+            ];
+        }
+
+        if ($livre->source === 'abonnement') {
+            // canReadFull re-vérifie tier + date_fin de l'abo courant
+            $canRead = \App\Lib\BookAccess::canReadFull($user, (int) $livre->id);
+            if ($canRead) {
+                $progress = (float) ($livre->pourcentage_complete ?? 0);
+                return [
+                    'can_read'    => true,
+                    'badge_label' => 'Avec ton abonnement',
+                    'badge_color' => 'blue',
+                    'cta_label'   => $progress > 0 ? 'Continuer' : 'Lire',
+                    'cta_url'     => '/lire/' . $livre->slug,
+                ];
+            }
+            // Abo expiré ou tier insuffisant
+            return [
+                'can_read'    => false,
+                'badge_label' => 'Renouvelle ton abonnement',
+                'badge_color' => 'gray',
+                'cta_label'   => 'Renouveler',
+                'cta_url'     => '/abonnement',
+            ];
+        }
+
+        return ['can_read' => false, 'badge_label' => '', 'badge_color' => 'gray', 'cta_label' => '', 'cta_url' => '#'];
     }
 
     /**

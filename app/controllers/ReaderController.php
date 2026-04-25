@@ -6,6 +6,7 @@ use App\Lib\BookAccess;
 use App\Lib\Database;
 use App\Lib\Session;
 use App\Models\Book;
+use App\Models\Subscription;
 
 /**
  * Contrôleur de la liseuse PDF
@@ -48,14 +49,61 @@ class ReaderController extends BaseController
         $hasFullAccess = BookAccess::canReadFull($user, $book->id);
 
         if ($mode === 'full' && !$hasFullAccess) {
-            $access = BookAccess::getRequiredAccess($user, $book->id);
-            Session::flash('error', $access['message'] ?? 'Accès refusé.');
-            if (!empty($access['cta_url']) && !empty($access['cta_label'])) {
-                Session::flash('cta_url', $access['cta_url']);
-                Session::flash('cta_label', $access['cta_label']);
+            // Cas particulier : user qui avait accès via abonnement mais l'a perdu
+            $hadAbo = $db->fetch(
+                "SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ? AND source = 'abonnement'",
+                [$user->id, $book->id]
+            );
+            if ($hadAbo) {
+                Session::flash('error', "Ton abonnement a expiré ou ne couvre plus ce livre. Renouvelle-le pour reprendre la lecture, ou achète ce livre à l'unité.");
+                Session::flash('cta_url', '/abonnement');
+                Session::flash('cta_label', 'Renouveler mon abonnement');
+            } else {
+                $access = BookAccess::getRequiredAccess($user, $book->id);
+                Session::flash('error', $access['message'] ?? 'Accès refusé.');
+                if (!empty($access['cta_url']) && !empty($access['cta_label'])) {
+                    Session::flash('cta_url', $access['cta_url']);
+                    Session::flash('cta_label', $access['cta_label']);
+                }
             }
             redirect('/livre/' . $book->slug);
             return;
+        }
+
+        // Tracking biblio : si l'accès vient d'un abonnement actif, on enregistre une ligne
+        // user_books source='abonnement' pour que le livre apparaisse dans "Ma bibliothèque".
+        // On ne tracke que les lecteurs (les admins/auteurs ne doivent pas voir leur biblio
+        // se remplir des livres qu'ils previewent).
+        if ($mode === 'full' && $hasFullAccess && ($user->role ?? '') === 'lecteur') {
+            $existing = $db->fetch(
+                "SELECT id, source FROM user_books WHERE user_id = ? AND book_id = ?",
+                [$user->id, $book->id]
+            );
+            $sub = Subscription::getActive($user->id);
+            if ($sub) {
+                if (!$existing) {
+                    $db->insert('user_books', [
+                        'user_id'      => $user->id,
+                        'book_id'      => $book->id,
+                        'source'       => 'abonnement',
+                        'date_ajout'   => date('Y-m-d H:i:s'),
+                        'dernier_acces'=> date('Y-m-d H:i:s'),
+                    ]);
+                } elseif ($existing->source === 'favori') {
+                    // Upgrade : la ligne existait juste comme favori, on passe à 'abonnement'
+                    // (le flag favori reste à 1 si actif)
+                    $db->update('user_books', [
+                        'source'        => 'abonnement',
+                        'dernier_acces' => date('Y-m-d H:i:s'),
+                    ], 'id = ?', [$existing->id]);
+                } else {
+                    // Achat existant — juste mettre à jour le dernier accès
+                    $db->update('user_books', ['dernier_acces' => date('Y-m-d H:i:s')], 'id = ?', [$existing->id]);
+                }
+            } elseif ($existing) {
+                // Pas d'abo (donc accès via achat/admin/auteur) — juste touch dernier_acces
+                $db->update('user_books', ['dernier_acces' => date('Y-m-d H:i:s')], 'id = ?', [$existing->id]);
+            }
         }
 
         if ($mode === 'extrait' && !BookAccess::canReadExtract($user)) {

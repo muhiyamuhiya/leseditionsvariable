@@ -18,8 +18,8 @@
         <!-- Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
             <div class="bg-surface border border-border rounded-lg p-4 text-center">
-                <p class="font-display font-bold text-2xl text-accent"><?= (int) ($stats->nb_livres ?? 0) ?></p>
-                <p class="text-text-dim text-xs mt-1">Livres lus</p>
+                <p class="font-display font-bold text-2xl text-accent"><?= (int) ($nbBiblio ?? 0) ?></p>
+                <p class="text-text-dim text-xs mt-1">Livres dans ma biblio</p>
             </div>
             <div class="bg-surface border border-border rounded-lg p-4 text-center">
                 <p class="font-display font-bold text-2xl text-accent"><?= number_format((int) ($stats->pages_lues ?? 0)) ?></p>
@@ -59,41 +59,83 @@
         <!-- Ma bibliothèque -->
         <h2 class="font-display font-semibold text-xl text-white mb-4">Ma bibliothèque</h2>
         <?php if (empty($livres)): ?>
-            <div class="bg-surface border border-border rounded-lg p-8 text-center">
-                <p class="text-text-muted mb-4">Ta bibliothèque est vide pour le moment.</p>
-                <a href="/catalogue" class="btn-primary text-sm">Explorer le catalogue</a>
+            <div class="bg-surface border border-border rounded-xl p-8 sm:p-12 text-center">
+                <div class="w-16 h-16 rounded-full bg-surface-2 flex items-center justify-center mx-auto mb-5">
+                    <svg class="w-8 h-8 text-text-dim" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+                </div>
+                <p class="text-text-muted mb-1 text-base">Ta bibliothèque est vide pour le moment.</p>
+                <p class="text-text-dim text-sm mb-6 max-w-md mx-auto">Achète des livres à l'unité ou souscris à un abonnement pour commencer ta collection.</p>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <a href="/catalogue" class="btn-primary">Explorer le catalogue</a>
+                    <a href="/abonnement" class="btn-secondary">Découvrir l'abonnement</a>
+                </div>
             </div>
         <?php else: ?>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <?php
+            // Map des classes badge selon couleur
+            $badgeClasses = [
+                'amber' => 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                'blue'  => 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                'gray'  => 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+            ];
+            ?>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                 <?php foreach ($livres as $l): ?>
-                    <?php $coverUrl = book_cover_url($l); ?>
-                    <a href="/livre/<?= e($l->slug) ?>" class="card-book block group">
-                        <div class="relative aspect-[2/3] overflow-hidden rounded-lg <?= $coverUrl ? '' : 'bg-gradient-to-br ' . book_cover_gradient($l->book_id) ?>">
-                            <?php if ($coverUrl): ?>
-                                <img src="<?= e($coverUrl) ?>" alt="<?= e($l->titre) ?>" class="w-full h-full object-cover" loading="lazy">
-                                <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50"></div>
-                            <?php else: ?>
-                                <div class="w-full h-full flex flex-col items-center justify-between p-3">
-                                    <p class="self-start text-[9px] font-medium tracking-wider uppercase text-accent/80"><?= e($l->category_nom ?? '') ?></p>
-                                    <p class="font-display font-semibold text-white text-center text-sm leading-snug px-1 drop-shadow-lg"><?= e($l->titre) ?></p>
-                                    <span></span>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($l->pourcentage_complete > 0): ?>
-                                <div class="absolute bottom-2 left-2 right-2">
-                                    <div class="w-full bg-black/40 rounded-full h-1"><div class="bg-accent h-1 rounded-full" style="width:<?= min(100, $l->pourcentage_complete) ?>%"></div></div>
-                                    <p class="text-white text-[10px] text-center mt-0.5 drop-shadow"><?= number_format($l->pourcentage_complete, 0) ?>%</p>
-                                </div>
-                            <?php endif; ?>
-                            <?php if (!empty($coverUrl) && !empty($l->category_nom)): ?>
-                                <span class="absolute top-2 left-2 text-[9px] font-semibold uppercase tracking-wider text-accent bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded"><?= e($l->category_nom) ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="mt-2 px-0.5">
-                            <p class="text-white text-[13px] font-medium truncate group-hover:text-accent transition-colors"><?= e($l->titre) ?></p>
+                    <?php
+                    $coverUrl = book_cover_url($l);
+                    $access = $l->access_status;
+                    $badgeClass = $badgeClasses[$access['badge_color']] ?? $badgeClasses['gray'];
+                    $isLocked = !$access['can_read'];
+                    ?>
+                    <div class="flex flex-col">
+                        <a href="<?= e($access['cta_url']) ?>" class="block group <?= $isLocked ? '' : '' ?>">
+                            <div class="relative aspect-[2/3] overflow-hidden rounded-lg <?= $coverUrl ? '' : 'bg-gradient-to-br ' . book_cover_gradient($l->book_id) ?> <?= $isLocked ? 'opacity-70 grayscale' : '' ?>">
+                                <?php if ($coverUrl): ?>
+                                    <img src="<?= e($coverUrl) ?>" alt="<?= e($l->titre) ?>" class="w-full h-full object-cover" loading="lazy">
+                                    <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50"></div>
+                                <?php else: ?>
+                                    <div class="w-full h-full flex flex-col items-center justify-between p-3">
+                                        <p class="self-start text-[9px] font-medium tracking-wider uppercase text-accent/80"><?= e($l->category_nom ?? '') ?></p>
+                                        <p class="font-display font-semibold text-white text-center text-sm leading-snug px-1 drop-shadow-lg"><?= e($l->titre) ?></p>
+                                        <span></span>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Badge état d'accès -->
+                                <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-sm <?= $badgeClass ?>">
+                                    <?= e($access['badge_label']) ?>
+                                </span>
+
+                                <!-- Cadenas si verrouillé -->
+                                <?php if ($isLocked): ?>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <div class="w-12 h-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Barre de progression -->
+                                <?php if (!$isLocked && ($l->pourcentage_complete ?? 0) > 0): ?>
+                                    <div class="absolute bottom-2 left-2 right-2">
+                                        <div class="w-full bg-black/40 rounded-full h-1"><div class="bg-accent h-1 rounded-full" style="width:<?= min(100, $l->pourcentage_complete) ?>%"></div></div>
+                                        <p class="text-white text-[10px] text-center mt-0.5 drop-shadow"><?= number_format($l->pourcentage_complete, 0) ?>%</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </a>
+
+                        <!-- Titre + auteur + CTA -->
+                        <div class="mt-2 px-0.5 flex flex-col flex-grow">
+                            <a href="/livre/<?= e($l->slug) ?>" class="text-white text-[13px] font-medium leading-snug line-clamp-2 hover:text-accent transition-colors"><?= e($l->titre) ?></a>
                             <p class="text-text-dim text-[12px] mt-0.5 truncate"><?= e($l->author_display) ?></p>
+                            <a href="<?= e($access['cta_url']) ?>"
+                               class="mt-2 inline-flex items-center gap-1 text-xs font-medium <?= $isLocked ? 'text-text-dim hover:text-accent' : 'text-accent hover:text-accent-hover' ?> transition-colors">
+                                <?= e($access['cta_label']) ?>
+                                <span aria-hidden="true">→</span>
+                            </a>
                         </div>
-                    </a>
+                    </div>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
