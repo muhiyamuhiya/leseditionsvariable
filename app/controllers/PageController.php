@@ -63,6 +63,18 @@ class PageController extends BaseController
         $this->view('pages/newsletter', ['titre' => 'Notre newsletter']);
     }
 
+    /**
+     * GET /auteurs/comment-ca-marche
+     * Page publique : transparence sur la rémunération des auteurs
+     * (70/30, pool d'abonnements, seuil, méthodes de paiement).
+     */
+    public function commentCaMarche(): void
+    {
+        $this->view('pages/auteurs-comment-ca-marche', [
+            'titre' => 'Comment Variable rémunère ses auteurs',
+        ]);
+    }
+
     public function auteurs(): void
     {
         $db = Database::getInstance();

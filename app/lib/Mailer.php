@@ -538,4 +538,62 @@ class Mailer
         $html = self::renderTemplate('drip_day30', compact('user', 'promoCode', 'discountPct', 'validUntilIso'));
         return self::send($user->email, "On t'a oublié ? Tiens, -{$discountPct}% pour revenir | {$appName}", $html, [], ['template' => 'drip_day30', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
+
+    // =====================================================================
+    // Helpers — versements aux auteurs (sprint Payouts)
+    // =====================================================================
+
+    /**
+     * Confirmation à l'auteur que sa demande de versement est bien reçue.
+     */
+    public static function sendPayoutRequested(object $user, float $amount, string $method): bool
+    {
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('payout_requested', compact('user', 'amount', 'method'));
+        $amountFmt = number_format($amount, 2);
+        return self::send($user->email, "Demande de versement reçue ({$amountFmt} USD) — {$appName}", $html, [], [
+            'template' => 'payout_requested', 'user_id' => (int) ($user->id ?? 0) ?: null,
+        ]);
+    }
+
+    /**
+     * Notif admin : nouvelle demande de versement à traiter.
+     * Adresse cible : MAIL_FROM_EMAIL (l'équipe), BCC angello automatique.
+     */
+    public static function sendAdminPayoutRequest(object $user, string $authorName, float $amount, string $method): bool
+    {
+        $to = function_exists('env') ? env('MAIL_FROM_EMAIL', 'contact@leseditionsvariable.com') : 'contact@leseditionsvariable.com';
+        $html = self::renderTemplate('admin_new_payout_request', compact('user', 'authorName', 'amount', 'method'));
+        $amountFmt = number_format($amount, 2);
+        $name = $authorName !== '' ? $authorName : trim(($user->prenom ?? '') . ' ' . ($user->nom ?? ''));
+        return self::send($to, "💰 Nouvelle demande versement {$amountFmt} USD — {$name}", $html, [], [
+            'template' => 'admin_new_payout_request', 'user_id' => null,
+        ]);
+    }
+
+    /**
+     * Confirmation à l'auteur que son versement a été effectué (avec référence).
+     */
+    public static function sendPayoutProcessed(object $user, float $amount, string $method, string $reference): bool
+    {
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('payout_processed', compact('user', 'amount', 'method', 'reference'));
+        $amountFmt = number_format($amount, 2);
+        return self::send($user->email, "Versement effectué ({$amountFmt} USD) — {$appName}", $html, [], [
+            'template' => 'payout_processed', 'user_id' => (int) ($user->id ?? 0) ?: null,
+        ]);
+    }
+
+    /**
+     * Notif à l'auteur d'un refus de versement, avec le motif clair pour
+     * qu'il puisse corriger et re-demander (le montant reste disponible).
+     */
+    public static function sendPayoutRejected(object $user, float $amount, string $reason): bool
+    {
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('payout_rejected', compact('user', 'amount', 'reason'));
+        return self::send($user->email, "Demande de versement refusée — {$appName}", $html, [], [
+            'template' => 'payout_rejected', 'user_id' => (int) ($user->id ?? 0) ?: null,
+        ]);
+    }
 }

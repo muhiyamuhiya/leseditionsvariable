@@ -138,6 +138,7 @@ $router->get('/presse', 'PageController@presse');
 $router->get('/contact', 'PageController@contact');
 $router->get('/publier', 'PageController@publier');
 $router->get('/auteurs', 'PageController@auteurs');
+$router->get('/auteurs/comment-ca-marche', 'PageController@commentCaMarche');
 $router->get('/aide', 'PageController@aide');
 $router->get('/newsletter', 'PageController@newsletterPage');
 $router->post('/newsletter/subscribe', 'NewsletterController@subscribe');

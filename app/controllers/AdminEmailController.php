@@ -85,6 +85,48 @@ class AdminEmailController extends BaseController
                     'attemptsRemaining' => 2,
                 ],
             ],
+            'payout_requested' => [
+                'label'   => 'Demande de versement reçue (auteur)',
+                'category'=> 'paiement',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'   => $fakeUser,
+                    'amount' => 47.50,
+                    'method' => 'mobile_money',
+                ],
+            ],
+            'admin_new_payout_request' => [
+                'label'   => 'Notif admin : nouvelle demande versement',
+                'category'=> 'admin',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'       => $fakeUser,
+                    'authorName' => 'Aïcha Mbenza',
+                    'amount'     => 47.50,
+                    'method'     => 'mobile_money',
+                ],
+            ],
+            'payout_processed' => [
+                'label'   => 'Versement effectué (auteur)',
+                'category'=> 'paiement',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'      => $fakeUser,
+                    'amount'    => 47.50,
+                    'method'    => 'mobile_money',
+                    'reference' => 'MM-CD-20260426-A1B2C3',
+                ],
+            ],
+            'payout_rejected' => [
+                'label'   => 'Demande de versement refusée (auteur)',
+                'category'=> 'paiement',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'   => $fakeUser,
+                    'amount' => 47.50,
+                    'reason' => 'Numéro Mobile Money invalide. Vérifie qu\'il commence par +243 et qu\'il correspond à un compte M-Pesa actif.',
+                ],
+            ],
             // === Onboarding ===
             'welcome' => [
                 'label'   => 'Bienvenue (après inscription)',

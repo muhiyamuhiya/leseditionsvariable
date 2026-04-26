@@ -8,6 +8,7 @@
                     <li><a href="/presse" class="text-sm text-text-muted hover:text-accent transition-colors">Presse</a></li>
                     <li><a href="mailto:contact@leseditionsvariable.com" class="text-sm text-text-muted hover:text-accent transition-colors">Contact</a></li>
                     <li><a href="/publier" class="text-sm text-text-muted hover:text-accent transition-colors">Publier chez Variable</a></li>
+                    <li><a href="/auteurs/comment-ca-marche" class="text-sm text-text-muted hover:text-accent transition-colors">Comment on rémunère les auteurs</a></li>
                 </ul>
             </div>
             <div>
