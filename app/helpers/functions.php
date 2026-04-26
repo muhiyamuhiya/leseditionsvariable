@@ -125,7 +125,7 @@ function book_cover_url(object $book): ?string
  */
 function author_photo_url(object $author): ?string
 {
-    return !empty($author->photo_url_web) ? $author->photo_url_web : (!empty($author->photo_auteur) ? $author->photo_auteur : null);
+    return !empty($author->photo_auteur) ? $author->photo_auteur : null;
 }
 
 /**

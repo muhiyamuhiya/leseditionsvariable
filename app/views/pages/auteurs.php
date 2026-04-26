@@ -18,8 +18,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 <?php foreach ($auteurs as $a): ?>
                     <a href="/auteur/<?= e($a->slug) ?>" class="bg-surface border border-border rounded-xl p-6 hover:border-accent transition-colors text-center">
-                        <?php if (!empty($a->photo_url_web)): ?>
-                            <img src="<?= e($a->photo_url_web) ?>" alt="<?= e($a->prenom . ' ' . $a->nom) ?>" class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-accent">
+                        <?php if (!empty($a->photo_auteur)): ?>
+                            <img src="<?= e($a->photo_auteur) ?>" alt="<?= e($a->prenom . ' ' . $a->nom) ?>" class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-accent">
                         <?php else: ?>
                             <div class="w-24 h-24 rounded-full bg-accent text-black flex items-center justify-center text-3xl font-bold font-display mx-auto mb-4"><?= e(mb_strtoupper(mb_substr($a->prenom, 0, 1))) ?></div>
                         <?php endif; ?>
@@ -27,12 +27,12 @@
                         <?php if ($a->nom_plume): ?>
                             <p class="text-text-dim text-xs">alias <?= e($a->prenom . ' ' . $a->nom) ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($a->pays)): ?>
-                            <p class="text-text-muted text-xs mt-1"><?= e($a->pays) ?></p>
+                        <?php if (!empty($a->pays_origine)): ?>
+                            <p class="text-text-muted text-xs mt-1"><?= e($a->pays_origine) ?></p>
                         <?php endif; ?>
                         <p class="text-accent text-xs mt-2 font-semibold"><?= (int) $a->nb_livres ?> livre<?= $a->nb_livres > 1 ? 's' : '' ?> publié<?= $a->nb_livres > 1 ? 's' : '' ?></p>
-                        <?php if (!empty($a->bio)): ?>
-                            <p class="text-text-muted text-sm mt-3 line-clamp-3"><?= e($a->bio) ?></p>
+                        <?php if (!empty($a->biographie_courte)): ?>
+                            <p class="text-text-muted text-sm mt-3 line-clamp-3"><?= e($a->biographie_courte) ?></p>
                         <?php endif; ?>
                         <span class="inline-block mt-4 text-accent text-sm">Découvrir →</span>
                     </a>

@@ -67,7 +67,7 @@ class PageController extends BaseController
     {
         $db = Database::getInstance();
         $auteurs = $db->fetchAll(
-            "SELECT a.id, a.slug, a.nom_plume, a.bio, a.pays, a.photo_url_web,
+            "SELECT a.id, a.slug, a.nom_plume, a.biographie_courte, a.pays_origine, a.photo_auteur,
                     u.prenom, u.nom,
                     (SELECT COUNT(*) FROM books WHERE author_id = a.id AND statut = 'publie') AS nb_livres
              FROM authors a
