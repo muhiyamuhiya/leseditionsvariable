@@ -438,6 +438,94 @@ class AuthorDashboardController extends BaseController
      * un flash error + redirect vers la liste — pas de 403 brut pour rester
      * proche du flux UX habituel.
      */
+    /**
+     * GET /auteur/avis
+     * Liste paginée des avis laissés par les lecteurs sur les livres de
+     * l'auteur connecté. Filtres : ?book_id, ?note (1-5), ?tri (recent/ancien).
+     *
+     * Sécurité : on filtre WHERE b.author_id = author de l'utilisateur
+     * connecté. Un auteur ne voit JAMAIS les avis sur les livres d'un autre.
+     */
+    public function reviewsList(): void
+    {
+        Auth::requireAuthor();
+        $author = Auth::getAuthorRecord();
+        if (!$author) {
+            Session::flash('error', 'Tu dois d\'abord déposer ta candidature d\'auteur.');
+            redirect('/auteur/candidater');
+            return;
+        }
+        if ($author->statut_validation !== 'valide') {
+            Session::flash('error', 'Tu pourras voir les avis sur tes livres une fois ta candidature validée.');
+            redirect('/auteur');
+            return;
+        }
+
+        $db = $this->db();
+
+        $bookId  = (int) ($_GET['book_id'] ?? 0);
+        $note    = (int) ($_GET['note'] ?? 0);
+        $tri     = ($_GET['tri'] ?? 'recent') === 'ancien' ? 'ancien' : 'recent';
+        $page    = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 20;
+
+        $where  = ['b.author_id = ?', 'r.approuve = 1'];
+        $params = [(int) $author->id];
+        if ($bookId > 0) { $where[] = 'r.book_id = ?'; $params[] = $bookId; }
+        if ($note >= 1 && $note <= 5) { $where[] = 'r.note = ?'; $params[] = $note; }
+        $whereSql = implode(' AND ', $where);
+
+        $orderBy = $tri === 'ancien' ? 'r.created_at ASC' : 'r.created_at DESC';
+        $offset  = ($page - 1) * $perPage;
+
+        $total = (int) ($db->fetch(
+            "SELECT COUNT(*) AS c
+               FROM reviews r
+               JOIN books b ON b.id = r.book_id
+              WHERE {$whereSql}",
+            $params
+        )->c ?? 0);
+
+        $reviews = $db->fetchAll(
+            "SELECT r.*,
+                    b.titre AS book_titre, b.slug AS book_slug,
+                    b.couverture_url_web, b.couverture_path,
+                    u.prenom AS reviewer_prenom, u.nom AS reviewer_nom
+               FROM reviews r
+               JOIN books b ON b.id = r.book_id
+          LEFT JOIN users u ON u.id = r.user_id
+              WHERE {$whereSql}
+              ORDER BY {$orderBy}
+              LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        // Liste des livres de l'auteur pour le dropdown filtre
+        $authorBooks = $db->fetchAll(
+            "SELECT id, titre FROM books WHERE author_id = ? ORDER BY titre",
+            [$author->id]
+        );
+
+        // Stats globales (toutes notes confondues, pour l'auteur)
+        $stats = $db->fetch(
+            "SELECT COUNT(*) AS total, COALESCE(AVG(note), 0) AS moyenne
+               FROM reviews r JOIN books b ON b.id = r.book_id
+              WHERE b.author_id = ? AND r.approuve = 1",
+            [$author->id]
+        );
+
+        $this->authorView('reviews', [
+            'titre'       => 'Avis lecteurs',
+            'reviews'     => $reviews,
+            'authorBooks' => $authorBooks,
+            'stats'       => $stats,
+            'total'       => $total,
+            'page'        => $page,
+            'perPage'     => $perPage,
+            'filters'     => compact('bookId', 'note', 'tri'),
+        ]);
+    }
+
     public function previewBook(string $slug): void
     {
         Auth::requireAuthor();

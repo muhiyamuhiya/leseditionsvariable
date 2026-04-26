@@ -123,6 +123,7 @@ $router->get('/auteur/livres/:slug/preview', 'AuthorDashboardController@previewB
 $router->get('/auteur/livres/:id/editer', 'AuthorDashboardController@editBook');
 $router->post('/auteur/livres/:id/editer', 'AuthorDashboardController@updateBook');
 $router->get('/auteur/livres', 'AuthorDashboardController@books');
+$router->get('/auteur/avis', 'AuthorDashboardController@reviewsList');
 $router->get('/auteur/ventes', 'AuthorDashboardController@sales');
 $router->get('/auteur/revenus', 'AuthorDashboardController@showRevenues');
 $router->post('/auteur/versements/demander', 'AuthorDashboardController@requestPayout');
