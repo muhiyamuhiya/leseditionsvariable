@@ -60,6 +60,14 @@
         <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
     </div>
 
+    <!-- Manuscrit PDF -->
+    <div>
+        <label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Manuscrit PDF *</label>
+        <input type="file" name="manuscrit" accept="application/pdf" required
+               class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
+        <p class="text-text-dim text-xs mt-1">PDF uniquement, max 50 Mo. Un extrait de 10 pages sera généré automatiquement.</p>
+    </div>
+
     <div class="flex flex-wrap gap-6">
         <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_essentiel" value="1" checked class="accent-accent"> Accessible Essentiel</label>
         <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_premium" value="1" checked class="accent-accent"> Accessible Premium</label>
@@ -139,12 +147,22 @@
             const res = await fetch('/admin/auteurs/ajax-create', {
                 method: 'POST',
                 body: fd,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
                 credentials: 'same-origin',
             });
-            const data = await res.json();
-            if (!res.ok) {
-                errEl.textContent = data.error || 'Erreur serveur.';
+
+            // Lire le texte d'abord pour pouvoir afficher un message clair même
+            // si la réponse n'est pas du JSON (ex: page d'erreur HTML serveur)
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error('Réponse invalide du serveur (HTTP ' + res.status + '). Détail : ' + text.substring(0, 150));
+            }
+
+            if (!res.ok || data.success === false) {
+                errEl.textContent = data.error || ('Erreur serveur (HTTP ' + res.status + ').');
                 errEl.classList.remove('hidden');
                 return;
             }
@@ -157,7 +175,7 @@
             select.appendChild(opt);
             hide();
         } catch (err) {
-            errEl.textContent = 'Erreur réseau : ' + err.message;
+            errEl.textContent = err.message || 'Erreur réseau.';
             errEl.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;

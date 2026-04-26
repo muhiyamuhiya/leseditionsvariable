@@ -6,6 +6,7 @@ use App\Lib\CSRF;
 use App\Lib\Database;
 use App\Lib\Mailer;
 use App\Lib\Notification;
+use App\Lib\PDFProcessor;
 use App\Lib\Session;
 
 /**
@@ -211,63 +212,86 @@ class AdminController extends BaseController
     /**
      * POST /admin/auteurs/ajax-create
      * Crée un nouvel auteur (typiquement classique) depuis le modal du form livre.
-     * Retourne JSON {id, name, is_classic} pour réinjection dans le dropdown.
+     * Retourne TOUJOURS du JSON, même en cas d'erreur (pour pas casser le JS du modal).
      */
     public function authorAjaxCreate(): void
     {
-        Auth::requireAdmin();
-        CSRF::check();
+        // Nettoyer tout output prématuré (whitespace, warnings...) pour être sûr
+        // que la réponse soit du JSON propre.
+        if (ob_get_level()) { ob_end_clean(); }
+        ob_start();
         header('Content-Type: application/json; charset=utf-8');
 
-        $nomPlume = trim($_POST['nom_plume'] ?? '');
-        if ($nomPlume === '') {
-            http_response_code(422);
-            echo json_encode(['error' => 'Le nom de plume est obligatoire.']);
-            return;
-        }
-
-        $isClassic   = !empty($_POST['is_classic']) ? 1 : 0;
-        $bioCourte   = trim($_POST['biographie_courte'] ?? '') ?: null;
-        $paysOrigine = trim($_POST['pays_origine'] ?? '') ?: null;
-
-        $db = $this->db();
-        $slug = \App\Models\Author::createUniqueSlug($nomPlume);
-
-        $data = [
-            'user_id'           => null,
-            'is_classic'        => $isClassic,
-            'slug'              => $slug,
-            'nom_plume'         => $nomPlume,
-            'biographie_courte' => $bioCourte,
-            'pays_origine'      => $paysOrigine,
-            'statut_validation' => 'valide',
-        ];
-
-        // Upload photo (optionnel)
-        if (!empty($_FILES['photo_auteur']['tmp_name'])) {
-            $file = $_FILES['photo_auteur'];
-            if (in_array($file['type'], ['image/jpeg','image/png','image/webp']) && $file['size'] <= 2 * 1024 * 1024) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $filename = $slug . '-' . time() . '.' . $ext;
-                $absPath = BASE_PATH . '/storage/authors/' . $filename;
-                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
-                if (move_uploaded_file($file['tmp_name'], $absPath)) {
-                    $data['photo_auteur'] = '/image/authors/' . $filename;
-                }
-            }
-        }
+        $respond = static function (int $code, array $body): void {
+            http_response_code($code);
+            if (ob_get_level()) { ob_end_clean(); }
+            echo json_encode($body, JSON_UNESCAPED_UNICODE);
+            exit;
+        };
 
         try {
+            // Auth admin obligatoire (sans CSRF::requireAdmin qui pourrait redirect en HTML)
+            $authUser = Auth::user();
+            if (!$authUser || ($authUser->role ?? '') !== 'admin') {
+                $respond(403, ['success' => false, 'error' => 'Accès refusé.']);
+            }
+
+            // CSRF en JSON (pas CSRF::check qui fait die en HTML)
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !CSRF::validate()) {
+                $respond(403, ['success' => false, 'error' => 'Token CSRF invalide. Recharge la page.']);
+            }
+
+            $nomPlume = trim((string) ($_POST['nom_plume'] ?? ''));
+            if ($nomPlume === '') {
+                $respond(422, ['success' => false, 'error' => 'Le nom de plume est obligatoire.']);
+            }
+
+            $isClassic   = !empty($_POST['is_classic']) ? 1 : 0;
+            $bioCourte   = trim((string) ($_POST['biographie_courte'] ?? '')) ?: null;
+            $paysOrigine = trim((string) ($_POST['pays_origine'] ?? '')) ?: null;
+
+            $db   = $this->db();
+            $slug = \App\Models\Author::createUniqueSlug($nomPlume);
+
+            $data = [
+                'user_id'           => null,
+                'is_classic'        => $isClassic,
+                'slug'              => $slug,
+                'nom_plume'         => $nomPlume,
+                'biographie_courte' => $bioCourte,
+                'pays_origine'      => $paysOrigine,
+                'statut_validation' => 'valide',
+            ];
+
+            // Upload photo (optionnel)
+            if (!empty($_FILES['photo_auteur']['tmp_name']) && is_uploaded_file($_FILES['photo_auteur']['tmp_name'])) {
+                $file = $_FILES['photo_auteur'];
+                if (in_array($file['type'], ['image/jpeg','image/png','image/webp'], true) && $file['size'] <= 2 * 1024 * 1024) {
+                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $filename = $slug . '-' . time() . '.' . $ext;
+                    $absPath  = BASE_PATH . '/storage/authors/' . $filename;
+                    if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                    if (move_uploaded_file($file['tmp_name'], $absPath)) {
+                        $data['photo_auteur'] = '/image/authors/' . $filename;
+                    }
+                }
+            }
+
             $id = $db->insert('authors', $data);
-            audit('author_create', 'authors', (int) $id);
-            echo json_encode([
+
+            // L'audit est best-effort — ne fait pas planter la création si la
+            // table audit_log a un soucis (ex: FK admin_id ailleurs en prod).
+            try { audit('author_create', 'authors', (int) $id); } catch (\Throwable $e) { error_log('audit failed: ' . $e->getMessage()); }
+
+            $respond(200, [
+                'success'    => true,
                 'id'         => (int) $id,
                 'name'       => $nomPlume,
                 'is_classic' => (bool) $isClassic,
             ]);
         } catch (\Throwable $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erreur serveur : ' . $e->getMessage()]);
+            error_log('AdminController::authorAjaxCreate — ' . $e->getMessage());
+            $respond(500, ['success' => false, 'error' => 'Erreur serveur : ' . $e->getMessage()]);
         }
     }
 
@@ -316,6 +340,36 @@ class AdminController extends BaseController
                     'couverture_path'    => 'storage/covers/' . $filename,
                     'couverture_url_web' => '/image/covers/' . $filename,
                 ], 'id = ?', [$id]);
+            }
+        }
+
+        // Upload manuscrit PDF + génération automatique de l'extrait gratuit (10 pages)
+        if ($id && !empty($_FILES['manuscrit']['tmp_name'])) {
+            $file = $_FILES['manuscrit'];
+            if ($file['type'] === 'application/pdf' && $file['size'] <= 50 * 1024 * 1024) {
+                $pdfDir     = BASE_PATH . '/storage/books/';
+                $extractDir = BASE_PATH . '/storage/extracts/';
+                if (!is_dir($pdfDir))     mkdir($pdfDir, 0755, true);
+                if (!is_dir($extractDir)) mkdir($extractDir, 0755, true);
+
+                $pdfPath     = $pdfDir . $slug . '.pdf';
+                $extractPath = $extractDir . $slug . '-extrait.pdf';
+
+                if (move_uploaded_file($file['tmp_name'], $pdfPath)) {
+                    $update = [
+                        'fichier_complet_path' => 'storage/books/' . $slug . '.pdf',
+                    ];
+                    // Génération extrait gratuit (best-effort : si pdftk/Imagick absent, on skip)
+                    try {
+                        PDFProcessor::generateExtract($pdfPath, $extractPath, FREE_PREVIEW_PAGES);
+                        if (file_exists($extractPath)) {
+                            $update['fichier_extrait_path'] = 'storage/extracts/' . $slug . '-extrait.pdf';
+                        }
+                    } catch (\Throwable $e) {
+                        error_log('AdminController::bookStore — extract gen failed : ' . $e->getMessage());
+                    }
+                    $db->update('books', $update, 'id = ?', [$id]);
+                }
             }
         }
 

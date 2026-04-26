@@ -262,7 +262,22 @@ class AuthorDashboardController extends BaseController
     {
         Auth::requireAuthor();
         $author = Auth::getAuthorRecord();
-        if (!$author || $author->statut_validation !== 'valide') { redirect('/auteur'); return; }
+
+        if (!$author) {
+            Session::flash('error', 'Tu dois d\'abord déposer ta candidature d\'auteur.');
+            redirect('/auteur/candidater');
+            return;
+        }
+        if ($author->statut_validation === 'en_attente') {
+            Session::flash('error', 'Ta candidature est en cours de revue. Tu pourras publier une fois validée.');
+            redirect('/auteur');
+            return;
+        }
+        if ($author->statut_validation !== 'valide') {
+            Session::flash('error', 'Ta candidature n\'a pas été validée. Contacte l\'équipe pour plus d\'infos.');
+            redirect('/auteur');
+            return;
+        }
 
         $categories = Category::findActive();
         $this->authorView('books/create', ['titre' => 'Nouveau livre', 'categories' => $categories]);
@@ -272,23 +287,51 @@ class AuthorDashboardController extends BaseController
     {
         Auth::requireAuthor();
         CSRF::check();
+
         $author = Auth::getAuthorRecord();
-        if (!$author || $author->statut_validation !== 'valide') { redirect('/auteur'); return; }
+
+        // Cas 1 : pas de candidature du tout (admin promu sans row authors, ou bug)
+        if (!$author) {
+            Session::flash('error', 'Tu dois d\'abord déposer ta candidature d\'auteur.');
+            redirect('/auteur/candidater');
+            return;
+        }
+
+        // Cas 2 : candidature en attente
+        if ($author->statut_validation === 'en_attente') {
+            Session::flash('error', 'Ta candidature est en cours de revue. Tu pourras publier une fois validée.');
+            redirect('/auteur');
+            return;
+        }
+
+        // Cas 3 : candidature refusée
+        if ($author->statut_validation !== 'valide') {
+            Session::flash('error', 'Ta candidature n\'a pas été validée. Contacte l\'équipe pour plus d\'infos.');
+            redirect('/auteur');
+            return;
+        }
 
         $db = $this->db();
-        $slug = trim($_POST['slug'] ?? '') ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', trim($_POST['titre']))));
+        $titreRaw = trim((string) ($_POST['titre'] ?? ''));
+        if ($titreRaw === '') {
+            Session::flash('error', 'Le titre du livre est obligatoire.');
+            redirect('/auteur/livres/nouveau');
+            return;
+        }
+
+        $slug = trim((string) ($_POST['slug'] ?? '')) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $titreRaw)));
 
         $bookData = [
-            'author_id'             => $author->id,
-            'titre'                 => trim($_POST['titre']),
+            'author_id'             => (int) $author->id,
+            'titre'                 => $titreRaw,
             'slug'                  => $slug,
-            'sous_titre'            => trim($_POST['sous_titre'] ?? '') ?: null,
+            'sous_titre'            => trim((string) ($_POST['sous_titre'] ?? '')) ?: null,
             'category_id'           => (int) ($_POST['category_id'] ?? 0) ?: null,
-            'description_courte'    => trim($_POST['description_courte'] ?? ''),
-            'description_longue'    => trim($_POST['description_longue'] ?? ''),
-            'mots_cles'             => trim($_POST['mots_cles'] ?? ''),
-            'isbn'                  => trim($_POST['isbn'] ?? '') ?: null,
-            'langue'                => trim($_POST['langue'] ?? 'fr'),
+            'description_courte'    => trim((string) ($_POST['description_courte'] ?? '')),
+            'description_longue'    => trim((string) ($_POST['description_longue'] ?? '')),
+            'mots_cles'             => trim((string) ($_POST['mots_cles'] ?? '')),
+            'isbn'                  => trim((string) ($_POST['isbn'] ?? '')) ?: null,
+            'langue'                => trim((string) ($_POST['langue'] ?? 'fr')),
             'nombre_pages'          => (int) ($_POST['nombre_pages'] ?? 0) ?: null,
             'prix_unitaire_usd'     => (float) ($_POST['prix_unitaire_usd'] ?? 9.99),
             'statut'                => 'en_revue',
@@ -297,40 +340,81 @@ class AuthorDashboardController extends BaseController
             'accessible_abonnement_premium'   => isset($_POST['accessible_abonnement_premium']) ? 1 : 0,
         ];
 
-        $id = $db->insert('books', $bookData);
-
-        // Upload couverture
-        if ($id && !empty($_FILES['couverture']['tmp_name'])) {
-            $file = $_FILES['couverture'];
-            if (in_array($file['type'], ['image/jpeg','image/png','image/webp']) && $file['size'] <= 2 * 1024 * 1024) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $fn = $slug . '-' . time() . '.' . $ext;
-                $abs = BASE_PATH . '/storage/covers/' . $fn;
-                if (!is_dir(dirname($abs))) mkdir(dirname($abs), 0755, true);
-                move_uploaded_file($file['tmp_name'], $abs);
-                $db->update('books', ['couverture_path' => 'storage/covers/' . $fn, 'couverture_url_web' => '/image/covers/' . $fn], 'id = ?', [$id]);
-            }
+        try {
+            $id = $db->insert('books', $bookData);
+        } catch (\Throwable $e) {
+            error_log('AuthorDashboardController::storeBook insert : ' . $e->getMessage());
+            Session::flash('error', 'Impossible d\'enregistrer le livre. Vérifie que le titre n\'est pas déjà utilisé et réessaie.');
+            redirect('/auteur/livres/nouveau');
+            return;
         }
 
-        // Upload PDF
-        if ($id && !empty($_FILES['manuscrit']['tmp_name'])) {
-            $file = $_FILES['manuscrit'];
-            if ($file['type'] === 'application/pdf' && $file['size'] <= 50 * 1024 * 1024) {
-                $pdfPath = BASE_PATH . '/storage/books/' . $slug . '.pdf';
-                move_uploaded_file($file['tmp_name'], $pdfPath);
-                $extractPath = BASE_PATH . '/storage/extracts/' . $slug . '-extrait.pdf';
-                PDFProcessor::generateExtract($pdfPath, $extractPath, FREE_PREVIEW_PAGES);
-                $db->update('books', [
-                    'fichier_complet_path' => 'storage/books/' . $slug . '.pdf',
-                    'fichier_extrait_path' => 'storage/extracts/' . $slug . '-extrait.pdf',
-                ], 'id = ?', [$id]);
-            }
+        if (!$id) {
+            Session::flash('error', 'Erreur d\'enregistrement. Réessaie.');
+            redirect('/auteur/livres/nouveau');
+            return;
         }
 
-        // Emails (templates HTML stylés + BCC admin auto)
-        $user = Auth::user();
-        Mailer::sendAdminBookNotif($user, $bookData['titre']);
-        Mailer::sendBookSubmitted($user, $bookData['titre']);
+        // Upload couverture (best-effort)
+        try {
+            if (!empty($_FILES['couverture']['tmp_name']) && is_uploaded_file($_FILES['couverture']['tmp_name'])) {
+                $file = $_FILES['couverture'];
+                if (in_array($file['type'], ['image/jpeg','image/png','image/webp'], true) && $file['size'] <= 2 * 1024 * 1024) {
+                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $fn  = $slug . '-' . time() . '.' . $ext;
+                    $abs = BASE_PATH . '/storage/covers/' . $fn;
+                    if (!is_dir(dirname($abs))) mkdir(dirname($abs), 0755, true);
+                    if (move_uploaded_file($file['tmp_name'], $abs)) {
+                        $db->update('books', [
+                            'couverture_path'    => 'storage/covers/' . $fn,
+                            'couverture_url_web' => '/image/covers/' . $fn,
+                        ], 'id = ?', [$id]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('storeBook cover upload : ' . $e->getMessage());
+        }
+
+        // Upload PDF + extrait (best-effort)
+        try {
+            if (!empty($_FILES['manuscrit']['tmp_name']) && is_uploaded_file($_FILES['manuscrit']['tmp_name'])) {
+                $file = $_FILES['manuscrit'];
+                if ($file['type'] === 'application/pdf' && $file['size'] <= 50 * 1024 * 1024) {
+                    $pdfDir     = BASE_PATH . '/storage/books/';
+                    $extractDir = BASE_PATH . '/storage/extracts/';
+                    if (!is_dir($pdfDir))     mkdir($pdfDir, 0755, true);
+                    if (!is_dir($extractDir)) mkdir($extractDir, 0755, true);
+
+                    $pdfPath     = $pdfDir . $slug . '.pdf';
+                    $extractPath = $extractDir . $slug . '-extrait.pdf';
+
+                    if (move_uploaded_file($file['tmp_name'], $pdfPath)) {
+                        $update = ['fichier_complet_path' => 'storage/books/' . $slug . '.pdf'];
+                        try {
+                            PDFProcessor::generateExtract($pdfPath, $extractPath, FREE_PREVIEW_PAGES);
+                            if (file_exists($extractPath)) {
+                                $update['fichier_extrait_path'] = 'storage/extracts/' . $slug . '-extrait.pdf';
+                            }
+                        } catch (\Throwable $e) {
+                            error_log('storeBook extract gen : ' . $e->getMessage());
+                        }
+                        $db->update('books', $update, 'id = ?', [$id]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('storeBook pdf upload : ' . $e->getMessage());
+        }
+
+        // Emails (best-effort — un échec mailer ne doit jamais 500 sur un upload)
+        try {
+            $user = Auth::user();
+            Mailer::sendAdminBookNotif($user, $bookData['titre']);
+            Mailer::sendBookSubmitted($user, $bookData['titre']);
+        } catch (\Throwable $e) {
+            error_log('storeBook mail notif : ' . $e->getMessage());
+        }
 
         Session::flash('author_success', 'Ton livre a été soumis pour validation.');
         redirect('/auteur/livres');
