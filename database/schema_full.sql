@@ -613,4 +613,27 @@ INSERT INTO chat_responses (keywords, question, answer, category) VALUES
 ('bug,erreur,probleme technique,marche pas,plante', 'Problème technique', 'Décris ton souci ici (page concernée + ce qui se passe), on regarde tout de suite.', 'technique'),
 ('email pas recu,pas recu email,email confirmation,verification email', 'Email pas reçu', 'Vérifie tes spams/courrier indésirable. Si toujours rien, dis-le-nous ici avec ton adresse, on relance.', 'technique');
 
+-- =============================================================================
+-- Migration 008 — Codes promo uniques (drip campaigns + marketing)
+-- =============================================================================
+
+CREATE TABLE promo_codes (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(40) UNIQUE NOT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,
+    discount_pct TINYINT UNSIGNED NOT NULL DEFAULT 20,
+    max_uses INT UNSIGNED DEFAULT 1,
+    times_used INT UNSIGNED NOT NULL DEFAULT 0,
+    valid_from DATETIME DEFAULT CURRENT_TIMESTAMP,
+    valid_until DATETIME DEFAULT NULL,
+    source VARCHAR(50) DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    used_at DATETIME DEFAULT NULL,
+    INDEX idx_code (code),
+    INDEX idx_user (user_id),
+    INDEX idx_source (source),
+    INDEX idx_valid (valid_until),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS=1;

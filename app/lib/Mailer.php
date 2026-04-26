@@ -376,4 +376,126 @@ class Mailer
         $html = self::renderTemplate('payment_failed', compact('user', 'planLabel', 'amount', 'currency', 'dateRetryIso', 'attemptsRemaining'));
         return self::send($user->email, "⚠️ Échec du paiement de ton abonnement — {$appName}", $html);
     }
+
+    // =====================================================================
+    // Drip campaign — séquence d'onboarding (J+0/J+2/J+7/J+14/J+30)
+    // =====================================================================
+    //
+    // Chaque helper applique sa propre logique de skip. Si la condition de
+    // skip est remplie, le helper retourne false sans envoyer (le cron Phase 3
+    // utilise ça pour avancer dans la séquence sans envoi inutile).
+    //
+    // L'enrichissement des données (top 3, nouveautés...) est fait ici pour
+    // que les helpers soient indépendants — le cron passe juste un user.
+    // =====================================================================
+
+    /**
+     * J+2 : "Découvre les 3 best-sellers".
+     * Skip si l'user a déjà commencé à lire un livre (reading_progress).
+     *
+     * @return bool true si l'email a été envoyé, false si skip ou échec
+     */
+    public static function sendDripDay2(object $user): bool
+    {
+        $db = \App\Lib\Database::getInstance();
+
+        // Skip : déjà commencé à lire
+        $hasRead = $db->fetch("SELECT 1 FROM reading_progress WHERE user_id = ? LIMIT 1", [$user->id]);
+        if ($hasRead) return false;
+
+        // Top 3 livres les plus lus, publiés
+        $books = $db->fetchAll(
+            "SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display
+               FROM books b
+               JOIN authors a ON a.id = b.author_id
+               JOIN users u ON u.id = a.user_id
+              WHERE b.statut = 'publie'
+              ORDER BY b.total_lectures DESC, b.total_ventes DESC
+              LIMIT 3"
+        );
+
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('drip_day2', compact('user', 'books'));
+        return self::send($user->email, "3 livres qui marchent fort sur Variable | {$appName}", $html);
+    }
+
+    /**
+     * J+7 : "Pourquoi t'abonner".
+     * Skip si l'user a déjà un abonnement actif.
+     */
+    public static function sendDripDay7(object $user): bool
+    {
+        $db = \App\Lib\Database::getInstance();
+
+        $hasSub = $db->fetch(
+            "SELECT 1 FROM subscriptions WHERE user_id = ? AND statut = 'actif' LIMIT 1",
+            [$user->id]
+        );
+        if ($hasSub) return false;
+
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('drip_day7', compact('user'));
+        return self::send($user->email, "Et si tu lisais sans limite pour 3\$/mois ? | {$appName}", $html);
+    }
+
+    /**
+     * J+14 : "Nouveautés de la semaine".
+     * Pas de skip — envoyé à tous (info catalogue, valable même pour abonnés).
+     */
+    public static function sendDripDay14(object $user): bool
+    {
+        $db = \App\Lib\Database::getInstance();
+
+        // 3 derniers livres publiés
+        $books = $db->fetchAll(
+            "SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display
+               FROM books b
+               JOIN authors a ON a.id = b.author_id
+               JOIN users u ON u.id = a.user_id
+              WHERE b.statut = 'publie'
+              ORDER BY b.date_publication DESC, b.id DESC
+              LIMIT 3"
+        );
+
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('drip_day14', compact('user', 'books'));
+        return self::send($user->email, "Nouveautés Variable | {$appName}", $html);
+    }
+
+    /**
+     * J+30 : "On t'a oublié ?" — code promo de réactivation.
+     * Cible : user inactif (pas de connexion depuis 14 jours OU jamais reconnecté).
+     * Skip si user récemment actif (a ouvert le site dans les 14 derniers jours).
+     *
+     * Génère un code promo unique de 20% valable 30 jours via App\Lib\PromoCode.
+     * Idempotent : si un code 'drip_day30' existe déjà pour ce user, on le réutilise.
+     */
+    public static function sendDripDay30(object $user): bool
+    {
+        $db = \App\Lib\Database::getInstance();
+
+        // Skip si actif récemment (connexion < 14 jours)
+        $row = $db->fetch("SELECT derniere_connexion FROM users WHERE id = ?", [$user->id]);
+        if ($row && $row->derniere_connexion && strtotime((string) $row->derniere_connexion) > strtotime('-14 days')) {
+            return false;
+        }
+
+        // Code promo : réutilise un code 'drip_day30' actif si présent, sinon en génère un
+        $existing = \App\Lib\PromoCode::findActiveForUser((int) $user->id, 'drip_day30');
+        if ($existing) {
+            $promoCode    = (string) $existing->code;
+            $discountPct  = (int) $existing->discount_pct;
+            $validUntilIso = (string) ($existing->valid_until ?: date('Y-m-d', strtotime('+30 days')));
+        } else {
+            $promoCode    = \App\Lib\PromoCode::generateForUser(
+                (int) $user->id, 20, 30, 'drip_day30', 'REVIENS'
+            );
+            $discountPct  = 20;
+            $validUntilIso = date('Y-m-d', strtotime('+30 days'));
+        }
+
+        $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
+        $html = self::renderTemplate('drip_day30', compact('user', 'promoCode', 'discountPct', 'validUntilIso'));
+        return self::send($user->email, "On t'a oublié ? Tiens, -{$discountPct}% pour revenir | {$appName}", $html);
+    }
 }

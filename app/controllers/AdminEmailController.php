@@ -91,6 +91,41 @@ class AdminEmailController extends BaseController
                 'has_pdf' => false,
                 'fixtures'=> ['user' => $fakeUser],
             ],
+            'drip_day2' => [
+                'label'   => 'Drip J+2 — 3 best-sellers',
+                'category'=> 'onboarding',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'  => $fakeUser,
+                    'books' => self::fakeBooks(),
+                ],
+            ],
+            'drip_day7' => [
+                'label'   => 'Drip J+7 — Pourquoi t\'abonner',
+                'category'=> 'onboarding',
+                'has_pdf' => false,
+                'fixtures'=> ['user' => $fakeUser],
+            ],
+            'drip_day14' => [
+                'label'   => 'Drip J+14 — Nouveautés',
+                'category'=> 'onboarding',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'  => $fakeUser,
+                    'books' => self::fakeBooks(),
+                ],
+            ],
+            'drip_day30' => [
+                'label'   => 'Drip J+30 — Réactivation -20%',
+                'category'=> 'onboarding',
+                'has_pdf' => false,
+                'fixtures'=> [
+                    'user'           => $fakeUser,
+                    'promoCode'      => 'REVIENS-A1B2C3',
+                    'discountPct'    => 20,
+                    'validUntilIso'  => date('Y-m-d', strtotime('+30 days')),
+                ],
+            ],
             'verification' => [
                 'label'   => 'Vérification email',
                 'category'=> 'onboarding',
@@ -168,6 +203,42 @@ class AdminEmailController extends BaseController
                     'user'       => $fakeUser,
                     'titreLivre' => 'Les rivières du Kasaï',
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * Données fictives utilisées pour les drip templates qui affichent des livres.
+     */
+    private static function fakeBooks(): array
+    {
+        return [
+            (object) [
+                'titre' => 'L\'amour fou de Kinshasa',
+                'slug' => 'amour-fou-kinshasa',
+                'description_courte' => 'Une histoire d\'amour brûlante dans le Kinshasa contemporain, entre tradition et modernité.',
+                'author_display' => 'Aïcha Mbenza',
+                'date_publication' => date('Y-m-d', strtotime('-3 days')),
+                'couverture_url_web' => '',
+                'couverture_path' => '',
+            ],
+            (object) [
+                'titre' => 'Les rivières du Kasaï',
+                'slug' => 'rivieres-kasai',
+                'description_courte' => 'Saga familiale qui suit trois générations au cœur de la forêt équatoriale.',
+                'author_display' => 'Patrice Lualua',
+                'date_publication' => date('Y-m-d', strtotime('-7 days')),
+                'couverture_url_web' => '',
+                'couverture_path' => '',
+            ],
+            (object) [
+                'titre' => 'Mémoires d\'un griot urbain',
+                'slug' => 'memoires-griot-urbain',
+                'description_courte' => 'Le récit autobiographique d\'un musicien congolais devenu écrivain à Montréal.',
+                'author_display' => 'Joseph Kibambe',
+                'date_publication' => date('Y-m-d', strtotime('-12 days')),
+                'couverture_url_web' => '',
+                'couverture_path' => '',
             ],
         ];
     }
