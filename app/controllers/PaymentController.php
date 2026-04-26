@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Lib\Auth;
 use App\Lib\Database;
+use App\Lib\Mailer;
 use App\Lib\Notification;
 use App\Lib\PaymentConfig;
 use App\Lib\Session;
@@ -498,7 +499,9 @@ class PaymentController extends BaseController
                 $event = json_decode($payload);
             }
 
-            if (($event->type ?? '') === 'checkout.session.completed') {
+            $eventType = $event->type ?? '';
+
+            if ($eventType === 'checkout.session.completed') {
                 $s = $event->data->object;
                 $type = $s->metadata->type ?? '';
                 if ($type === 'book_purchase') {
@@ -508,6 +511,12 @@ class PaymentController extends BaseController
                 } elseif ($type === 'editorial_order') {
                     $this->fulfillEditorialOrder((int) $s->metadata->editorial_order_id, $s->id);
                 }
+            } elseif ($eventType === 'invoice.paid') {
+                // Renouvellement automatique d'abonnement réussi
+                $this->handleStripeInvoicePaid($event->data->object);
+            } elseif ($eventType === 'invoice.payment_failed') {
+                // Échec de prélèvement (renouvellement)
+                $this->handleStripeInvoicePaymentFailed($event->data->object);
             }
 
             http_response_code(200);
@@ -597,6 +606,25 @@ class PaymentController extends BaseController
             '/lire/' . $book->slug,
             'cart'
         );
+
+        // Reçu PDF par email — non-bloquant
+        $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE id = ?", [$userId]);
+        if ($user) {
+            try {
+                Mailer::sendPaymentReceipt(
+                    $user,
+                    'book',
+                    (string) $book->titre,
+                    $prix,
+                    'USD',
+                    $txId && str_starts_with((string) $txId, 'cs_') ? 'stripe' : 'money_fusion',
+                    (string) ($txId ?? ''),
+                    date('Y-m-d H:i:s')
+                );
+            } catch (\Throwable $e) {
+                error_log('Receipt email (book) failed: ' . $e->getMessage());
+            }
+        }
     }
 
     private function fulfillEditorialOrder(int $orderId, ?string $txId): void
@@ -677,6 +705,188 @@ class PaymentController extends BaseController
             'Bienvenue dans ton abonnement ' . $planData['label'] . '. Lecture illimitée jusqu\'au ' . date('d/m/Y', strtotime($dateFin)) . '.',
             '/catalogue',
             'premium'
+        );
+
+        // Reçu PDF par email — non-bloquant
+        $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE id = ?", [$userId]);
+        if ($user) {
+            try {
+                Mailer::sendPaymentReceipt(
+                    $user,
+                    'subscription',
+                    $planData['label'],
+                    (float) $planData['prix'],
+                    'USD',
+                    $txId && str_starts_with((string) $txId, 'cs_') ? 'stripe' : 'money_fusion',
+                    (string) ($txId ?? ''),
+                    $dateDebut
+                );
+            } catch (\Throwable $e) {
+                error_log('Receipt email (subscription) failed: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Stripe webhook : invoice.paid → renouvellement automatique d'abonnement réussi.
+     * On crée une nouvelle ligne subscriptions (nouvelle période) et envoie l'email de confirmation.
+     */
+    private function handleStripeInvoicePaid(object $invoice): void
+    {
+        $stripeSubId = (string) ($invoice->subscription ?? '');
+        $stripeCustomerId = (string) ($invoice->customer ?? '');
+        if ($stripeSubId === '' || $stripeCustomerId === '') return;
+
+        $db = Database::getInstance();
+
+        // Idempotence : si on a déjà traité cette invoice, on sort
+        $invoiceId = (string) ($invoice->id ?? '');
+        if ($invoiceId !== '') {
+            $already = $db->fetch("SELECT 1 FROM subscriptions WHERE transaction_id = ?", [$invoiceId]);
+            if ($already) return;
+        }
+
+        // Retrouver l'utilisateur par stripe_customer_id, sinon via la dernière subscription connue
+        $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE stripe_customer_id = ?", [$stripeCustomerId]);
+        if (!$user) {
+            $row = $db->fetch("SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ? ORDER BY id DESC LIMIT 1", [$stripeSubId]);
+            if ($row) {
+                $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE id = ?", [$row->user_id]);
+            }
+        }
+        if (!$user) {
+            error_log("invoice.paid: user introuvable pour customer={$stripeCustomerId}");
+            return;
+        }
+
+        // Récupérer le plan à partir de l'abonnement précédent
+        $prev = $db->fetch(
+            "SELECT type, prix_paye, devise FROM subscriptions WHERE stripe_subscription_id = ? ORDER BY id DESC LIMIT 1",
+            [$stripeSubId]
+        );
+        $type = $prev->type ?? 'essentiel_mensuel';
+        $planData = self::PLANS[$type] ?? self::PLANS['essentiel_mensuel'];
+        $amount = (float) ($invoice->amount_paid ?? 0) / 100; // Stripe en centimes
+        if ($amount <= 0) { $amount = (float) ($prev->prix_paye ?? $planData['prix']); }
+        $devise = strtoupper((string) ($invoice->currency ?? $prev->devise ?? 'USD'));
+
+        // Désactiver l'ancien abo, créer la nouvelle période
+        $db->update('subscriptions', ['statut' => 'expire'], "user_id = ? AND statut = 'actif'", [$user->id]);
+
+        $dateDebut = date('Y-m-d H:i:s');
+        $dateFin   = date('Y-m-d H:i:s', strtotime("+{$planData['duree_jours']} days"));
+
+        $db->insert('subscriptions', [
+            'user_id'                => $user->id,
+            'type'                   => $type,
+            'date_debut'             => $dateDebut,
+            'date_fin'               => $dateFin,
+            'prix_paye'              => $amount,
+            'devise'                 => $devise,
+            'methode_paiement'       => 'stripe',
+            'transaction_id'         => $invoiceId,
+            'stripe_subscription_id' => $stripeSubId,
+            'renouvellement_auto'    => 1,
+            'statut'                 => 'actif',
+        ]);
+
+        // Email de confirmation de renouvellement
+        try {
+            Mailer::sendSubscriptionRenewed(
+                $user,
+                $planData['label'],
+                $amount,
+                $devise,
+                $dateFin,
+                $invoiceId
+            );
+        } catch (\Throwable $e) {
+            error_log('Renewal email failed: ' . $e->getMessage());
+        }
+
+        Notification::create(
+            (int) $user->id,
+            'subscription_renewed',
+            'Abonnement renouvelé',
+            'Ton abonnement ' . $planData['label'] . ' a été renouvelé jusqu\'au ' . date('d/m/Y', strtotime($dateFin)) . '.',
+            '/catalogue',
+            'premium'
+        );
+    }
+
+    /**
+     * Stripe webhook : invoice.payment_failed → échec d'un prélèvement.
+     * Marque l'abonnement en échec (sans le suspendre immédiatement) et email l'utilisateur.
+     */
+    private function handleStripeInvoicePaymentFailed(object $invoice): void
+    {
+        $stripeSubId = (string) ($invoice->subscription ?? '');
+        $stripeCustomerId = (string) ($invoice->customer ?? '');
+        if ($stripeSubId === '' && $stripeCustomerId === '') return;
+
+        $db = Database::getInstance();
+
+        // Retrouver l'utilisateur
+        $user = null;
+        if ($stripeCustomerId !== '') {
+            $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE stripe_customer_id = ?", [$stripeCustomerId]);
+        }
+        if (!$user && $stripeSubId !== '') {
+            $row = $db->fetch("SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ? ORDER BY id DESC LIMIT 1", [$stripeSubId]);
+            if ($row) {
+                $user = $db->fetch("SELECT id, prenom, nom, email FROM users WHERE id = ?", [$row->user_id]);
+            }
+        }
+        if (!$user) {
+            error_log("invoice.payment_failed: user introuvable pour customer={$stripeCustomerId}");
+            return;
+        }
+
+        // Récupérer le plan/montant depuis l'abo en cours
+        $sub = $db->fetch(
+            "SELECT type, prix_paye, devise, nb_tentatives_renouvellement FROM subscriptions
+             WHERE stripe_subscription_id = ? ORDER BY id DESC LIMIT 1",
+            [$stripeSubId]
+        );
+        $type = $sub->type ?? 'essentiel_mensuel';
+        $planData = self::PLANS[$type] ?? self::PLANS['essentiel_mensuel'];
+        $amount = (float) ($invoice->amount_due ?? 0) / 100;
+        if ($amount <= 0) { $amount = (float) ($sub->prix_paye ?? $planData['prix']); }
+        $devise = strtoupper((string) ($invoice->currency ?? $sub->devise ?? 'USD'));
+
+        // Incrément du compteur de tentatives
+        $tentatives = (int) ($sub->nb_tentatives_renouvellement ?? 0) + 1;
+        $db->update(
+            'subscriptions',
+            ['statut' => 'echec_paiement', 'nb_tentatives_renouvellement' => $tentatives],
+            "stripe_subscription_id = ?",
+            [$stripeSubId]
+        );
+
+        // Stripe Smart Retries : prochain essai dans ~3 jours, max 4 tentatives par défaut
+        $dateRetry = date('Y-m-d H:i:s', strtotime('+3 days'));
+        $attemptsRemaining = max(1, 4 - $tentatives);
+
+        try {
+            Mailer::sendPaymentFailed(
+                $user,
+                $planData['label'],
+                $amount,
+                $devise,
+                $dateRetry,
+                $attemptsRemaining
+            );
+        } catch (\Throwable $e) {
+            error_log('Payment-failed email failed: ' . $e->getMessage());
+        }
+
+        Notification::create(
+            (int) $user->id,
+            'payment_failed',
+            'Échec de paiement',
+            'Le prélèvement de ton abonnement a échoué. Mets à jour ta carte avant le ' . date('d/m/Y', strtotime($dateRetry)) . '.',
+            '/mon-compte/abonnement',
+            'alert'
         );
     }
 
