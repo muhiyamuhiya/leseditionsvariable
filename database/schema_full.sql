@@ -358,15 +358,22 @@ CREATE TABLE author_payouts (
     devise VARCHAR(3) DEFAULT 'USD',
     methode_versement VARCHAR(50),
     reference_versement VARCHAR(100),
-    statut ENUM('calcule', 'a_verser', 'en_cours', 'verse', 'echec', 'annule') DEFAULT 'calcule',
+    statut ENUM('calcule','available','a_verser','requested','en_cours','verse','echec','annule','refuse') DEFAULT 'calcule',
     date_versement DATETIME,
     notes TEXT,
+    requested_at DATETIME DEFAULT NULL,
+    requested_method VARCHAR(50) DEFAULT NULL,
+    requested_account_snapshot VARCHAR(255) DEFAULT NULL,
+    processed_by_admin_id INT UNSIGNED DEFAULT NULL,
+    rejection_reason TEXT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_author (author_id),
     INDEX idx_statut (statut),
     INDEX idx_periode (periode_debut, periode_fin),
-    FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE
+    INDEX idx_processed_by (processed_by_admin_id),
+    FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE,
+    FOREIGN KEY (processed_by_admin_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- Table: subscription_pool
@@ -422,9 +429,9 @@ INSERT INTO settings (`key`, `value`, description) VALUES
 ('prix_abonnement_mensuel_usd', '3.00', 'Prix mensuel abonnement USD'),
 ('prix_abonnement_annuel_usd', '30.00', 'Prix annuel abonnement USD'),
 ('prix_abonnement_premium_mensuel_usd', '8.00', 'Prix mensuel Premium USD'),
-('commission_variable_pct', '20', 'Pourcentage commission Variable sur ventes unitaires'),
+('commission_variable_pct', '30', 'Pourcentage commission Variable sur ventes unitaires (auteur reçoit 70%)'),
 ('pourcentage_pool_redistribution', '50', 'Pourcentage des revenus abonnement redistribué aux auteurs'),
-('seuil_minimum_versement_usd', '20', 'Montant minimum pour déclencher un versement auteur'),
+('seuil_minimum_versement_usd', '10', 'Montant minimum pour déclencher un versement auteur'),
 ('taux_conversion_usd_cdf', '2800', 'Taux USD vers Franc Congolais'),
 ('email_support', 'support@leseditionsvariable.com', 'Email de contact support'),
 ('email_contact', 'contact@leseditionsvariable.com', 'Email de contact général'),

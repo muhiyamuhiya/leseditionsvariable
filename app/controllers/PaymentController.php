@@ -569,12 +569,26 @@ class PaymentController extends BaseController
         $already = $db->fetch("SELECT 1 FROM user_books WHERE user_id = ? AND book_id = ? AND source = 'achat_unitaire'", [$userId, $bookId]);
         if ($already) return;
 
-        $book = $db->fetch("SELECT * FROM books WHERE id = ?", [$bookId]);
+        // On joint authors pour récupérer is_classic — les auteurs classiques
+        // (domaine public, sans ayants droit) reçoivent 0% et la plateforme 100%.
+        $book = $db->fetch(
+            "SELECT b.*, a.is_classic
+               FROM books b
+               JOIN authors a ON a.id = b.author_id
+              WHERE b.id = ?",
+            [$bookId]
+        );
         if (!$book) return;
 
         $prix = (float) $book->prix_unitaire_usd;
-        $commission = round($prix * COMMISSION_RATE, 2);
-        $revenu = round($prix * AUTHOR_SHARE_RATE, 2);
+        if (!empty($book->is_classic)) {
+            // Classique : 100% plateforme, 0% auteur (track la sale pour analytics)
+            $commission = $prix;
+            $revenu     = 0.00;
+        } else {
+            $commission = round($prix * COMMISSION_RATE, 2);
+            $revenu     = round($prix * AUTHOR_SHARE_RATE, 2);
+        }
 
         // Si une ligne existe déjà pour ce couple (user, livre) avec une autre source (ex: 'favori'),
         // on la met à niveau au lieu d'insérer (la contrainte UNIQUE (user_id, book_id) interdirait l'INSERT)
