@@ -52,10 +52,16 @@
             <?php
             $uri = strtok($_SERVER['REQUEST_URI'] ?? '/admin', '?');
             $_adminDb = App\Lib\Database::getInstance();
-            $_pendingCandidatures = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM authors WHERE statut_validation='en_attente'")->c ?? 0);
-            $_pendingBooks = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM books WHERE statut IN ('brouillon','en_revue')")->c ?? 0);
-            $_pendingEditorial = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM editorial_orders WHERE statut IN ('en_attente_devis','en_cours')")->c ?? 0);
-            $_pendingChatUnread = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM chat_conversations WHERE has_unread_for_admin=1 AND statut!='archivee'")->c ?? 0);
+            // Helper safe : retourne 0 si la query plante (table manquante en prod, etc.)
+            // sans crasher la page entière. Le fail est loggé dans logs/db.log.
+            $_safeCount = function ($sql, $params = []) use ($_adminDb): int {
+                $row = $_adminDb->fetch($sql, $params);
+                return ($row && isset($row->c)) ? (int) $row->c : 0;
+            };
+            $_pendingCandidatures = $_safeCount("SELECT COUNT(*) as c FROM authors WHERE statut_validation='en_attente'");
+            $_pendingBooks = $_safeCount("SELECT COUNT(*) as c FROM books WHERE statut IN ('brouillon','en_revue')");
+            $_pendingEditorial = $_safeCount("SELECT COUNT(*) as c FROM editorial_orders WHERE statut IN ('en_attente_devis','en_cours')");
+            $_pendingChatUnread = $_safeCount("SELECT COUNT(*) as c FROM chat_conversations WHERE has_unread_for_admin=1 AND statut!='archivee'");
             function navItem($href, $label, $icon, $uri, $badge = null) {
                 $active = ($uri === $href || ($href !== '/admin' && str_starts_with($uri, $href)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';

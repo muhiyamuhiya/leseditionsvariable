@@ -46,8 +46,14 @@
             $_authorRecord = App\Lib\Auth::getAuthorRecord();
             $_authorId = $_authorRecord ? (int) $_authorRecord->id : 0;
             $_authorUserId = (int) (App\Lib\Auth::id() ?? 0);
-            $_authorBooksRevue = $_authorId ? (int) ($_authorDb->fetch("SELECT COUNT(*) AS c FROM books WHERE author_id = ? AND statut = 'en_revue'", [$_authorId])->c ?? 0) : 0;
-            $_authorOrdersAlert = $_authorUserId ? (int) ($_authorDb->fetch("SELECT COUNT(*) AS c FROM editorial_orders WHERE user_id = ? AND statut IN ('devis_envoye','accepte','livre')", [$_authorUserId])->c ?? 0) : 0;
+            // Helper safe : retourne 0 si la query plante (table manquante en prod, etc.)
+            // sans crasher la page entière. Le fail est loggé dans logs/db.log.
+            $_safeCount = function ($sql, $params = []) use ($_authorDb): int {
+                $row = $_authorDb->fetch($sql, $params);
+                return ($row && isset($row->c)) ? (int) $row->c : 0;
+            };
+            $_authorBooksRevue = $_authorId ? $_safeCount("SELECT COUNT(*) AS c FROM books WHERE author_id = ? AND statut = 'en_revue'", [$_authorId]) : 0;
+            $_authorOrdersAlert = $_authorUserId ? $_safeCount("SELECT COUNT(*) AS c FROM editorial_orders WHERE user_id = ? AND statut IN ('devis_envoye','accepte','livre')", [$_authorUserId]) : 0;
             function authorNav($href, $label, $icon, $uri, $badge = null) {
                 $active = ($uri === $href || ($href !== '/auteur' && str_starts_with($uri, $href)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';
