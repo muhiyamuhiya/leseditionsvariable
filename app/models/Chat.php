@@ -248,6 +248,17 @@ class Chat
         return trim($text);
     }
 
+    /**
+     * Extrait la première adresse email trouvée dans un texte libre.
+     */
+    public static function extractEmail(string $text): ?string
+    {
+        if (preg_match('/[\w._%+\-]+@[\w.\-]+\.[A-Za-z]{2,}/u', $text, $m)) {
+            return strtolower($m[0]);
+        }
+        return null;
+    }
+
     private static function stripAccents(string $text): string
     {
         $map = [

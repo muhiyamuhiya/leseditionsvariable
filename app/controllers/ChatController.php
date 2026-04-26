@@ -49,6 +49,34 @@ class ChatController extends BaseController
         $senderType = $userId !== null ? 'user' : 'visiteur';
         Chat::addMessage($conv->id, $senderType, $message, $userId, false);
 
+        // Détection d'email dans le message libre :
+        // si le visiteur tape son email directement (souvent après que le bot
+        // ait demandé "laisse ton email"), on capte sans passer par le form.
+        $detectedEmail = Chat::extractEmail($message);
+        if ($detectedEmail !== null && empty($conv->visitor_email) && $userId === null) {
+            Chat::setVisitorEmail((int) $conv->id, $detectedEmail);
+            Chat::flagForAdmin((int) $conv->id);
+            $this->subscribeToNewsletter($detectedEmail, '');
+
+            $ack = "Merci ! 📨 J'ai bien noté ton email <strong>"
+                 . htmlspecialchars($detectedEmail, ENT_QUOTES, 'UTF-8')
+                 . "</strong>. Angello revient vers toi dès que possible.";
+            Chat::addMessage((int) $conv->id, 'bot', $ack, null, true);
+
+            $this->json([
+                'ok'              => true,
+                'conversation_id' => $conv->id,
+                'bot_message'     => [
+                    'content'    => $ack,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ],
+                'no_match'        => false,
+                'email_captured'  => true,
+                'office_hours'    => Chat::isOfficeHours(),
+            ]);
+            return;
+        }
+
         // Tente le matching bot
         $botResponse = Chat::matchBotResponse($message);
         $officeHours = Chat::isOfficeHours();

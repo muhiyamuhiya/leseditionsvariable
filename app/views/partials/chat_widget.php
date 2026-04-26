@@ -471,6 +471,12 @@ $vcUserPrenom = $vcUser->prenom ?? null;
                         emailForm.hidden = false;
                         scrollToBottom();
                     }
+                    // L'email a été détecté dans le message libre — on cache le form si visible
+                    if (data.email_captured) {
+                        emailForm.hidden = true;
+                        emailInput.value = '';
+                        nameInput.value = '';
+                    }
                 }, 350);
             }
         }).catch(function () {
