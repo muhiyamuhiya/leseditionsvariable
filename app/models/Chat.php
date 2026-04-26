@@ -322,22 +322,24 @@ class Chat
         $where = '1=1';
         $params = [];
 
+        // IMPORTANT : qualifier les colonnes avec c. car la table users a aussi
+        // un champ statut → conflit "Column 'statut' is ambiguous" sinon.
         switch ($filter) {
             case 'non_lues':
-                $where = 'has_unread_for_admin = 1 AND statut != \'archivee\'';
+                $where = "c.has_unread_for_admin = 1 AND c.statut != 'archivee'";
                 break;
             case 'visiteurs':
-                $where = 'user_id IS NULL AND statut != \'archivee\'';
+                $where = "c.user_id IS NULL AND c.statut != 'archivee'";
                 break;
             case 'membres':
-                $where = 'user_id IS NOT NULL AND statut != \'archivee\'';
+                $where = "c.user_id IS NOT NULL AND c.statut != 'archivee'";
                 break;
             case 'archivees':
-                $where = 'statut = \'archivee\'';
+                $where = "c.statut = 'archivee'";
                 break;
             case 'toutes':
             default:
-                $where = 'statut != \'archivee\'';
+                $where = "c.statut != 'archivee'";
                 break;
         }
 
