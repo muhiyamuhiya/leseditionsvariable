@@ -71,11 +71,53 @@ class Author extends BaseModel
 
     /**
      * Transforme une chaîne en slug ASCII : "Émile Zola" → "emile-zola".
+     *
+     * Utilise l'extension intl si disponible, sinon un fallback PHP pur
+     * (NitroHost en mutualisé n'a pas toujours intl activé).
      */
     public static function slugify(string $str): string
     {
-        $str = (string) transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', trim($str));
+        $str = trim($str);
+
+        if (function_exists('transliterator_transliterate')) {
+            $str = (string) transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $str);
+        } else {
+            $str = self::stripDiacritics($str);
+            $str = mb_strtolower($str, 'UTF-8');
+        }
+
         $str = preg_replace('/[^a-z0-9]+/', '-', $str) ?? '';
         return trim($str, '-');
+    }
+
+    /**
+     * Fallback PHP pur quand l'extension intl n'est pas dispo.
+     * Liste explicite des accents/ligatures français + symboles courants.
+     */
+    private static function stripDiacritics(string $s): string
+    {
+        $from = [
+            'À','Á','Â','Ã','Ä','Å','à','á','â','ã','ä','å',
+            'Ò','Ó','Ô','Õ','Ö','Ø','ò','ó','ô','õ','ö','ø',
+            'È','É','Ê','Ë','è','é','ê','ë',
+            'Ì','Í','Î','Ï','ì','í','î','ï',
+            'Ù','Ú','Û','Ü','ù','ú','û','ü',
+            'Ý','Ÿ','ý','ÿ',
+            'Ç','ç','Ñ','ñ',
+            'Æ','æ','Œ','œ','ß',
+            '’','‘','“','”','—','–','…',
+        ];
+        $to = [
+            'A','A','A','A','A','A','a','a','a','a','a','a',
+            'O','O','O','O','O','O','o','o','o','o','o','o',
+            'E','E','E','E','e','e','e','e',
+            'I','I','I','I','i','i','i','i',
+            'U','U','U','U','u','u','u','u',
+            'Y','Y','y','y',
+            'C','c','N','n',
+            'AE','ae','OE','oe','ss',
+            "'","'",'"','"','-','-','...',
+        ];
+        return str_replace($from, $to, $s);
     }
 }

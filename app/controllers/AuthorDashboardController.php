@@ -56,66 +56,77 @@ class AuthorDashboardController extends BaseController
         $db = $this->db();
         $user = Auth::user();
 
-        // Slug : on en génère un unique à partir du nom de plume saisi (ou prenom+nom).
-        // Si l'auteur a déjà un row (re-soumission), on conserve son slug existant.
-        $existing = $db->fetch("SELECT id, slug FROM authors WHERE user_id = ?", [$user->id]);
-        if ($existing) {
-            $slug = (string) $existing->slug;
-        } else {
-            $base = trim($_POST['nom_plume'] ?? '') ?: ($user->prenom . ' ' . $user->nom);
-            $slug = \App\Models\Author::createUniqueSlug($base);
-        }
-
-        $data = [
-            'nom_plume'          => trim($_POST['nom_plume'] ?? '') ?: null,
-            'slug'               => $slug,
-            'biographie_courte'  => trim($_POST['biographie_courte'] ?? ''),
-            'biographie_longue'  => trim($_POST['biographie_longue'] ?? ''),
-            'pays_origine'       => trim($_POST['pays_origine'] ?? '') ?: null,
-            'ville_residence'    => trim($_POST['ville_residence'] ?? '') ?: null,
-            'site_web'           => trim($_POST['site_web'] ?? '') ?: null,
-            'facebook_url'       => trim($_POST['facebook_url'] ?? '') ?: null,
-            'instagram_url'      => trim($_POST['instagram_url'] ?? '') ?: null,
-            'twitter_x_url'      => trim($_POST['twitter_x_url'] ?? '') ?: null,
-            'linkedin_url'       => trim($_POST['linkedin_url'] ?? '') ?: null,
-            'methode_versement'  => $_POST['methode_versement'] ?? 'mobile_money',
-            'numero_mobile_money'=> trim($_POST['numero_mobile_money'] ?? '') ?: null,
-            'email_paypal'       => trim($_POST['email_paypal'] ?? '') ?: null,
-            'statut_validation'  => 'en_attente',
-        ];
-
-        // Upload photo
-        if (!empty($_FILES['photo']['tmp_name'])) {
-            $file = $_FILES['photo'];
-            if (in_array($file['type'], ['image/jpeg','image/png','image/webp']) && $file['size'] <= 2 * 1024 * 1024) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $filename = $slug . '-' . time() . '.' . $ext;
-                $absPath = BASE_PATH . '/storage/authors/' . $filename;
-                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
-                move_uploaded_file($file['tmp_name'], $absPath);
-                $data['photo_auteur'] = '/image/authors/' . $filename;
+        try {
+            // Slug : on en génère un unique à partir du nom de plume saisi (ou prenom+nom).
+            // Si l'auteur a déjà un row (re-soumission), on conserve son slug existant.
+            $existing = $db->fetch("SELECT id, slug FROM authors WHERE user_id = ?", [$user->id]);
+            if ($existing) {
+                $slug = (string) $existing->slug;
+            } else {
+                $base = trim((string) ($_POST['nom_plume'] ?? '')) ?: ($user->prenom . ' ' . $user->nom);
+                $slug = \App\Models\Author::createUniqueSlug($base);
             }
+
+            $data = [
+                'nom_plume'          => trim((string) ($_POST['nom_plume'] ?? '')) ?: null,
+                'slug'               => $slug,
+                'biographie_courte'  => trim((string) ($_POST['biographie_courte'] ?? '')),
+                'biographie_longue'  => trim((string) ($_POST['biographie_longue'] ?? '')),
+                'pays_origine'       => trim((string) ($_POST['pays_origine'] ?? '')) ?: null,
+                'ville_residence'    => trim((string) ($_POST['ville_residence'] ?? '')) ?: null,
+                'site_web'           => trim((string) ($_POST['site_web'] ?? '')) ?: null,
+                'facebook_url'       => trim((string) ($_POST['facebook_url'] ?? '')) ?: null,
+                'instagram_url'      => trim((string) ($_POST['instagram_url'] ?? '')) ?: null,
+                'twitter_x_url'      => trim((string) ($_POST['twitter_x_url'] ?? '')) ?: null,
+                'linkedin_url'       => trim((string) ($_POST['linkedin_url'] ?? '')) ?: null,
+                'methode_versement'  => $_POST['methode_versement'] ?? 'mobile_money',
+                'numero_mobile_money'=> trim((string) ($_POST['numero_mobile_money'] ?? '')) ?: null,
+                'email_paypal'       => trim((string) ($_POST['email_paypal'] ?? '')) ?: null,
+                'statut_validation'  => 'en_attente',
+            ];
+
+            // Upload photo (best-effort)
+            if (!empty($_FILES['photo']['tmp_name']) && is_uploaded_file($_FILES['photo']['tmp_name'])) {
+                $file = $_FILES['photo'];
+                if (in_array($file['type'], ['image/jpeg','image/png','image/webp'], true) && $file['size'] <= 2 * 1024 * 1024) {
+                    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $filename = $slug . '-' . time() . '.' . $ext;
+                    $absPath = BASE_PATH . '/storage/authors/' . $filename;
+                    if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                    if (move_uploaded_file($file['tmp_name'], $absPath)) {
+                        $data['photo_auteur'] = '/image/authors/' . $filename;
+                    }
+                }
+            }
+
+            if ($existing) {
+                $db->update('authors', $data, 'id = ?', [$existing->id]);
+            } else {
+                $data['user_id'] = $user->id;
+                $db->insert('authors', $data);
+            }
+
+            // Mettre à jour le rôle
+            if ($user->role === 'lecteur') {
+                $db->update('users', ['role' => 'auteur'], 'id = ?', [$user->id]);
+            }
+
+            // Emails (best-effort — un échec mailer ne doit pas bloquer la candidature)
+            try {
+                Mailer::sendAdminCandidatureNotif($user);
+                Mailer::sendAuthorCandidatureReceived($user);
+            } catch (\Throwable $e) {
+                error_log('submitApplication mail : ' . $e->getMessage());
+            }
+
+            Session::flash('success', 'Ta candidature a été soumise avec succès.');
+            redirect('/auteur');
+        } catch (\Throwable $e) {
+            // Catch fatal/Error/TypeError pour éviter la page blanche en prod
+            error_log('AuthorDashboardController::submitApplication : ' . $e->getMessage());
+            Session::flash('error', 'Une erreur technique est survenue, ta candidature n\'a pas pu être enregistrée. Réessaie ou contacte le support.');
+            redirect('/auteur/candidater');
         }
-
-        $existing = $db->fetch("SELECT id FROM authors WHERE user_id = ?", [$user->id]);
-        if ($existing) {
-            $db->update('authors', $data, 'id = ?', [$existing->id]);
-        } else {
-            $data['user_id'] = $user->id;
-            $db->insert('authors', $data);
-        }
-
-        // Mettre à jour le rôle
-        if ($user->role === 'lecteur') {
-            $db->update('users', ['role' => 'auteur'], 'id = ?', [$user->id]);
-        }
-
-        // Emails (templates HTML stylés + BCC admin auto)
-        Mailer::sendAdminCandidatureNotif($user);
-        Mailer::sendAuthorCandidatureReceived($user);
-
-        Session::flash('success', 'Ta candidature a été soumise avec succès.');
-        redirect('/auteur');
     }
 
     // =====================================================================
@@ -319,7 +330,7 @@ class AuthorDashboardController extends BaseController
             return;
         }
 
-        $slug = trim((string) ($_POST['slug'] ?? '')) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $titreRaw)));
+        $slug = trim((string) ($_POST['slug'] ?? '')) ?: \App\Models\Author::slugify($titreRaw);
 
         $bookData = [
             'author_id'             => (int) $author->id,

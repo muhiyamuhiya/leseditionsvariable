@@ -302,7 +302,7 @@ class AdminController extends BaseController
         $db = $this->db();
 
         $titreRaw = trim((string) ($_POST['titre'] ?? ''));
-        $slug = trim((string) ($_POST['slug'] ?? '')) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $titreRaw)));
+        $slug = trim((string) ($_POST['slug'] ?? '')) ?: \App\Models\Author::slugify($titreRaw);
 
         $bookData = [
             'titre' => $titreRaw,

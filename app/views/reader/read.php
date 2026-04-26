@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0B0B0F">
     <title><?= e($book->titre) ?> — Liseuse</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -16,16 +17,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        body { margin:0; overflow:hidden; background:#0B0B0F; font-family:'Poppins',sans-serif; }
+        html, body { margin:0; padding:0; overflow:hidden; background:#0B0B0F; font-family:'Poppins',sans-serif; }
+        /* Hauteur dynamique : 100dvh suit les variations des barres mobile (Safari iOS, Chrome Android),
+           fallback 100vh pour les navigateurs plus anciens. */
+        body { height: 100vh; height: 100dvh; }
         #pdf-canvas { display:block; margin:0 auto; user-select:none; -webkit-user-select:none; }
-        [x-cloak] { display:none!important; }
+
+        /* Top bar : respecte le notch/Dynamic Island iOS */
+        .reader-top {
+            padding-top: env(safe-area-inset-top, 0);
+        }
+
+        /* Controls bas : respect safe-area + cible tactile 48px min + fond opaque */
+        .reader-controls {
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            background: rgba(20, 20, 25, 0.96);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        .reader-btn {
+            min-width: 48px;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 768px) {
+            /* Boutons prev/next plus visibles sur mobile : fond ambre, texte sombre */
+            .reader-btn-nav {
+                background: #F59E0B;
+                color: #0B0B0F !important;
+                border-radius: 10px;
+                padding: 0 18px;
+            }
+            .reader-btn-nav:disabled {
+                background: #2A2A35;
+                color: #6B6B7D !important;
+            }
+            .reader-btn-nav svg { stroke: currentColor; }
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col bg-bg text-white" oncontextmenu="return false">
+<body class="flex flex-col bg-bg text-white" oncontextmenu="return false">
 
-    <!-- Barre haute -->
-    <div class="h-12 sm:h-14 bg-surface border-b border-border flex items-center px-3 sm:px-5 gap-3 flex-shrink-0 z-20">
-        <a href="/livre/<?= e($book->slug) ?>" class="text-text-muted hover:text-white transition-colors p-1">
+    <!-- Barre haute (avec safe area iOS pour notch/Dynamic Island) -->
+    <div class="reader-top bg-surface border-b border-border flex items-center px-3 sm:px-5 gap-3 flex-shrink-0 z-20">
+        <a href="/livre/<?= e($book->slug) ?>" class="reader-btn text-text-muted hover:text-white transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </a>
         <div class="flex-grow min-w-0 text-center">
@@ -54,24 +91,24 @@
         <canvas id="pdf-canvas"></canvas>
     </div>
 
-    <!-- Contrôles bas -->
-    <div class="h-12 sm:h-14 bg-surface border-t border-border flex items-center justify-center gap-3 sm:gap-6 px-4 flex-shrink-0 z-20">
-        <button id="btn-prev" class="p-2 text-text-muted hover:text-white transition-colors disabled:opacity-30" disabled>
+    <!-- Contrôles bas (z-50 pour être au-dessus du PDF, safe-area pour iOS) -->
+    <div class="reader-controls border-t border-border flex items-center justify-center gap-3 sm:gap-6 px-4 py-2 sm:py-1 flex-shrink-0 z-50">
+        <button id="btn-prev" class="reader-btn reader-btn-nav text-text-muted hover:text-white transition-colors disabled:opacity-50" disabled aria-label="Page précédente">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
         </button>
         <div class="flex items-center gap-2 text-sm">
             <input type="number" id="page-input" min="1" max="<?= $maxPages ?>" value="1"
-                   class="w-12 bg-surface-2 border border-border rounded text-center text-white text-sm py-1 outline-none focus:border-accent">
+                   class="w-14 bg-surface-2 border border-border rounded text-center text-white text-sm py-2 outline-none focus:border-accent">
         </div>
-        <button id="btn-next" class="p-2 text-text-muted hover:text-white transition-colors disabled:opacity-30">
+        <button id="btn-next" class="reader-btn reader-btn-nav text-text-muted hover:text-white transition-colors disabled:opacity-50" aria-label="Page suivante">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
         </button>
         <div class="hidden sm:flex items-center gap-2 ml-4 border-l border-border pl-4">
-            <button id="btn-zoom-out" class="p-1 text-text-muted hover:text-white transition-colors">
+            <button id="btn-zoom-out" class="reader-btn p-1 text-text-muted hover:text-white transition-colors" aria-label="Zoom arrière">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15"/></svg>
             </button>
             <span id="zoom-display" class="text-text-dim text-xs w-10 text-center">100%</span>
-            <button id="btn-zoom-in" class="p-1 text-text-muted hover:text-white transition-colors">
+            <button id="btn-zoom-in" class="reader-btn p-1 text-text-muted hover:text-white transition-colors" aria-label="Zoom avant">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
             </button>
         </div>
