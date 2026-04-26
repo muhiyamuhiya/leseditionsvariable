@@ -63,6 +63,11 @@ $router->post('/notifications/:id/lire', 'NotificationController@markRead');
 $router->post('/notifications/:id/supprimer', 'NotificationController@destroy');
 $router->get('/notifications', 'NotificationController@index');
 
+// Chat (visiteur et user connecté)
+$router->post('/chat/send', 'ChatController@send');
+$router->post('/chat/leave-email', 'ChatController@leaveEmail');
+$router->get('/chat/conversation/:id', 'ChatController@getConversation');
+
 $router->get('/mon-compte/profil', 'AccountController@profile');
 $router->post('/mon-compte/profil', 'AccountController@updateProfile');
 $router->post('/mon-compte/password', 'AccountController@updatePassword');
