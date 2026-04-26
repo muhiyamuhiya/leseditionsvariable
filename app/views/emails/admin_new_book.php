@@ -32,15 +32,22 @@ ob_start();
 </table>
 
 <!-- CTA admin -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:8px 0 24px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="margin:8px 0 24px 0;">
     <tr>
-        <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
-            <a href="<?= htmlspecialchars($appUrl . '/admin/livres', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 32px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
-                Examiner le livre →
-            </a>
+        <td align="left" style="padding:0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
+                        <a href="<?= htmlspecialchars($appUrl . '/admin/livres', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 32px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
+                            Examiner le livre →
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
+<div style="clear:both;font-size:0;line-height:0;height:0;">&nbsp;</div>
 
 <p class="text-muted" style="margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.6;color:#8A93A6;">
     Notification automatique.

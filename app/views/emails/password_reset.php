@@ -21,15 +21,22 @@ ob_start();
 </p>
 
 <!-- CTA -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:24px 0 32px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="margin:24px 0 32px 0;">
     <tr>
-        <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
-            <a href="<?= htmlspecialchars($resetUrl, ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
-                Choisir un nouveau mot de passe →
-            </a>
+        <td align="left" style="padding:0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
+                        <a href="<?= htmlspecialchars($resetUrl, ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
+                            Choisir un nouveau mot de passe →
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
+<div style="clear:both;font-size:0;line-height:0;height:0;">&nbsp;</div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF7E6;border-left:3px solid #F59E0B;border-radius:6px;margin:16px 0 24px 0;">
     <tr><td style="padding:14px 18px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.6;color:#0B0B0F;">

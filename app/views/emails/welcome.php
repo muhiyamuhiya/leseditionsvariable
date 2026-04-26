@@ -48,15 +48,22 @@ ob_start();
 </table>
 
 <!-- CTA -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:8px 0 16px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="margin:8px 0 16px 0;">
     <tr>
-        <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
-            <a href="<?= htmlspecialchars($appUrl . '/catalogue', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
-                Explorer le catalogue →
-            </a>
+        <td align="left" style="padding:0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td class="btn-cell" align="center" style="background:#0B0B0F;border-radius:10px;">
+                        <a href="<?= htmlspecialchars($appUrl . '/catalogue', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#F59E0B;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
+                            Explorer le catalogue →
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
+<div style="clear:both;font-size:0;line-height:0;height:0;">&nbsp;</div>
 
 <p class="text-muted" style="margin:24px 0 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.6;color:#525866;">
     Une question ? Réponds simplement à cet email, ou utilise le chat sur le site.

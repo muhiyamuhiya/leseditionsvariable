@@ -45,15 +45,22 @@ ob_start();
 </table>
 
 <!-- CTA primaire -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:8px 0 16px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="100%" style="margin:8px 0 16px 0;">
     <tr>
-        <td class="btn-cell" align="center" style="background:#F59E0B;border-radius:10px;">
-            <a href="<?= htmlspecialchars($appUrl . '/mon-compte/abonnement', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#0B0B0F;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
-                Mettre à jour ma carte →
-            </a>
+        <td align="left" style="padding:0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                    <td class="btn-cell" align="center" style="background:#F59E0B;border-radius:10px;">
+                        <a href="<?= htmlspecialchars($appUrl . '/mon-compte/abonnement', ENT_QUOTES, 'UTF-8') ?>" style="display:inline-block;padding:14px 36px;color:#0B0B0F;font-weight:700;font-size:15px;font-family:'Helvetica Neue',Arial,sans-serif;text-decoration:none;letter-spacing:0.3px;">
+                            Mettre à jour ma carte →
+                        </a>
+                    </td>
+                </tr>
+            </table>
         </td>
     </tr>
 </table>
+<div style="clear:both;font-size:0;line-height:0;height:0;">&nbsp;</div>
 
 <p class="text-muted" style="margin:24px 0 0 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.6;color:#525866;">
     Si le problème vient de notre côté ou si tu as un doute, réponds simplement à cet email — on règle ça avec toi.
