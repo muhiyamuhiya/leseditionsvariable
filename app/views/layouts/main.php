@@ -187,6 +187,6 @@
     }
     </script>
 
-    <?php require BASE_PATH . '/app/views/partials/tawk.php'; ?>
+    <?php require BASE_PATH . '/app/views/partials/chat_widget.php'; ?>
 </body>
 </html>
