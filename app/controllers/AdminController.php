@@ -55,13 +55,14 @@ class AdminController extends BaseController
         };
         $alerts = [
             'candidatures'      => $safeCount("SELECT COUNT(*) as v FROM authors WHERE statut_validation='en_attente'"),
+            'brouillons'        => $safeCount("SELECT COUNT(*) as v FROM books WHERE statut='brouillon'"),
             'livres_revue'      => $safeCount("SELECT COUNT(*) as v FROM books WHERE statut='en_revue'"),
             'commandes_devis'   => $safeCount("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_attente_devis'"),
             'commandes_livrer'  => $safeCount("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_cours'"),
             'paiements_echoues' => $safeCount("SELECT COUNT(*) as v FROM transactions_log WHERE statut='echoue' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
             'abos_annules'      => $safeCount("SELECT COUNT(*) as v FROM subscriptions WHERE statut='annule' AND date_annulation >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
         ];
-        $alerts['total'] = $alerts['candidatures'] + $alerts['livres_revue'] + $alerts['commandes_devis'] + $alerts['commandes_livrer'];
+        $alerts['total'] = $alerts['candidatures'] + $alerts['brouillons'] + $alerts['livres_revue'] + $alerts['commandes_devis'] + $alerts['commandes_livrer'];
 
         $candidaturesRecentes = $db->fetchAll(
             "SELECT a.id, a.created_at, u.prenom, u.nom, u.email, u.avatar_url
@@ -109,10 +110,19 @@ class AdminController extends BaseController
         if ($statut) { $where .= " AND b.statut = ?"; $params[] = $statut; }
         if ($q) { $where .= " AND b.titre LIKE ?"; $params[] = "%{$q}%"; }
 
+        // LEFT JOIN sur users : un auteur classique (is_classic=1) n'a pas de
+        // user_id, donc un INNER JOIN ferait disparaître ses livres de la liste
+        // admin (bug observé : Germinal/Zola en brouillon invisibles).
         $livres = $db->fetchAll(
-            "SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as author_name, c.nom as cat_nom
-             FROM books b JOIN authors a ON b.author_id=a.id JOIN users u ON a.user_id=u.id LEFT JOIN categories c ON b.category_id=c.id
-             WHERE {$where} ORDER BY b.created_at DESC",
+            "SELECT b.*,
+                    COALESCE(a.nom_plume, CONCAT_WS(' ', u.prenom, u.nom), 'Auteur inconnu') AS author_name,
+                    c.nom AS cat_nom
+               FROM books b
+               JOIN authors a    ON a.id = b.author_id
+          LEFT JOIN users u      ON u.id = a.user_id
+          LEFT JOIN categories c ON c.id = b.category_id
+              WHERE {$where}
+              ORDER BY b.created_at DESC",
             $params
         );
 

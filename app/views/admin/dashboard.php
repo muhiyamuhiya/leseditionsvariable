@@ -25,8 +25,19 @@
             </a>
         <?php endif; ?>
 
+        <?php if (($alerts['brouillons'] ?? 0) > 0): ?>
+            <a href="/admin/livres?statut=brouillon" class="block bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 hover:bg-amber-500/15 transition-colors">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xl" aria-hidden="true">📝</span>
+                    <span class="text-2xl font-display font-bold text-amber-400"><?= $alerts['brouillons'] ?></span>
+                </div>
+                <p class="text-white text-sm">Brouillon<?= $alerts['brouillons'] > 1 ? 's' : '' ?> en attente</p>
+                <p class="text-text-dim text-xs">À publier ou compléter</p>
+            </a>
+        <?php endif; ?>
+
         <?php if ($alerts['livres_revue'] > 0): ?>
-            <a href="/admin/livres" class="block bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors">
+            <a href="/admin/livres?statut=en_revue" class="block bg-white/5 border border-white/10 rounded-lg p-3 hover:bg-white/10 transition-colors">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="text-xl" aria-hidden="true">📖</span>
                     <span class="text-2xl font-display font-bold text-amber-400"><?= $alerts['livres_revue'] ?></span>

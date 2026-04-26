@@ -59,13 +59,32 @@
                 return ($row && isset($row->c)) ? (int) $row->c : 0;
             };
             $_pendingCandidatures = $_safeCount("SELECT COUNT(*) as c FROM authors WHERE statut_validation='en_attente'");
-            $_pendingBooks = $_safeCount("SELECT COUNT(*) as c FROM books WHERE statut IN ('brouillon','en_revue')");
+            $_pendingBrouillons = $_safeCount("SELECT COUNT(*) as c FROM books WHERE statut='brouillon'");
+            $_pendingEnRevue    = $_safeCount("SELECT COUNT(*) as c FROM books WHERE statut='en_revue'");
+            $_pendingBooks      = $_pendingBrouillons + $_pendingEnRevue;
+            // URL et tooltip : si on a des brouillons, on pointe le clic sur la liste
+            // filtrée. Sinon en_revue. Sinon liste complète.
+            if ($_pendingBrouillons > 0) {
+                $_booksHref  = '/admin/livres?statut=brouillon';
+                $_booksTitle = $_pendingBrouillons . ' livre' . ($_pendingBrouillons > 1 ? 's' : '') . ' en brouillon'
+                             . ($_pendingEnRevue > 0 ? ' + ' . $_pendingEnRevue . ' en revue' : '');
+            } elseif ($_pendingEnRevue > 0) {
+                $_booksHref  = '/admin/livres?statut=en_revue';
+                $_booksTitle = $_pendingEnRevue . ' livre' . ($_pendingEnRevue > 1 ? 's' : '') . ' en revue';
+            } else {
+                $_booksHref  = '/admin/livres';
+                $_booksTitle = '';
+            }
             $_pendingEditorial = $_safeCount("SELECT COUNT(*) as c FROM editorial_orders WHERE statut IN ('en_attente_devis','en_cours')");
             $_pendingChatUnread = $_safeCount("SELECT COUNT(*) as c FROM chat_conversations WHERE has_unread_for_admin=1 AND statut!='archivee'");
-            function navItem($href, $label, $icon, $uri, $badge = null) {
-                $active = ($uri === $href || ($href !== '/admin' && str_starts_with($uri, $href)));
+            function navItem($href, $label, $icon, $uri, $badge = null, $title = '') {
+                // Détection "active" basée sur le path uniquement (sans query string)
+                // pour que /admin/livres?statut=brouillon highlight bien l'item Livres.
+                $hrefPath = parse_url($href, PHP_URL_PATH) ?: $href;
+                $active = ($uri === $hrefPath || ($hrefPath !== '/admin' && str_starts_with($uri, $hrefPath)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';
-                $html = '<a href="' . $href . '" @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-r-lg transition-colors ' . $cls . '">';
+                $titleAttr = $title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '"' : '';
+                $html = '<a href="' . $href . '"' . $titleAttr . ' @click="sidebarOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-r-lg transition-colors ' . $cls . '">';
                 $html .= '<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' . $icon . '</svg>';
                 $html .= '<span>' . $label . '</span>';
                 if ($badge) $html .= '<span class="ml-auto text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">' . $badge . '</span>';
@@ -80,7 +99,7 @@
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Contenu</p>
-                <?= navItem('/admin/livres', 'Livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri, $_pendingBooks ?: null) ?>
+                <?= navItem($_booksHref, 'Livres', '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>', $uri, $_pendingBooks ?: null, $_booksTitle) ?>
                 <?= navItem('/admin/auteurs', 'Auteurs', '<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>', $uri) ?>
                 <?= navItem('/admin/categories', 'Catégories', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>', $uri) ?>
             </div>
