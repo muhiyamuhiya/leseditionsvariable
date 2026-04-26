@@ -191,6 +191,16 @@ class AuthController extends BaseController
         }
 
         Session::flash('success', 'Inscription réussie ! Consultez votre boîte email pour activer votre compte.');
+
+        // Propage le param redirect= vers la page de connexion : si l'user
+        // venait du flux "Devenir auteur" (?redirect=/auteur/candidater),
+        // il sera renvoyé là après son login. Whitelist : URL interne
+        // commençant par /[^/], pas de // pour bloquer les open redirects.
+        $redirectParam = trim((string) ($_POST['redirect'] ?? ''));
+        if ($redirectParam !== '' && preg_match('/^\/[^\/]/', $redirectParam) && !str_contains($redirectParam, '//')) {
+            redirect('/connexion?redirect=' . urlencode($redirectParam));
+            return;
+        }
         redirect('/connexion');
     }
 

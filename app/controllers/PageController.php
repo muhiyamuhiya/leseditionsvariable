@@ -75,6 +75,60 @@ class PageController extends BaseController
         ]);
     }
 
+    /**
+     * GET /auteurs/devenir
+     * Endpoint intelligent qui route l'utilisateur selon son état actuel.
+     * Tous les boutons "Devenir auteur" du site pointent ici pour avoir
+     * un comportement cohérent peu importe le contexte (header, footer,
+     * page comment-ca-marche).
+     */
+    public function redirectToAuthorPath(): void
+    {
+        $user = \App\Lib\Auth::user();
+
+        // Cas 1 : visiteur non connecté → inscription, puis redirect auto
+        // vers /auteur/candidater grâce au param ?redirect= traité par
+        // AuthController::processRegister.
+        if (!$user) {
+            redirect('/inscription?redirect=' . urlencode('/auteur/candidater'));
+            return;
+        }
+
+        // Cas 5 : déjà admin → on l'envoie sur /admin, l'admin n'a pas
+        // besoin de "devenir auteur" pour publier (il a /admin/livres).
+        if ($user->role === 'admin') {
+            \App\Lib\Session::flash('success', 'Tu peux publier un livre directement depuis l\'admin.');
+            redirect('/admin/livres/nouveau');
+            return;
+        }
+
+        // Cas 2-4 : on regarde l'état du row authors lié
+        $author = \App\Lib\Auth::getAuthorRecord();
+
+        // Cas 2 : connecté lecteur sans candidature → formulaire
+        if (!$author) {
+            redirect('/auteur/candidater');
+            return;
+        }
+
+        // Cas 3 : candidature en attente
+        if ($author->statut_validation === 'en_attente') {
+            \App\Lib\Session::flash('success', 'Ta candidature est en cours de revue. On revient vers toi sous 7-14 jours.');
+            redirect('/auteur');
+            return;
+        }
+
+        // Cas 4 : candidature refusée
+        if ($author->statut_validation === 'refuse' || $author->statut_validation === 'suspendu') {
+            \App\Lib\Session::flash('error', 'Ta candidature n\'a pas été validée. Contacte l\'équipe pour plus d\'infos.');
+            redirect('/auteur');
+            return;
+        }
+
+        // Cas 5 : auteur validé → dashboard
+        redirect('/auteur');
+    }
+
     public function auteurs(): void
     {
         $db = Database::getInstance();

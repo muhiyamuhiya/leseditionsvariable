@@ -91,9 +91,9 @@
 
         <!-- CTA -->
         <div class="text-center">
-            <a href="/inscription" class="btn-primary inline-block">Devenir auteur Variable</a>
+            <a href="/auteurs/devenir" class="btn-primary inline-block">Devenir auteur Variable</a>
             <p class="text-text-dim text-xs mt-3">
-                Déjà inscrit ? <a href="/auteur/candidater" class="text-accent hover:underline">Candidate pour publier</a>
+                On t'oriente vers la bonne étape selon ton compte (inscription, candidature, ou ton dashboard si tu es déjà auteur).
             </p>
         </div>
 

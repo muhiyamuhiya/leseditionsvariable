@@ -1,7 +1,8 @@
 <?php
 $currentUser = App\Lib\Auth::user();
 $showDevenirAuteur = !$currentUser || $currentUser->role === 'lecteur';
-$devenirAuteurHref = $currentUser ? '/auteur/candidater' : '/connexion?redirect=/auteur/candidater';
+// Endpoint intelligent qui route selon l'état (visiteur, candidat en attente, validé, etc.)
+$devenirAuteurHref = '/auteurs/devenir';
 ?>
 
 <!-- Wrapper Alpine pour partager menuOpen entre header et overlay -->
