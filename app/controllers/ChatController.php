@@ -50,13 +50,18 @@ class ChatController extends BaseController
         Chat::addMessage($conv->id, $senderType, $message, $userId, false);
 
         // Détection d'email dans le message libre :
-        // si le visiteur tape son email directement (souvent après que le bot
+        // si la personne tape son email directement (souvent après que le bot
         // ait demandé "laisse ton email"), on capte sans passer par le form.
+        // Marche pour visiteurs ET users connectés, et même si un email a été
+        // capturé précédemment (l'utilisateur peut le corriger).
         $detectedEmail = Chat::extractEmail($message);
-        if ($detectedEmail !== null && empty($conv->visitor_email) && $userId === null) {
+        if ($detectedEmail !== null) {
             Chat::setVisitorEmail((int) $conv->id, $detectedEmail);
             Chat::flagForAdmin((int) $conv->id);
-            $this->subscribeToNewsletter($detectedEmail, '');
+            // Newsletter seulement pour les visiteurs anonymes
+            if ($userId === null) {
+                $this->subscribeToNewsletter($detectedEmail, '');
+            }
 
             $ack = "Merci ! 📨 J'ai bien noté ton email <strong>"
                  . htmlspecialchars($detectedEmail, ENT_QUOTES, 'UTF-8')
@@ -105,9 +110,14 @@ class ChatController extends BaseController
         if ($officeHours) {
             $botMsg = "Je n'ai pas la réponse précise à ta question. Angello va te répondre dans quelques minutes. ⏱️";
             $askEmail = false;
+        } elseif ($userId !== null) {
+            // User connecté hors heures : pas besoin de demander l'email, on l'a déjà
+            $botMsg = "Je n'ai pas la réponse précise à ta question. Angello revient vers toi dès demain matin (8h, heure de Kinshasa). ⏱️";
+            $askEmail = false;
         } else {
+            // Visiteur anonyme hors heures : on demande l'email s'il n'est pas déjà capté
             $botMsg = "Je n'ai pas la réponse à ta question. Laisse ton email ci-dessous, Angello te répondra dès demain matin (8h, heure de Kinshasa). 📧";
-            $askEmail = $userId === null && empty($conv->visitor_email);
+            $askEmail = empty($conv->visitor_email);
         }
 
         Chat::addMessage((int) $conv->id, 'bot', $botMsg, null, true);
