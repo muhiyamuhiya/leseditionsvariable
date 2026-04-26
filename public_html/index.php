@@ -186,6 +186,17 @@ $router->get('/admin/parametres', 'AdminController@settings');
 $router->post('/admin/parametres', 'AdminController@settingsUpdate');
 $router->get('/admin/journal', 'AdminController@auditLog');
 
+// Admin Chat (dashboard + CRUD responses)
+$router->get('/admin/chat/api/unread-count', 'AdminChatController@apiUnreadCount');
+$router->get('/admin/chat/responses', 'AdminChatController@responses');
+$router->post('/admin/chat/responses', 'AdminChatController@responseStore');
+$router->post('/admin/chat/responses/:id/supprimer', 'AdminChatController@responseDelete');
+$router->post('/admin/chat/responses/:id', 'AdminChatController@responseUpdate');
+$router->post('/admin/chat/reply/:id', 'AdminChatController@reply');
+$router->post('/admin/chat/mark-read/:id', 'AdminChatController@markRead');
+$router->post('/admin/chat/archive/:id', 'AdminChatController@archive');
+$router->get('/admin/chat', 'AdminChatController@index');
+
 // API
 $router->get('/api/recherche', 'BookController@searchApi');
 

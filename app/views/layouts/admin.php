@@ -55,6 +55,7 @@
             $_pendingCandidatures = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM authors WHERE statut_validation='en_attente'")->c ?? 0);
             $_pendingBooks = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM books WHERE statut IN ('brouillon','en_revue')")->c ?? 0);
             $_pendingEditorial = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM editorial_orders WHERE statut IN ('en_attente_devis','en_cours')")->c ?? 0);
+            $_pendingChatUnread = (int) ($_adminDb->fetch("SELECT COUNT(*) as c FROM chat_conversations WHERE has_unread_for_admin=1 AND statut!='archivee'")->c ?? 0);
             function navItem($href, $label, $icon, $uri, $badge = null) {
                 $active = ($uri === $href || ($href !== '/admin' && str_starts_with($uri, $href)));
                 $cls = $active ? 'bg-accent/10 text-accent border-l-2 border-accent' : 'text-text-muted hover:bg-surface-2 hover:text-white border-l-2 border-transparent';
@@ -69,6 +70,7 @@
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Pilotage</p>
                 <?= navItem('/admin', 'Tableau de bord', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>', $uri) ?>
+                <?= navItem('/admin/chat', 'Chat', '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.068.157 2.148.279 3.238.364.466.037.893.281 1.153.671L12 21l2.652-3.978c.26-.39.687-.634 1.153-.67 1.09-.086 2.17-.208 3.238-.365 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/>', $uri, $_pendingChatUnread ?: null) ?>
             </div>
             <div>
                 <p class="text-text-dim text-[10px] font-semibold uppercase tracking-wider px-3 mb-2">Contenu</p>
