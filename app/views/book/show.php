@@ -67,7 +67,13 @@ $premiumOnly = !$book->accessible_abonnement_essentiel && $book->accessible_abon
                 </div>
 
                 <div class="flex flex-col gap-2 mt-5 w-full max-w-[280px]">
-                    <a href="/lire/<?= e($book->slug) ?>/extrait" class="btn-secondary w-full text-center text-sm py-2.5">Lire l'extrait gratuit</a>
+                    <?php if (!$canRead): ?>
+                        <!-- Extrait gratuit visible UNIQUEMENT pour les utilisateurs qui n'ont
+                             PAS encore accès complet (visiteur, lecteur sans achat/abo, abonné
+                             essentiel sur livre premium-only). Si l'user a déjà accès, le CTA
+                             principal "Commencer/Continuer la lecture" suffit. -->
+                        <a href="/lire/<?= e($book->slug) ?>/extrait" class="btn-secondary w-full text-center text-sm py-2.5">Lire l'extrait gratuit</a>
+                    <?php endif; ?>
 
                     <?php if ($user): ?>
                     <button x-data="{ favori: <?= $estFavori ? 'true' : 'false' ?>, loading: false }"
@@ -131,21 +137,44 @@ $premiumOnly = !$book->accessible_abonnement_essentiel && $book->accessible_abon
                     <?php endif; ?>
                 </div>
 
-                <!-- Badge type de livre -->
+                <!-- Badge type de livre — caché si l'user peut déjà lire (acheteur ou
+                     abonné couvert) : pas besoin de leur rappeler une exclusivité dont
+                     ils profitent déjà. -->
                 <div class="mt-5 flex flex-wrap gap-2">
-                    <?php if ($achatOnly): ?>
+                    <?php if ($achatOnly && !$hasBought): ?>
                         <span class="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/30">⚡ Achat unitaire uniquement</span>
-                    <?php elseif ($premiumOnly): ?>
+                    <?php elseif ($premiumOnly && !$canRead): ?>
                         <span class="inline-block px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium border border-purple-500/30">✨ Exclusivité Premium</span>
-                    <?php elseif ($isSubscribed && $canRead && !$hasBought): ?>
-                        <span class="inline-block px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-medium border border-blue-500/30">✓ Inclus avec ton abonnement</span>
                     <?php endif; ?>
                 </div>
 
-                <!-- Prix -->
-                <div class="mt-4">
-                    <span class="font-display font-bold text-3xl sm:text-4xl text-accent"><?= number_format($book->prix_unitaire_usd, 2) ?>&nbsp;$</span>
-                </div>
+                <!-- Bandeau "Tu possèdes ce livre" (acheteur) -->
+                <?php if ($hasBought): ?>
+                    <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 mt-5">
+                        <p class="text-emerald-300 font-medium flex items-center gap-2">
+                            <span aria-hidden="true">📚</span>
+                            <span>Tu possèdes ce livre<?php if ($purchaseDate ?? null): ?> depuis le <?= date('d/m/Y', strtotime((string) $purchaseDate)) ?><?php endif; ?>.</span>
+                        </p>
+                        <p class="text-text-muted text-sm mt-1">Lecture illimitée, à vie. Aucune nouvelle facturation.</p>
+                    </div>
+                <?php elseif ($isSubscribed && $canRead): ?>
+                    <!-- Bandeau "Inclus dans ton abonnement [tier]" -->
+                    <?php $tierLabel = $isPremium ? 'Premium' : 'Essentiel'; ?>
+                    <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-5">
+                        <p class="text-blue-300 font-medium flex items-center gap-2">
+                            <span aria-hidden="true">✨</span>
+                            <span>Inclus dans ton abonnement <strong><?= $tierLabel ?></strong>.</span>
+                        </p>
+                        <p class="text-text-muted text-sm mt-1">Lecture illimitée tant que ton abonnement est actif.</p>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Prix — masqué si l'user possède le livre OU s'il est couvert par son abo -->
+                <?php if (!$hasBought && !($isSubscribed && $canRead)): ?>
+                    <div class="mt-4">
+                        <span class="font-display font-bold text-3xl sm:text-4xl text-accent"><?= number_format($book->prix_unitaire_usd, 2) ?>&nbsp;$</span>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Alerte contextuelle pour abonnés qui ne peuvent PAS lire ce livre -->
                 <?php if ($isSubscribed && !$canRead && !$hasBought): ?>
@@ -165,8 +194,15 @@ $premiumOnly = !$book->accessible_abonnement_essentiel && $book->accessible_abon
                 <!-- Boutons d'action -->
                 <div class="flex flex-wrap gap-3 mt-6">
                     <?php if (!$user): ?>
-                        <a href="/connexion" class="btn-primary text-base px-8 py-3">Se connecter pour acheter</a>
-                        <a href="/abonnement" class="btn-secondary text-base px-6 py-3">S'abonner et lire illimité</a>
+                        <!-- Visiteur : CTA achat direct (PaymentController fait requireLogin
+                             et redirige vers /connexion si nécessaire). Et CTA abo adapté
+                             au type du livre. -->
+                        <a href="/achat/livre/<?= $book->id ?>" class="btn-primary text-base px-8 py-3">Acheter à <?= number_format($book->prix_unitaire_usd, 2) ?>&nbsp;$</a>
+                        <?php if ($premiumOnly): ?>
+                            <a href="/abonnement?upgrade=premium" class="btn-secondary text-base px-6 py-3">S'abonner Premium</a>
+                        <?php else: ?>
+                            <a href="/abonnement" class="btn-secondary text-base px-6 py-3">S'abonner et lire illimité</a>
+                        <?php endif; ?>
 
                     <?php elseif ($isAdmin || $isOwnerAuthor): ?>
                         <a href="/lire/<?= e($book->slug) ?>" class="btn-primary text-base px-8 py-3">

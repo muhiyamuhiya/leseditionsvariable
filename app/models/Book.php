@@ -15,8 +15,11 @@ class Book extends BaseModel
      */
     private static function baseSelect(): string
     {
+        // LEFT JOIN users : un auteur classique (is_classic=1, user_id NULL)
+        // n'a pas de compte user, et un INNER JOIN aurait fait disparaître ses
+        // livres du catalogue public. COALESCE et CONCAT_WS gèrent les NULL.
         return "SELECT b.*,
-                    COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS author_display,
+                    COALESCE(a.nom_plume, CONCAT_WS(' ', u.prenom, u.nom)) AS author_display,
                     u.prenom AS author_prenom,
                     u.nom AS author_nom,
                     a.nom_plume AS author_nom_plume,
@@ -25,7 +28,7 @@ class Book extends BaseModel
                     c.slug AS category_slug
                 FROM books b
                 JOIN authors a ON b.author_id = a.id
-                JOIN users u ON a.user_id = u.id
+                LEFT JOIN users u ON a.user_id = u.id
                 LEFT JOIN categories c ON b.category_id = c.id";
     }
 

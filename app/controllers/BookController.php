@@ -85,11 +85,27 @@ class BookController extends BaseController
         $progression = null;
         $aDejaNote = false;
 
+        $purchaseDate = null;
+
         if ($user) {
             $db = Database::getInstance();
 
             // A acheté ? (filtre sur source='achat_unitaire' — un simple favori ne compte pas)
             $aAchete = BookAccess::hasBought($user, $book->id);
+
+            // Date d'achat (la plus ancienne sale payée pour ce couple user+book)
+            // Utilisée pour le bandeau "Tu possèdes ce livre depuis le X" sur la fiche.
+            if ($aAchete) {
+                $row = $db->fetch(
+                    "SELECT COALESCE(date_paiement_confirme, date_vente) AS d
+                       FROM sales
+                      WHERE user_id = ? AND book_id = ? AND statut = 'payee'
+                      ORDER BY date_paiement_confirme ASC, date_vente ASC
+                      LIMIT 1",
+                    [$user->id, $book->id]
+                );
+                $purchaseDate = $row ? (string) $row->d : null;
+            }
 
             // Est abonné actif ?
             $sub = $db->fetch(
@@ -112,19 +128,20 @@ class BookController extends BaseController
         }
 
         $this->view('book/show', [
-            'titre'       => $book->titre,
-            'description' => $book->description_courte,
-            'book'        => $book,
-            'memeAuteur'  => $memeAuteur,
-            'similaires'  => $similaires,
-            'avis'        => $avis,
-            'noteMoyenne' => $noteMoyenne,
-            'user'        => $user,
-            'aAchete'     => $aAchete,
-            'estAbonne'   => $estAbonne,
-            'estFavori'   => $estFavori ?? false,
-            'progression' => $progression,
-            'aDejaNote'   => $aDejaNote,
+            'titre'        => $book->titre,
+            'description'  => $book->description_courte,
+            'book'         => $book,
+            'memeAuteur'   => $memeAuteur,
+            'similaires'   => $similaires,
+            'avis'         => $avis,
+            'noteMoyenne'  => $noteMoyenne,
+            'user'         => $user,
+            'aAchete'      => $aAchete,
+            'estAbonne'    => $estAbonne,
+            'estFavori'    => $estFavori ?? false,
+            'progression'  => $progression,
+            'aDejaNote'    => $aDejaNote,
+            'purchaseDate' => $purchaseDate,
         ]);
     }
 
