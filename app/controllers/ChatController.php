@@ -49,6 +49,28 @@ class ChatController extends BaseController
         $senderType = $userId !== null ? 'user' : 'visiteur';
         Chat::addMessage($conv->id, $senderType, $message, $userId, false);
 
+        // Freeze post-capture : si on a déjà l'email du visiteur, le bot ne fait
+        // plus de matching ni de réponses pré-écrites — il invite juste à patienter
+        // jusqu'à ce qu'Angello prenne le relais.
+        if (!empty($conv->visitor_email)) {
+            Chat::flagForAdmin((int) $conv->id);
+            $waitMsg = "On a bien reçu ta demande. Angello revient vers toi dès que possible — merci de patienter. 🙏";
+            Chat::addMessage((int) $conv->id, 'bot', $waitMsg, null, true);
+
+            $this->json([
+                'ok'              => true,
+                'conversation_id' => $conv->id,
+                'bot_message'     => [
+                    'content'    => $waitMsg,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ],
+                'no_match'        => false,
+                'frozen'          => true,
+                'office_hours'    => Chat::isOfficeHours(),
+            ]);
+            return;
+        }
+
         // Détection d'email dans le message libre :
         // si la personne tape son email directement (souvent après que le bot
         // ait demandé "laisse ton email"), on capte sans passer par le form.
