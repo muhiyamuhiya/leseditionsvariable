@@ -47,14 +47,18 @@ class AdminController extends BaseController
             'lecteurs'     => $db->fetch("SELECT COUNT(*) as v FROM users WHERE role='lecteur' AND (statut='actif' OR statut IS NULL)")->v ?? 0,
         ];
 
-        // Compteurs "action requise"
+        // Compteurs "action requise" — défensif contre tables manquantes (prod sans migrations)
+        $safeCount = function (string $sql) use ($db): int {
+            $row = $db->fetch($sql);
+            return ($row && isset($row->v)) ? (int) $row->v : 0;
+        };
         $alerts = [
-            'candidatures'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM authors WHERE statut_validation='en_attente'")->v ?? 0),
-            'livres_revue'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM books WHERE statut='en_revue'")->v ?? 0),
-            'commandes_devis'   => (int) ($db->fetch("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_attente_devis'")->v ?? 0),
-            'commandes_livrer'  => (int) ($db->fetch("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_cours'")->v ?? 0),
-            'paiements_echoues' => (int) ($db->fetch("SELECT COUNT(*) as v FROM transactions_log WHERE statut='echoue' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->v ?? 0),
-            'abos_annules'      => (int) ($db->fetch("SELECT COUNT(*) as v FROM subscriptions WHERE statut='annule' AND date_annulation >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->v ?? 0),
+            'candidatures'      => $safeCount("SELECT COUNT(*) as v FROM authors WHERE statut_validation='en_attente'"),
+            'livres_revue'      => $safeCount("SELECT COUNT(*) as v FROM books WHERE statut='en_revue'"),
+            'commandes_devis'   => $safeCount("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_attente_devis'"),
+            'commandes_livrer'  => $safeCount("SELECT COUNT(*) as v FROM editorial_orders WHERE statut='en_cours'"),
+            'paiements_echoues' => $safeCount("SELECT COUNT(*) as v FROM transactions_log WHERE statut='echoue' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
+            'abos_annules'      => $safeCount("SELECT COUNT(*) as v FROM subscriptions WHERE statut='annule' AND date_annulation >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
         ];
         $alerts['total'] = $alerts['candidatures'] + $alerts['livres_revue'] + $alerts['commandes_devis'] + $alerts['commandes_livrer'];
 
