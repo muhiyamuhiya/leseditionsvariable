@@ -186,6 +186,11 @@ $router->get('/admin/parametres', 'AdminController@settings');
 $router->post('/admin/parametres', 'AdminController@settingsUpdate');
 $router->get('/admin/journal', 'AdminController@auditLog');
 
+// Admin Emails — preview & test des templates
+$router->post('/admin/emails/preview/:template/test', 'AdminEmailController@sendTest');
+$router->get('/admin/emails/preview/:template', 'AdminEmailController@preview');
+$router->get('/admin/emails', 'AdminEmailController@index');
+
 // Admin Chat (dashboard + CRUD responses)
 $router->get('/admin/chat/api/unread-count', 'AdminChatController@apiUnreadCount');
 $router->get('/admin/chat/responses', 'AdminChatController@responses');
