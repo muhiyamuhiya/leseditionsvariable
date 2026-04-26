@@ -261,6 +261,108 @@ class AccountController extends BaseController
     // ABONNEMENT — visualisation, annulation, réactivation
     // =====================================================================
 
+    /**
+     * GET /mon-compte/achats
+     * Page récapitulative côté lecteur : achats unitaires + abonnement
+     * actuel + historique paiements (3 onglets).
+     *
+     * NB : la spec du sprint demandait /lecteur/mes-achats avec une
+     * sidebar lecteur dédiée. On place plutôt ici sous /mon-compte/*
+     * pour rester cohérent avec MEMORY (pas de sidebar lecteur — la
+     * navigation passe par le dropdown du header). Le lien est ajouté
+     * au dropdown.
+     */
+    public function purchases(): void
+    {
+        Auth::requireLogin();
+        $userId = Auth::id();
+        $db = Database::getInstance();
+
+        $tab = $_GET['tab'] ?? 'achats';
+        if (!in_array($tab, ['achats', 'abonnement', 'historique'], true)) {
+            $tab = 'achats';
+        }
+
+        // Achats unitaires (sales)
+        $achats = $db->fetchAll(
+            "SELECT s.*, b.titre AS book_titre, b.slug AS book_slug,
+                    COALESCE(a.nom_plume, CONCAT_WS(' ', u.prenom, u.nom)) AS author_name
+               FROM sales s
+               JOIN books b   ON b.id = s.book_id
+               JOIN authors a ON a.id = s.author_id
+          LEFT JOIN users u   ON u.id = a.user_id
+              WHERE s.user_id = ? AND s.statut = 'payee'
+              ORDER BY s.date_paiement_confirme DESC, s.date_vente DESC",
+            [$userId]
+        );
+
+        // Abonnement actuel + historique abos
+        $subActuel = $db->fetch(
+            "SELECT * FROM subscriptions
+              WHERE user_id = ? AND date_fin >= NOW()
+              ORDER BY date_fin DESC LIMIT 1",
+            [$userId]
+        );
+        $abonnements = $db->fetchAll(
+            "SELECT * FROM subscriptions WHERE user_id = ? ORDER BY date_debut DESC",
+            [$userId]
+        );
+
+        // Historique paiements unifié : achats + abos en une liste chronologique
+        $historique = $db->fetchAll(
+            "SELECT 'achat' AS kind, s.id AS ref_id,
+                    COALESCE(s.date_paiement_confirme, s.date_vente) AS dt,
+                    s.prix_paye_usd AS montant, s.devise AS devise,
+                    s.methode_paiement AS methode, s.transaction_id,
+                    b.titre AS label, b.slug AS slug
+               FROM sales s
+               JOIN books b ON b.id = s.book_id
+              WHERE s.user_id = ? AND s.statut = 'payee'
+             UNION ALL
+             SELECT 'abonnement' AS kind, sub.id AS ref_id,
+                    sub.date_debut AS dt,
+                    sub.prix_paye AS montant, sub.devise AS devise,
+                    sub.methode_paiement AS methode, sub.transaction_id,
+                    sub.type AS label, NULL AS slug
+               FROM subscriptions sub
+              WHERE sub.user_id = ?
+              ORDER BY dt DESC",
+            [$userId, $userId]
+        );
+
+        // Stats
+        $totalAchats = (float) ($db->fetch("SELECT COALESCE(SUM(prix_paye_usd),0) AS v FROM sales WHERE user_id = ? AND statut='payee'", [$userId])->v ?? 0);
+        $totalAbos   = (float) ($db->fetch("SELECT COALESCE(SUM(prix_paye),0) AS v FROM subscriptions WHERE user_id = ?", [$userId])->v ?? 0);
+
+        // Progressions de lecture pour les achats (pour afficher "Continuer la lecture")
+        $progressions = [];
+        if (!empty($achats)) {
+            $bookIds = array_map(static fn ($r) => (int) $r->book_id, $achats);
+            $placeholders = implode(',', array_fill(0, count($bookIds), '?'));
+            $rows = $db->fetchAll(
+                "SELECT book_id, derniere_page_lue, pourcentage_complete
+                   FROM reading_progress
+                  WHERE user_id = ? AND book_id IN ({$placeholders})",
+                array_merge([$userId], $bookIds)
+            );
+            foreach ($rows as $r) {
+                $progressions[(int) $r->book_id] = $r;
+            }
+        }
+
+        $this->view('account/purchases', [
+            'titre'         => 'Mes achats',
+            'tab'           => $tab,
+            'achats'        => $achats,
+            'subActuel'     => $subActuel,
+            'abonnements'   => $abonnements,
+            'historique'    => $historique,
+            'totalAchats'   => $totalAchats,
+            'totalAbos'     => $totalAbos,
+            'progressions'  => $progressions,
+        ]);
+    }
+
     public function subscription(): void
     {
         Auth::requireLogin();

@@ -77,6 +77,7 @@ $router->get('/mon-compte/abonnement/annuler', 'AccountController@cancelSubscrip
 $router->post('/mon-compte/abonnement/annuler', 'AccountController@cancelSubscription');
 $router->post('/mon-compte/abonnement/reactiver', 'AccountController@reactivateSubscription');
 $router->get('/mon-compte/abonnement', 'AccountController@subscription');
+$router->get('/mon-compte/achats', 'AccountController@purchases');
 $router->post('/mon-compte/supprimer-demande', 'AccountController@requestDeletion');
 $router->get('/supprimer-compte/confirmer/:token', 'AuthController@confirmDeletionForm');
 $router->post('/supprimer-compte/confirmer/:token', 'AuthController@confirmDeletion');
