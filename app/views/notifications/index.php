@@ -37,20 +37,23 @@ $icons = [
         <?php else: ?>
             <div class="bg-surface border border-border rounded-xl overflow-hidden">
                 <?php foreach ($notifications as $n): ?>
-                    <?php $isRead = !empty($n->read_at); ?>
-                    <div class="flex items-start gap-3 p-4 border-b border-border/50 last:border-0 <?= $isRead ? '' : 'bg-accent/5' ?>">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center">
+                    <?php
+                    $isRead = !empty($n->read_at);
+                    // Chaque notif est cliquable via un overlay <a> qui pointe vers
+                    // /notifications/:id/aller : ça marque comme lue puis redirige
+                    // vers link_url (ou /notifications si vide). Le bouton supprimer
+                    // reste un form POST séparé en z-10 pour rester cliquable.
+                    $clickHref = '/notifications/' . (int) $n->id . '/aller';
+                    ?>
+                    <div class="relative flex items-start gap-3 p-4 border-b border-border/50 last:border-0 <?= $isRead ? '' : 'bg-accent/5' ?> hover:bg-surface-2/50 transition-colors">
+                        <a href="<?= e($clickHref) ?>" class="absolute inset-0 z-0" aria-label="<?= e($n->title) ?>"></a>
+
+                        <div class="relative z-[1] flex-shrink-0 w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center pointer-events-none">
                             <span class="text-lg" aria-hidden="true"><?= $icons[$n->icon] ?? '🔔' ?></span>
                         </div>
-                        <div class="flex-1 min-w-0">
+                        <div class="relative z-[1] flex-1 min-w-0 pointer-events-none">
                             <div class="flex items-start justify-between gap-2">
-                                <p class="font-medium text-white text-sm">
-                                    <?php if (!empty($n->link_url)): ?>
-                                        <a href="<?= e($n->link_url) ?>" class="hover:text-accent transition-colors"><?= e($n->title) ?></a>
-                                    <?php else: ?>
-                                        <?= e($n->title) ?>
-                                    <?php endif; ?>
-                                </p>
+                                <p class="font-medium text-white text-sm group-hover:text-accent transition-colors"><?= e($n->title) ?></p>
                                 <?php if (!$isRead): ?>
                                     <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-accent/20 text-accent flex-shrink-0">Nouveau</span>
                                 <?php endif; ?>
@@ -60,7 +63,7 @@ $icons = [
                             <?php endif; ?>
                             <p class="text-text-dim text-[11px] mt-2"><?= date('d/m/Y H:i', strtotime($n->created_at)) ?></p>
                         </div>
-                        <form action="/notifications/<?= (int) $n->id ?>/supprimer" method="POST" class="flex-shrink-0">
+                        <form action="/notifications/<?= (int) $n->id ?>/supprimer" method="POST" class="relative z-10 flex-shrink-0">
                             <?= csrf_field() ?>
                             <button type="submit" class="text-text-dim hover:text-rose-400 transition-colors p-1" aria-label="Supprimer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>

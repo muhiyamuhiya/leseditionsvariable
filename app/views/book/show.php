@@ -359,7 +359,7 @@ $premiumOnly = !$book->accessible_abonnement_essentiel && $book->accessible_abon
 <!-- ============================================================
      SECTION 5 : AVIS
      ============================================================ -->
-<section class="py-10 sm:py-14">
+<section id="avis" class="py-10 sm:py-14 scroll-mt-20">
     <div class="max-w-[800px] mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="font-display font-semibold text-xl sm:text-2xl text-white">Avis des lecteurs</h2>

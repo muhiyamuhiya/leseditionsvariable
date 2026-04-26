@@ -60,6 +60,7 @@ $router->get('/notifications/api/recent', 'NotificationController@apiRecent');
 $router->get('/notifications/api/count', 'NotificationController@apiCount');
 $router->post('/notifications/lire-toutes', 'NotificationController@markAllRead');
 $router->post('/notifications/:id/lire', 'NotificationController@markRead');
+$router->get('/notifications/:id/aller', 'NotificationController@open');
 $router->post('/notifications/:id/supprimer', 'NotificationController@destroy');
 $router->get('/notifications', 'NotificationController@index');
 
