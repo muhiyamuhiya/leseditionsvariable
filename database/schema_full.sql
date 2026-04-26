@@ -636,4 +636,61 @@ CREATE TABLE promo_codes (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- =============================================================================
+-- Migration 009 — Automation emails (séquences + cron)
+-- =============================================================================
+
+CREATE TABLE email_sequences (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(80) UNIQUE NOT NULL,
+    name VARCHAR(160) NOT NULL,
+    description TEXT,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_active (active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE email_sequence_steps (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sequence_id INT UNSIGNED NOT NULL,
+    sort_order TINYINT UNSIGNED NOT NULL,
+    day_offset SMALLINT UNSIGNED NOT NULL,
+    template VARCHAR(80) NOT NULL,
+    subject VARCHAR(200) DEFAULT NULL,
+    conditions JSON DEFAULT NULL,
+    UNIQUE KEY uniq_sequence_order (sequence_id, sort_order),
+    INDEX idx_sequence (sequence_id),
+    FOREIGN KEY (sequence_id) REFERENCES email_sequences(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE email_user_progress (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    sequence_id INT UNSIGNED NOT NULL,
+    current_step TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    next_send_at DATETIME DEFAULT NULL,
+    last_sent_at DATETIME DEFAULT NULL,
+    last_send_result ENUM('sent', 'skipped', 'error') DEFAULT NULL,
+    last_send_error TEXT DEFAULT NULL,
+    completed_at DATETIME DEFAULT NULL,
+    status ENUM('running', 'completed', 'paused', 'cancelled') NOT NULL DEFAULT 'running',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_user_sequence (user_id, sequence_id),
+    INDEX idx_status_next (status, next_send_at),
+    INDEX idx_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (sequence_id) REFERENCES email_sequences(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO email_sequences (slug, name, description, active) VALUES
+('welcome_drip', 'Onboarding nouveaux inscrits', 'Séquence J+0 à J+30 pour activer les nouveaux comptes après vérification email.', 1);
+
+INSERT INTO email_sequence_steps (sequence_id, sort_order, day_offset, template, subject) VALUES
+(LAST_INSERT_ID(), 1, 0,  'welcome',     'Bienvenue sur Variable !'),
+((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 2, 2,  'drip_day2',   '3 livres qui marchent fort sur Variable'),
+((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 3, 7,  'drip_day7',   "Et si tu lisais sans limite pour 3$/mois ?"),
+((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 4, 14, 'drip_day14',  'Les nouveautés Variable'),
+((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 5, 30, 'drip_day30',  "On t''a oublié ? Tiens, -20% pour revenir.");
+
 SET FOREIGN_KEY_CHECKS=1;

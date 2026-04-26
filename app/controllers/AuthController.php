@@ -233,8 +233,46 @@ class AuthController extends BaseController
         $user->email_verifie = 1;
         Mailer::sendWelcomeEmail($user);
 
+        // Démarrer la séquence drip d'onboarding (J+2/7/14/30)
+        $this->startWelcomeDripSequence((int) $user->id);
+
         Session::flash('success', 'Votre adresse email a été vérifiée ! Vous pouvez maintenant vous connecter.');
         redirect('/connexion');
+    }
+
+    /**
+     * Démarre la séquence "welcome_drip" pour un user. Idempotent : ne fait rien
+     * si une progression existe déjà pour ce couple (user, séquence).
+     *
+     * Welcome (step 1) ayant déjà été envoyé par sendWelcomeEmail, on insère
+     * la progress row directement à current_step=2 (drip_day2), avec
+     * next_send_at = NOW() + 2 jours pour respecter le calendrier J+2.
+     */
+    private function startWelcomeDripSequence(int $userId): void
+    {
+        $db = \App\Lib\Database::getInstance();
+
+        $seq = $db->fetch("SELECT id FROM email_sequences WHERE slug = 'welcome_drip' AND active = 1");
+        if (!$seq) {
+            error_log("startWelcomeDripSequence: séquence 'welcome_drip' introuvable ou inactive — skip");
+            return;
+        }
+
+        $exists = $db->fetch(
+            "SELECT 1 FROM email_user_progress WHERE user_id = ? AND sequence_id = ?",
+            [$userId, $seq->id]
+        );
+        if ($exists) return;
+
+        // current_step=2 (drip_day2) car welcome a déjà été envoyé manuellement.
+        // next_send_at = J+2 (le day_offset de drip_day2)
+        $db->insert('email_user_progress', [
+            'user_id'      => $userId,
+            'sequence_id'  => (int) $seq->id,
+            'current_step' => 2,
+            'next_send_at' => date('Y-m-d H:i:s', strtotime('+2 days')),
+            'status'       => 'running',
+        ]);
     }
 
     // =========================================================================
