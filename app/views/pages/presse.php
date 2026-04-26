@@ -31,7 +31,7 @@
         <div class="bg-surface border border-border rounded-xl p-7 sm:p-10 mb-10">
             <h2 class="font-display font-bold text-2xl text-white mb-4">À notre propos</h2>
             <p class="text-text-muted leading-relaxed">
-                <strong class="text-white">Les éditions Variable</strong> est une maison d'édition numérique indépendante fondée en 2026 par <strong class="text-white">Angello Luvungu Muhiya</strong>, entrepreneur congolais basé entre Kinshasa et Trois-Rivières (Québec). La plateforme propose une bibliothèque numérique de littérature africaine francophone, accessible par abonnement (dès 3 USD/mois) ou achat à l'unité, avec paiement par carte bancaire ou Mobile Money. Sa mission : démocratiser la lecture africaine et offrir une rémunération juste aux auteurs (80/20 en faveur de l'auteur).
+                <strong class="text-white">Les éditions Variable</strong> est une maison d'édition numérique indépendante fondée en 2026 par <strong class="text-white">Angello Luvungu Muhiya</strong>, entrepreneur congolais basé entre Kinshasa et Trois-Rivières (Québec). La plateforme propose une bibliothèque numérique de littérature africaine francophone, accessible par abonnement (dès 3 USD/mois) ou achat à l'unité, avec paiement par carte bancaire ou Mobile Money. Sa mission : démocratiser la lecture africaine et offrir une rémunération juste aux auteurs (70/30 en faveur de l'auteur).
             </p>
         </div>
 

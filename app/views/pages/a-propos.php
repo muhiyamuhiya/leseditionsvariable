@@ -32,7 +32,7 @@
             <div class="bg-surface border border-border rounded-xl p-6">
                 <div class="text-3xl mb-3" aria-hidden="true">✍️</div>
                 <h3 class="font-display font-semibold text-white mb-2">Valoriser nos auteurs</h3>
-                <p class="text-text-muted text-sm">Modèle économique transparent : 80% du prix d'achat revient à l'auteur. Plus que l'édition traditionnelle.</p>
+                <p class="text-text-muted text-sm">Modèle économique transparent : 70% du prix d'achat revient à l'auteur. Plus que l'édition traditionnelle.</p>
             </div>
             <div class="bg-surface border border-border rounded-xl p-6">
                 <div class="text-3xl mb-3" aria-hidden="true">🤝</div>

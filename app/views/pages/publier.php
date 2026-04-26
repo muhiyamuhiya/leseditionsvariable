@@ -20,8 +20,8 @@ $author = App\Lib\Auth::getAuthorRecord();
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
             <div class="bg-surface border border-border rounded-xl p-6">
                 <div class="text-3xl mb-3" aria-hidden="true">💰</div>
-                <h3 class="font-display font-semibold text-white mb-2">80% pour toi</h3>
-                <p class="text-text-muted text-sm">Sur chaque vente, tu reçois 80% du prix. C'est l'inverse de l'édition traditionnelle.</p>
+                <h3 class="font-display font-semibold text-white mb-2">70% pour toi</h3>
+                <p class="text-text-muted text-sm">Sur chaque vente, tu reçois 70% du prix. La plateforme garde 30% pour l'hébergement, les paiements et la promotion. Plus avantageux que l'édition traditionnelle.</p>
             </div>
             <div class="bg-surface border border-border rounded-xl p-6">
                 <div class="text-3xl mb-3" aria-hidden="true">🎁</div>
