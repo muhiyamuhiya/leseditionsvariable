@@ -39,7 +39,6 @@ $vcUserPrenom = $vcUser->prenom ?? null;
             <line x1="6" y1="6" x2="18" y2="18"/>
             <line x1="18" y1="6" x2="6" y2="18"/>
         </svg>
-        <span id="vc-chat-badge" class="vc-chat-badge" hidden>1</span>
     </button>
 
     <div id="vc-chat-panel" class="vc-chat-panel" hidden>
@@ -104,22 +103,11 @@ $vcUserPrenom = $vcUser->prenom ?? null;
 }
 .vc-chat-toggle:hover { transform: translateY(-2px) scale(1.03); background: #FBBF24; }
 .vc-chat-toggle svg { width: 26px; height: 26px; }
-.vc-chat-badge {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    background: #ef4444;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #0B0B0F;
+
+/* Force le respect de l'attribut HTML [hidden] sur les éléments en display:flex */
+.vc-chat-panel[hidden],
+.vc-chat-email-form[hidden] {
+    display: none !important;
 }
 
 .vc-chat-panel {
