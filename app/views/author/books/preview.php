@@ -1,10 +1,10 @@
 <?php
-$s = flash('admin_success'); $err = flash('error');
-$authorDisplay = '';
-if ($author) {
-    $authorDisplay = $author->nom_plume ?: trim(($author->prenom ?? '') . ' ' . ($author->nom ?? ''));
-    if ($authorDisplay === '') { $authorDisplay = 'Auteur inconnu'; }
-}
+/** @var object $book   Livre courant (avec cat_nom du LEFT JOIN) */
+/** @var object $author Auteur (= utilisateur connecté côté auteur) */
+
+$s   = flash('author_success');
+$err = flash('error');
+
 $bc = [
     'publie'    => 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     'brouillon' => 'bg-amber-500/20 text-amber-400 border-amber-500/30',
@@ -12,20 +12,32 @@ $bc = [
     'retire'    => 'bg-red-500/20 text-red-400 border-red-500/30',
 ];
 $statutClass = $bc[$book->statut] ?? 'bg-text-dim/20 text-text-dim';
+
+$statutLabels = [
+    'brouillon' => 'BROUILLON — visible que par toi et l\'admin',
+    'en_revue'  => 'EN REVUE — l\'admin va l\'examiner sous 7-14 jours',
+    'publie'    => 'PUBLIÉ — visible publiquement',
+    'retire'    => 'RETIRÉ — n\'est plus visible publiquement',
+];
 ?>
+
 <?php if ($s): ?><div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($s) ?></div><?php endif; ?>
 <?php if ($err): ?><div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($err) ?></div><?php endif; ?>
 
 <!-- Bandeau statut + retour -->
 <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
-    <a href="/admin/livres" class="text-text-dim text-xs hover:text-accent transition-colors inline-flex items-center gap-1">&larr; Retour aux livres</a>
+    <a href="/auteur/livres" class="text-text-dim text-xs hover:text-accent transition-colors inline-flex items-center gap-1">&larr; Retour à mes livres</a>
     <span class="text-[11px] font-bold px-3 py-1.5 rounded-full border uppercase tracking-wider <?= $statutClass ?>">
         <?= strtoupper(str_replace('_', ' ', $book->statut)) ?>
     </span>
 </div>
 
+<?php if (isset($statutLabels[$book->statut])): ?>
+<p class="text-text-dim text-xs mb-6 -mt-3"><?= e($statutLabels[$book->statut]) ?></p>
+<?php endif; ?>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Couverture -->
+    <!-- Couverture + actions principales -->
     <div class="lg:col-span-1">
         <div class="bg-surface border border-border rounded-xl p-5">
             <?php $coverUrl = book_cover_url($book); ?>
@@ -41,16 +53,7 @@ $statutClass = $bc[$book->statut] ?? 'bg-text-dim/20 text-text-dim';
                 <?php endif; ?>
             </div>
 
-            <?php if ($author): ?>
-                <p class="text-text-muted text-sm">par
-                    <?php if (!empty($author->user_id)): ?>
-                        <a href="/admin/auteurs/<?= $author->id ?>/editer" class="text-accent hover:text-accent-hover"><?= e($authorDisplay) ?></a>
-                    <?php else: ?>
-                        <span class="text-accent"><?= e($authorDisplay) ?></span>
-                        <?php if (!empty($author->is_classic)): ?><span class="text-text-dim text-xs">— classique</span><?php endif; ?>
-                    <?php endif; ?>
-                </p>
-            <?php endif; ?>
+            <p class="text-text-muted text-sm">par <span class="text-accent"><?= e($author->nom_plume ?: 'toi') ?></span></p>
             <p class="text-text-dim text-xs mt-1">Soumis le <?= date('d/m/Y', strtotime($book->created_at)) ?></p>
 
             <?php if ($book->fichier_complet_path): ?>
@@ -76,8 +79,7 @@ $statutClass = $bc[$book->statut] ?? 'bg-text-dim/20 text-text-dim';
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Langue</p><p class="text-white"><?= e(ucfirst($book->langue ?? 'fr')) ?></p></div>
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">ISBN</p><p class="text-white"><?= e($book->isbn ?? '-') ?></p></div>
                 <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Prix USD</p><p class="text-accent font-semibold"><?= number_format($book->prix_unitaire_usd, 2) ?> $</p></div>
-                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Essentiel</p><p class="text-white"><?= $book->accessible_abonnement_essentiel ? 'Oui' : 'Non' ?></p></div>
-                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Premium</p><p class="text-white"><?= $book->accessible_abonnement_premium ? 'Oui' : 'Non' ?></p></div>
+                <div><p class="text-text-dim text-xs uppercase tracking-wider mb-0.5">Ventes</p><p class="text-white"><?= (int) $book->total_ventes ?></p></div>
             </div>
         </div>
 
@@ -108,13 +110,8 @@ $statutClass = $bc[$book->statut] ?? 'bg-text-dim/20 text-text-dim';
 
         <!-- Actions -->
         <div class="flex flex-wrap gap-3 pt-4">
-            <?php if (in_array($book->statut, ['brouillon','en_revue'])): ?>
-                <form method="POST" action="/admin/livres/<?= $book->id ?>/publier"><?= csrf_field() ?><button class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-6 py-2.5 rounded transition-colors">Publier le livre</button></form>
-                <a href="/admin/livres/<?= $book->id ?>/editer" class="btn-secondary text-sm">Modifier</a>
-            <?php elseif ($book->statut === 'publie'): ?>
-                <a href="/livre/<?= e($book->slug) ?>" target="_blank" class="btn-primary text-sm">Voir page publique</a>
-                <a href="/admin/livres/<?= $book->id ?>/editer" class="btn-secondary text-sm">Modifier</a>
-            <?php endif; ?>
+            <a href="/auteur/livres/<?= (int) $book->id ?>/editer" class="btn-primary text-sm">Modifier ce livre</a>
+            <a href="/auteur/livres" class="btn-secondary text-sm">Retour à la liste</a>
         </div>
     </div>
 </div>

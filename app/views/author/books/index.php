@@ -19,9 +19,9 @@
             <td class="py-3 px-2"><?php $bc = ['publie'=>'bg-emerald-500/20 text-emerald-400','en_revue'=>'bg-accent/20 text-accent','brouillon'=>'bg-text-dim/20 text-text-dim','retire'=>'bg-red-500/20 text-red-400']; ?><span class="text-[11px] font-medium px-2 py-1 rounded <?= $bc[$l->statut] ?? '' ?>"><?= ucfirst(str_replace('_',' ',$l->statut)) ?></span></td>
             <td class="py-3 px-2 text-text-muted hidden md:table-cell"><?= $l->total_ventes ?></td>
             <td class="py-3 px-2">
-                <a href="/auteur/livres/<?= $l->id ?>/editer" class="text-text-muted hover:text-accent text-xs">Éditer</a>
-                <?php if (!empty($l->fichier_complet_path)): ?><a href="/lire/<?= e($l->slug) ?>" target="_blank" class="text-accent hover:text-accent-hover text-xs ml-2">Lire</a><?php endif; ?>
-                <?php if ($l->statut === 'publie'): ?><a href="/livre/<?= e($l->slug) ?>" target="_blank" class="text-text-dim hover:text-accent text-xs ml-2">Voir</a><?php endif; ?>
+                <a href="/auteur/livres/<?= e($l->slug) ?>/preview" class="text-accent hover:text-accent-hover text-xs font-medium">Aperçu</a>
+                <a href="/auteur/livres/<?= $l->id ?>/editer" class="text-text-muted hover:text-accent text-xs ml-2">Éditer</a>
+                <?php if (!empty($l->fichier_complet_path)): ?><a href="/lire/<?= e($l->slug) ?>" target="_blank" class="text-text-dim hover:text-accent text-xs ml-2">Lire</a><?php endif; ?>
             </td>
         </tr>
     <?php endforeach; ?>

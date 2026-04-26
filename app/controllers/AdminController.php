@@ -489,14 +489,33 @@ class AdminController extends BaseController
         $this->adminView('candidatures/show', ['titre' => 'Candidature : ' . $author->prenom . ' ' . $author->nom, 'author' => $author, 'livresEnRevue' => $livresEnRevue]);
     }
 
-    public function bookPreview(string $id): void
+    public function bookPreview(string $slug): void
     {
         Auth::requireAdmin();
         $db = $this->db();
-        $book = $db->fetch("SELECT b.*, c.nom as cat_nom, c.slug as cat_slug FROM books b LEFT JOIN categories c ON b.category_id=c.id WHERE b.id = ?", [(int)$id]);
+        $book = $db->fetch(
+            "SELECT b.*, c.nom AS cat_nom, c.slug AS cat_slug
+               FROM books b
+          LEFT JOIN categories c ON c.id = b.category_id
+              WHERE b.slug = ?",
+            [$slug]
+        );
         if (!$book) { redirect('/admin/livres'); return; }
-        $author = $db->fetch("SELECT a.*, u.prenom, u.nom, u.email FROM authors a JOIN users u ON a.user_id=u.id WHERE a.id = ?", [$book->author_id]);
-        $this->adminView('livres/preview', ['titre' => 'Aperçu : ' . $book->titre, 'book' => $book, 'author' => $author]);
+
+        // LEFT JOIN users : un auteur classique (is_classic=1) n'a pas de
+        // user_id, et l'aperçu doit fonctionner pour Zola, Hugo, etc.
+        $author = $db->fetch(
+            "SELECT a.*, u.prenom, u.nom, u.email
+               FROM authors a
+          LEFT JOIN users u ON u.id = a.user_id
+              WHERE a.id = ?",
+            [$book->author_id]
+        );
+        $this->adminView('livres/preview', [
+            'titre'  => 'Aperçu : ' . $book->titre,
+            'book'   => $book,
+            'author' => $author,
+        ]);
     }
 
     public function bookPublish(string $id): void

@@ -431,6 +431,44 @@ class AuthorDashboardController extends BaseController
         redirect('/auteur/livres');
     }
 
+    /**
+     * Aperçu d'un livre par l'auteur, dans le contexte du dashboard auteur.
+     * Sécurité : un auteur ne peut prévisualiser que ses propres livres
+     * (filtrage par author_id). Toute tentative sur un livre tiers retourne
+     * un flash error + redirect vers la liste — pas de 403 brut pour rester
+     * proche du flux UX habituel.
+     */
+    public function previewBook(string $slug): void
+    {
+        Auth::requireAuthor();
+        $author = Auth::getAuthorRecord();
+        if (!$author) {
+            Session::flash('error', 'Tu dois d\'abord déposer ta candidature d\'auteur.');
+            redirect('/auteur/candidater');
+            return;
+        }
+
+        $db = $this->db();
+        $book = $db->fetch(
+            "SELECT b.*, c.nom AS cat_nom
+               FROM books b
+          LEFT JOIN categories c ON c.id = b.category_id
+              WHERE b.slug = ? AND b.author_id = ?",
+            [$slug, $author->id]
+        );
+        if (!$book) {
+            Session::flash('error', 'Livre introuvable ou tu n\'es pas l\'auteur.');
+            redirect('/auteur/livres');
+            return;
+        }
+
+        $this->authorView('books/preview', [
+            'titre'  => 'Aperçu : ' . $book->titre,
+            'book'   => $book,
+            'author' => $author,
+        ]);
+    }
+
     public function editBook(string $id): void
     {
         Auth::requireAuthor();

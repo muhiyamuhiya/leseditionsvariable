@@ -66,7 +66,7 @@
         <div class="bg-surface border border-border rounded-xl p-5">
             <h3 class="text-white font-semibold text-sm mb-3">Livres soumis (<?= count($livresEnRevue) ?>)</h3>
             <?php foreach ($livresEnRevue as $l): ?>
-                <a href="/admin/livres/<?= $l->id ?>/apercu" class="block text-accent text-sm hover:text-accent-hover mb-1"><?= e($l->titre) ?> (<?= $l->statut ?>)</a>
+                <a href="/admin/livres/<?= e($l->slug) ?>/preview" class="block text-accent text-sm hover:text-accent-hover mb-1"><?= e($l->titre) ?> (<?= $l->statut ?>)</a>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
