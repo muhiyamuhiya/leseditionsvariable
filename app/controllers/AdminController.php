@@ -1036,10 +1036,198 @@ class AdminController extends BaseController
             'statut' => 'verse',
             'date_versement' => date('Y-m-d H:i:s'),
             'reference_versement' => trim($_POST['reference'] ?? ''),
+            'processed_by_admin_id' => Auth::id(),
         ], 'id = ?', [(int) $id]);
         audit('payout_paid', 'author_payouts', (int) $id);
         Session::flash('admin_success', 'Versement marqué comme effectué.');
         redirect('/admin/versements');
+    }
+
+    /**
+     * GET /admin/finances
+     * Synthèse globale + liste des demandes en attente.
+     */
+    public function showFinances(): void
+    {
+        Auth::requireAdmin();
+        $db = $this->db();
+
+        $stats = [
+            'ca_lifetime'   => (float) ($db->fetch("SELECT COALESCE(SUM(prix_paye_usd),0) AS v FROM sales WHERE statut='payee'")->v ?? 0),
+            'commission'    => (float) ($db->fetch("SELECT COALESCE(SUM(commission_variable),0) AS v FROM sales WHERE statut='payee'")->v ?? 0),
+            'revenus_auteurs_lifetime' => (float) ($db->fetch("SELECT COALESCE(SUM(revenu_auteur),0) AS v FROM sales WHERE statut='payee'")->v ?? 0),
+            'deja_verse'    => (float) ($db->fetch("SELECT COALESCE(SUM(total_a_verser),0) AS v FROM author_payouts WHERE statut='verse'")->v ?? 0),
+            'en_attente'    => (float) ($db->fetch("SELECT COALESCE(SUM(total_a_verser),0) AS v FROM author_payouts WHERE statut IN ('requested','en_cours')")->v ?? 0),
+            'pool_dispo'    => (float) ($db->fetch("SELECT COALESCE(SUM(revenus_pool_abonnement),0) AS v FROM author_payouts WHERE statut='available'")->v ?? 0),
+        ];
+
+        // Demandes en attente (priorité), tous les autres ensuite
+        $demandes = $db->fetchAll(
+            "SELECT ap.*,
+                    COALESCE(a.nom_plume, CONCAT_WS(' ', u.prenom, u.nom), 'Auteur inconnu') AS author_name,
+                    a.methode_versement, a.numero_mobile_money, a.email_paypal, a.iban, a.nom_banque,
+                    u.email AS user_email
+               FROM author_payouts ap
+               JOIN authors a ON ap.author_id = a.id
+          LEFT JOIN users u   ON u.id = a.user_id
+              WHERE ap.statut IN ('requested','en_cours')
+              ORDER BY ap.requested_at ASC, ap.created_at ASC"
+        );
+
+        $historique = $db->fetchAll(
+            "SELECT ap.*,
+                    COALESCE(a.nom_plume, CONCAT_WS(' ', u.prenom, u.nom), 'Auteur inconnu') AS author_name
+               FROM author_payouts ap
+               JOIN authors a ON ap.author_id = a.id
+          LEFT JOIN users u   ON u.id = a.user_id
+              WHERE ap.statut IN ('verse','refuse')
+              ORDER BY ap.updated_at DESC
+              LIMIT 50"
+        );
+
+        $this->adminView('finances/index', [
+            'titre'      => 'Finances',
+            'stats'      => $stats,
+            'demandes'   => $demandes,
+            'historique' => $historique,
+        ]);
+    }
+
+    /**
+     * POST /admin/finances/:id/traiter
+     * Marque un versement requested → verse (avec référence + qui a traité).
+     */
+    public function processPayout(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $payoutId = (int) $id;
+        $db = $this->db();
+
+        $payout = $db->fetch("SELECT * FROM author_payouts WHERE id = ?", [$payoutId]);
+        if (!$payout) {
+            Session::flash('error', 'Versement introuvable.');
+            redirect('/admin/finances');
+            return;
+        }
+        if (!in_array($payout->statut, ['requested', 'en_cours', 'a_verser'], true)) {
+            Session::flash('error', 'Ce versement ne peut plus être traité (statut : ' . $payout->statut . ').');
+            redirect('/admin/finances');
+            return;
+        }
+
+        $reference = trim((string) ($_POST['reference'] ?? ''));
+        if ($reference === '') {
+            Session::flash('error', 'Une référence de paiement est obligatoire (transaction Mobile Money / virement / etc.).');
+            redirect('/admin/finances');
+            return;
+        }
+
+        $db->update('author_payouts', [
+            'statut'                => 'verse',
+            'date_versement'        => date('Y-m-d H:i:s'),
+            'reference_versement'   => $reference,
+            'processed_by_admin_id' => Auth::id(),
+        ], 'id = ?', [$payoutId]);
+
+        audit('payout_processed', 'author_payouts', $payoutId);
+
+        // Notification + email auteur (best-effort)
+        $author = $db->fetch("SELECT a.id, a.user_id, u.prenom, u.nom, u.email FROM authors a JOIN users u ON u.id = a.user_id WHERE a.id = ?", [$payout->author_id]);
+        if ($author) {
+            try {
+                Notification::create(
+                    (int) $author->user_id,
+                    'payout_processed',
+                    'Versement effectué',
+                    'Ton versement de ' . number_format((float) $payout->total_a_verser, 2) . ' $ a été traité (réf : ' . $reference . ').',
+                    '/auteur/versements',
+                    'check'
+                );
+            } catch (\Throwable $e) { error_log('processPayout notif : ' . $e->getMessage()); }
+
+            try {
+                if (method_exists(Mailer::class, 'sendPayoutProcessed')) {
+                    Mailer::sendPayoutProcessed(
+                        (object) ['id' => $author->user_id, 'prenom' => $author->prenom, 'nom' => $author->nom, 'email' => $author->email],
+                        (float) $payout->total_a_verser,
+                        (string) $payout->requested_method,
+                        $reference
+                    );
+                }
+            } catch (\Throwable $e) { error_log('processPayout mail : ' . $e->getMessage()); }
+        }
+
+        Session::flash('admin_success', 'Versement marqué comme effectué.');
+        redirect('/admin/finances');
+    }
+
+    /**
+     * POST /admin/finances/:id/refuser
+     * Refuse une demande avec une raison. Le montant redevient disponible
+     * (statut 'refuse' n'est pas comptabilisé dans le balance pending).
+     */
+    public function rejectPayout(string $id): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        $payoutId = (int) $id;
+        $db = $this->db();
+
+        $payout = $db->fetch("SELECT * FROM author_payouts WHERE id = ?", [$payoutId]);
+        if (!$payout) {
+            Session::flash('error', 'Versement introuvable.');
+            redirect('/admin/finances');
+            return;
+        }
+        if (!in_array($payout->statut, ['requested', 'en_cours'], true)) {
+            Session::flash('error', 'Seules les demandes en attente peuvent être refusées.');
+            redirect('/admin/finances');
+            return;
+        }
+
+        $reason = trim((string) ($_POST['reason'] ?? ''));
+        if ($reason === '') {
+            Session::flash('error', 'Une raison de refus est obligatoire (informe l\'auteur sur ce qu\'il doit corriger).');
+            redirect('/admin/finances');
+            return;
+        }
+
+        $db->update('author_payouts', [
+            'statut'                => 'refuse',
+            'rejection_reason'      => $reason,
+            'processed_by_admin_id' => Auth::id(),
+        ], 'id = ?', [$payoutId]);
+
+        audit('payout_rejected', 'author_payouts', $payoutId);
+
+        // Notif + email auteur
+        $author = $db->fetch("SELECT a.id, a.user_id, u.prenom, u.nom, u.email FROM authors a JOIN users u ON u.id = a.user_id WHERE a.id = ?", [$payout->author_id]);
+        if ($author) {
+            try {
+                Notification::create(
+                    (int) $author->user_id,
+                    'payout_rejected',
+                    'Demande de versement refusée',
+                    $reason,
+                    '/auteur/versements',
+                    'alert'
+                );
+            } catch (\Throwable $e) { error_log('rejectPayout notif : ' . $e->getMessage()); }
+
+            try {
+                if (method_exists(Mailer::class, 'sendPayoutRejected')) {
+                    Mailer::sendPayoutRejected(
+                        (object) ['id' => $author->user_id, 'prenom' => $author->prenom, 'nom' => $author->nom, 'email' => $author->email],
+                        (float) $payout->total_a_verser,
+                        $reason
+                    );
+                }
+            } catch (\Throwable $e) { error_log('rejectPayout mail : ' . $e->getMessage()); }
+        }
+
+        Session::flash('admin_success', 'Demande refusée. L\'auteur a été notifié.');
+        redirect('/admin/finances');
     }
 
     // =====================================================================

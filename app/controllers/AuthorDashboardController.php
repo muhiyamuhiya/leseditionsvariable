@@ -539,8 +539,166 @@ class AuthorDashboardController extends BaseController
         Auth::requireAuthor();
         $author = Auth::getAuthorRecord();
         if (!$author) { redirect('/auteur'); return; }
-        $versements = $this->db()->fetchAll("SELECT * FROM author_payouts WHERE author_id = ? ORDER BY created_at DESC", [$author->id]);
+        // L'historique exclut les rows internes 'available' (créés par le cron pool)
+        // pour ne montrer que les vraies demandes de versement.
+        $versements = $this->db()->fetchAll(
+            "SELECT * FROM author_payouts
+              WHERE author_id = ?
+                AND statut IN ('requested','en_cours','verse','refuse','annule','echec')
+              ORDER BY created_at DESC",
+            [$author->id]
+        );
         $this->authorView('payouts', ['titre' => 'Mes versements', 'versements' => $versements]);
+    }
+
+    /**
+     * GET /auteur/revenus
+     * Vue agrégée : totaux, solde versable, bouton "Demander un versement".
+     */
+    public function showRevenues(): void
+    {
+        Auth::requireAuthor();
+        $author = Auth::getAuthorRecord();
+        if (!$author) { redirect('/auteur'); return; }
+        if ($author->statut_validation !== 'valide') { redirect('/auteur'); return; }
+
+        $balance = \App\Lib\PayoutBalance::compute((int) $author->id);
+
+        // Détail par livre (top 10 + total) — pour le tableau "mes livres"
+        $byBook = $this->db()->fetchAll(
+            "SELECT b.id, b.titre, b.slug,
+                    COUNT(s.id)                         AS nb_ventes,
+                    COALESCE(SUM(s.revenu_auteur), 0)   AS revenu_total,
+                    b.total_pages_lues_cumul            AS pages_lues
+               FROM books b
+          LEFT JOIN sales s ON s.book_id = b.id AND s.statut = 'payee'
+              WHERE b.author_id = ?
+              GROUP BY b.id
+              ORDER BY revenu_total DESC, b.created_at DESC
+              LIMIT 50",
+            [$author->id]
+        );
+
+        // Settings affichés (pour transparence)
+        $seuil = (float) ($this->db()->fetch("SELECT `value` FROM settings WHERE `key` = 'seuil_minimum_versement_usd'")->value ?? PAYOUT_MIN_USD);
+
+        $this->authorView('revenus', [
+            'titre'   => 'Mes revenus',
+            'author'  => $author,
+            'balance' => $balance,
+            'byBook'  => $byBook,
+            'seuil'   => $seuil,
+        ]);
+    }
+
+    /**
+     * POST /auteur/versements/demander
+     * Crée une row author_payouts statut='requested' agrégeant le solde
+     * disponible. Annule les rows 'available' préexistants (déjà inclus).
+     */
+    public function requestPayout(): void
+    {
+        Auth::requireAuthor();
+        CSRF::check();
+        $author = Auth::getAuthorRecord();
+        if (!$author || $author->statut_validation !== 'valide') {
+            Session::flash('error', 'Tu dois être un auteur validé pour demander un versement.');
+            redirect('/auteur');
+            return;
+        }
+
+        $balance = \App\Lib\PayoutBalance::compute((int) $author->id);
+        $seuilRow = $this->db()->fetch("SELECT `value` FROM settings WHERE `key` = 'seuil_minimum_versement_usd'");
+        $seuil = (float) ($seuilRow->value ?? PAYOUT_MIN_USD);
+
+        if ($balance['available'] < $seuil) {
+            Session::flash('error', 'Solde disponible insuffisant. Minimum requis : ' . number_format($seuil, 2) . ' $ — disponible : ' . number_format($balance['available'], 2) . ' $.');
+            redirect('/auteur/revenus');
+            return;
+        }
+
+        // La méthode peut être ré-affirmée via le form (au cas où l'auteur
+        // veut changer sa préférence avant la demande)
+        $methodPosted = $_POST['methode_versement'] ?? null;
+        $allowedMethods = ['mobile_money', 'banque', 'paypal', 'stripe'];
+        if ($methodPosted && in_array($methodPosted, $allowedMethods, true)) {
+            $this->db()->update('authors', ['methode_versement' => $methodPosted], 'id = ?', [$author->id]);
+            $author = Auth::getAuthorRecord(); // refresh
+        }
+
+        $accountSnapshot = \App\Lib\PayoutBalance::snapshotAccount($author);
+        if ($accountSnapshot === '') {
+            Session::flash('error', 'Tes coordonnées de paiement sont vides. Renseigne-les dans ton profil avant de demander un versement.');
+            redirect('/auteur/profil');
+            return;
+        }
+
+        $db = $this->db();
+
+        // Période = du dernier versement traité (verse ou requested ou en_cours)
+        // jusqu'à maintenant. Si aucun, depuis l'inscription de l'auteur.
+        $lastPayout = $db->fetch(
+            "SELECT created_at FROM author_payouts
+              WHERE author_id = ? AND statut IN ('verse','requested','en_cours')
+              ORDER BY created_at DESC LIMIT 1",
+            [$author->id]
+        );
+        $periodeDebut = $lastPayout ? date('Y-m-d', strtotime($lastPayout->created_at)) : date('Y-m-d', strtotime($author->created_at));
+
+        // Insertion de la demande
+        $payoutId = $db->insert('author_payouts', [
+            'author_id'                  => (int) $author->id,
+            'periode_debut'              => $periodeDebut,
+            'periode_fin'                => date('Y-m-d'),
+            'revenus_ventes_unitaires'   => $balance['sales_total'] - $balance['total_paid'] - $balance['total_pending'],
+            'revenus_pool_abonnement'    => $balance['pool_available'],
+            'total_a_verser'             => $balance['available'],
+            'devise'                     => 'USD',
+            'methode_versement'          => (string) $author->methode_versement,
+            'statut'                     => 'requested',
+            'requested_at'               => date('Y-m-d H:i:s'),
+            'requested_method'           => (string) $author->methode_versement,
+            'requested_account_snapshot' => $accountSnapshot,
+        ]);
+
+        // Annule les rows 'available' qui ont été agrégés dans cette demande
+        if ($payoutId) {
+            $db->update(
+                'author_payouts',
+                ['statut' => 'annule', 'notes' => 'Agrégé dans la demande #' . (int) $payoutId],
+                "author_id = ? AND statut = 'available' AND id != ?",
+                [$author->id, $payoutId]
+            );
+        }
+
+        // Notification interne admin
+        try {
+            \App\Lib\Notification::createForAdmins(
+                'payout_requested',
+                'Nouvelle demande de versement',
+                ($author->nom_plume ?: 'Un auteur') . ' demande ' . number_format($balance['available'], 2) . ' $ via ' . str_replace('_', ' ', (string) $author->methode_versement) . '.',
+                '/admin/finances',
+                'check'
+            );
+        } catch (\Throwable $e) {
+            error_log('requestPayout notification : ' . $e->getMessage());
+        }
+
+        // Emails (commit 5 — best-effort, ne plante pas si helpers manquants)
+        $user = Auth::user();
+        try {
+            if (method_exists(Mailer::class, 'sendPayoutRequested')) {
+                Mailer::sendPayoutRequested($user, $balance['available'], (string) $author->methode_versement);
+            }
+            if (method_exists(Mailer::class, 'sendAdminPayoutRequest')) {
+                Mailer::sendAdminPayoutRequest($user, (string) ($author->nom_plume ?: ''), $balance['available'], (string) $author->methode_versement);
+            }
+        } catch (\Throwable $e) {
+            error_log('requestPayout mail : ' . $e->getMessage());
+        }
+
+        Session::flash('author_success', 'Demande envoyée : ' . number_format($balance['available'], 2) . ' $. On traite ça sous quelques jours.');
+        redirect('/auteur/versements');
     }
 
     // =====================================================================
