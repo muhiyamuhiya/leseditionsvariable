@@ -1,7 +1,35 @@
 <?php
 $currentUser = App\Lib\Auth::user();
+
+// Bouton CTA contextuel du header (mobile + desktop + menu mobile fullscreen).
+// 3 variantes selon l'état utilisateur :
+//   - Admin → "Admin" vers /admin
+//   - Auteur validé → "Espace auteur" vers /auteur
+//   - Tous les autres (visiteur, lecteur, candidat en attente, candidature refusée) :
+//     "Devenir auteur" vers /auteurs/devenir, qui route ensuite intelligemment
+//     (cf. PageController::redirectToAuthorPath).
+if (!$currentUser) {
+    $headerCta = ['label' => 'Devenir auteur', 'icon' => '✍️', 'href' => '/auteurs/devenir'];
+} elseif ($currentUser->role === 'admin') {
+    $headerCta = ['label' => 'Admin', 'icon' => '⚙️', 'href' => '/admin'];
+} elseif ($currentUser->role === 'auteur') {
+    $_authorRow = App\Lib\Auth::getAuthorRecord();
+    if ($_authorRow && $_authorRow->statut_validation === 'valide') {
+        $headerCta = ['label' => 'Espace auteur', 'icon' => '📚', 'href' => '/auteur'];
+    } else {
+        // candidat en attente / refusé : on garde "Devenir auteur" qui via
+        // /auteurs/devenir tombe sur /auteur avec flash explicatif.
+        $headerCta = ['label' => 'Devenir auteur', 'icon' => '✍️', 'href' => '/auteurs/devenir'];
+    }
+} else {
+    $headerCta = ['label' => 'Devenir auteur', 'icon' => '✍️', 'href' => '/auteurs/devenir'];
+}
+
+// Pour la pill desktop "Devenir auteur" et le bouton hero du menu mobile
+// fullscreen : on garde l'ancien comportement (uniquement visiteur/lecteur,
+// pour ne pas polluer la nav d'un auteur validé qui a déjà ses entrées
+// contextuelles dans le dropdown utilisateur).
 $showDevenirAuteur = !$currentUser || $currentUser->role === 'lecteur';
-// Endpoint intelligent qui route selon l'état (visiteur, candidat en attente, validé, etc.)
 $devenirAuteurHref = '/auteurs/devenir';
 ?>
 
@@ -42,18 +70,19 @@ $devenirAuteurHref = '/auteurs/devenir';
             <!-- Droite -->
             <div class="flex items-center gap-2 sm:gap-4">
 
-                <!-- CTA "Devenir auteur" mobile uniquement (le desktop est dans la nav, ligne ~33).
-                     N'apparaît que pour les visiteurs / lecteurs ($showDevenirAuteur).
-                     Style : fond ambre, texte sombre, compact pour rester lisible
-                     même à côté de la cloche notif et du burger. -->
-                <?php if ($showDevenirAuteur): ?>
-                    <a href="<?= $devenirAuteurHref ?>"
-                       class="md:hidden inline-flex items-center gap-1 bg-accent text-[#0F0F0F] px-2.5 py-1.5 rounded-md text-[12px] font-semibold whitespace-nowrap hover:bg-accent-hover transition-colors flex-shrink-0"
-                       aria-label="Devenir auteur Variable">
-                        <span aria-hidden="true">✍️</span>
-                        <span>Devenir auteur</span>
-                    </a>
-                <?php endif; ?>
+                <!-- CTA contextuel mobile (md:hidden, le desktop a sa propre pill ambre
+                     dans la nav ligne ~50). Toujours affiché — le contenu (label/icon/href)
+                     change selon l'état user :
+                       - visiteur / lecteur / candidat / refusé → "✍️ Devenir auteur"
+                       - auteur validé → "📚 Espace auteur"
+                       - admin → "⚙️ Admin"
+                     Style : fond ambre, texte sombre, compact pour rester lisible. -->
+                <a href="<?= e($headerCta['href']) ?>"
+                   class="md:hidden inline-flex items-center gap-1 bg-accent text-[#0F0F0F] px-2.5 py-1.5 rounded-md text-[12px] font-semibold whitespace-nowrap hover:bg-accent-hover transition-colors flex-shrink-0"
+                   aria-label="<?= e($headerCta['label']) ?>">
+                    <span aria-hidden="true"><?= $headerCta['icon'] ?></span>
+                    <span><?= e($headerCta['label']) ?></span>
+                </a>
 
                 <!-- Recherche desktop avec live search -->
                 <div x-data="liveSearch()" class="hidden sm:flex items-center relative">

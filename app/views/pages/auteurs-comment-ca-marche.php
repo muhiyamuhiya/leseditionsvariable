@@ -89,12 +89,30 @@
             <strong class="text-text-muted">Note :</strong> les œuvres du domaine public (Hugo, Zola, Maupassant…) sont disponibles sur Variable pour entretenir notre catalogue. Comme ces auteurs n'ont plus d'ayants droit, leurs ventes vont 100% à la plateforme et financent l'opération. Les pages lues sur ces œuvres ne diluent pas le pool des auteurs vivants.
         </div>
 
-        <!-- CTA -->
+        <?php
+        // CTA contextuel : adapté à l'état utilisateur courant. Évite que
+        // l'admin ou un auteur validé voit "Devenir auteur Variable" alors
+        // qu'il l'est déjà.
+        $_ccmUser = \App\Lib\Auth::user();
+        if (!$_ccmUser) {
+            $_ccmCta = ['label' => 'Devenir auteur Variable', 'href' => '/auteurs/devenir', 'note' => "On t'oriente vers la bonne étape selon ton compte (inscription, candidature, ou ton dashboard)."];
+        } elseif ($_ccmUser->role === 'admin') {
+            $_ccmCta = ['label' => 'Gérer mes livres', 'href' => '/admin/livres', 'note' => "Tu es admin : accède directement à la gestion des livres et auteurs."];
+        } elseif ($_ccmUser->role === 'auteur') {
+            $_ccmRow = \App\Lib\Auth::getAuthorRecord();
+            if ($_ccmRow && $_ccmRow->statut_validation === 'valide') {
+                $_ccmCta = ['label' => 'Aller à mon espace auteur', 'href' => '/auteur', 'note' => "Retrouve tes livres, tes revenus et tes versements."];
+            } else {
+                $_ccmCta = ['label' => 'Suivre ma candidature', 'href' => '/auteur', 'note' => "Le statut actuel de ta candidature est dans ton dashboard."];
+            }
+        } else {
+            $_ccmCta = ['label' => 'Devenir auteur Variable', 'href' => '/auteurs/devenir', 'note' => "On t'oriente vers la bonne étape selon ton compte."];
+        }
+        ?>
+        <!-- CTA contextuel -->
         <div class="text-center">
-            <a href="/auteurs/devenir" class="btn-primary inline-block">Devenir auteur Variable</a>
-            <p class="text-text-dim text-xs mt-3">
-                On t'oriente vers la bonne étape selon ton compte (inscription, candidature, ou ton dashboard si tu es déjà auteur).
-            </p>
+            <a href="<?= e($_ccmCta['href']) ?>" class="btn-primary inline-block"><?= e($_ccmCta['label']) ?></a>
+            <p class="text-text-dim text-xs mt-3"><?= e($_ccmCta['note']) ?></p>
         </div>
 
     </div>
