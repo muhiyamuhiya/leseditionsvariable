@@ -47,16 +47,8 @@ class NewsletterController extends BaseController
                 'created_at'         => date('Y-m-d H:i:s'),
             ]);
 
-            // Email de bienvenue (pas de double opt-in pour MVP, on envoie direct)
-            $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
-            $bonjour = $prenom ? 'Bonjour ' . htmlspecialchars($prenom) : 'Bonjour';
-            Mailer::send($email, "Bienvenue dans la newsletter — {$appName}", "
-                <h2>Merci de ton inscription !</h2>
-                <p>{$bonjour},</p>
-                <p>Tu recevras notre prochaine édition très bientôt. Une fois par mois, on te raconte les coulisses, les nouveaux livres, les conseils d'auteurs et les codes promo.</p>
-                <p>Pas de spam. Promis.</p>
-                <p>L'équipe {$appName}</p>
-            ");
+            // Email de bienvenue stylé (template + BCC admin auto)
+            Mailer::sendNewsletterWelcome($email, (string) $prenom);
 
             Session::flash('newsletter_success', 'Bienvenue ! Tu recevras notre prochaine édition.');
         }

@@ -105,9 +105,9 @@ class AuthorDashboardController extends BaseController
             $db->update('users', ['role' => 'auteur'], 'id = ?', [$user->id]);
         }
 
-        // Emails
-        Mailer::send('contact@variablefly.com', 'Nouvelle candidature auteur', "Candidature de {$user->prenom} {$user->nom} ({$user->email}).");
-        Mailer::send($user->email, 'Candidature reçue — Les éditions Variable', "Bonjour {$user->prenom},\n\nTa candidature d'auteur est bien reçue. Nous l'examinons sous 5 jours ouvrés.\n\nCordialement,\nLes éditions Variable");
+        // Emails (templates HTML stylés + BCC admin auto)
+        Mailer::sendAdminCandidatureNotif($user);
+        Mailer::sendAuthorCandidatureReceived($user);
 
         Session::flash('success', 'Ta candidature a été soumise avec succès.');
         redirect('/auteur');
@@ -322,10 +322,10 @@ class AuthorDashboardController extends BaseController
             }
         }
 
-        // Emails
+        // Emails (templates HTML stylés + BCC admin auto)
         $user = Auth::user();
-        Mailer::send('contact@variablefly.com', 'Nouveau livre soumis', "Livre \"{$bookData['titre']}\" soumis par {$user->prenom} {$user->nom}.");
-        Mailer::send($user->email, 'Livre soumis — Les éditions Variable', "Bonjour {$user->prenom},\n\nTon livre \"{$bookData['titre']}\" est en cours d'examen.\n\nCordialement,\nLes éditions Variable");
+        Mailer::sendAdminBookNotif($user, $bookData['titre']);
+        Mailer::sendBookSubmitted($user, $bookData['titre']);
 
         Session::flash('author_success', 'Ton livre a été soumis pour validation.');
         redirect('/auteur/livres');
