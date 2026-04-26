@@ -40,7 +40,21 @@ $devenirAuteurHref = '/auteurs/devenir';
             </nav>
 
             <!-- Droite -->
-            <div class="flex items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 sm:gap-4">
+
+                <!-- CTA "Devenir auteur" mobile uniquement (le desktop est dans la nav, ligne ~33).
+                     N'apparaît que pour les visiteurs / lecteurs ($showDevenirAuteur).
+                     Style : fond ambre, texte sombre, compact pour rester lisible
+                     même à côté de la cloche notif et du burger. -->
+                <?php if ($showDevenirAuteur): ?>
+                    <a href="<?= $devenirAuteurHref ?>"
+                       class="md:hidden inline-flex items-center gap-1 bg-accent text-[#0F0F0F] px-2.5 py-1.5 rounded-md text-[12px] font-semibold whitespace-nowrap hover:bg-accent-hover transition-colors flex-shrink-0"
+                       aria-label="Devenir auteur Variable">
+                        <span aria-hidden="true">✍️</span>
+                        <span>Devenir auteur</span>
+                    </a>
+                <?php endif; ?>
+
                 <!-- Recherche desktop avec live search -->
                 <div x-data="liveSearch()" class="hidden sm:flex items-center relative">
                     <div x-show="searchOpen"
