@@ -163,6 +163,7 @@ $router->get('/admin/livres/:id/editer', 'AdminController@bookEdit');
 $router->post('/admin/livres/:id/editer', 'AdminController@bookUpdate');
 $router->post('/admin/livres/:id/supprimer', 'AdminController@bookDelete');
 $router->get('/admin/auteurs', 'AdminController@authors');
+$router->post('/admin/auteurs/ajax-create', 'AdminController@authorAjaxCreate');
 $router->get('/admin/auteurs/:id/editer', 'AdminController@authorEdit');
 $router->post('/admin/auteurs/:id/editer', 'AdminController@authorUpdate');
 $router->get('/admin/candidatures', 'AdminController@authorCandidatures');

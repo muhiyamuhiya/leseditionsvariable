@@ -16,16 +16,22 @@
             </div>
         <?php else: ?>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                <?php foreach ($auteurs as $a): ?>
+                <?php foreach ($auteurs as $a):
+                    $displayName = $a->nom_plume ?: trim(($a->prenom ?? '') . ' ' . ($a->nom ?? ''));
+                    $hasUserName = !empty($a->prenom) || !empty($a->nom);
+                ?>
                     <a href="/auteur/<?= e($a->slug) ?>" class="bg-surface border border-border rounded-xl p-6 hover:border-accent transition-colors text-center">
                         <?php if (!empty($a->photo_auteur)): ?>
-                            <img src="<?= e($a->photo_auteur) ?>" alt="<?= e($a->prenom . ' ' . $a->nom) ?>" class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-accent">
+                            <img src="<?= e($a->photo_auteur) ?>" alt="<?= e($displayName) ?>" class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-accent">
                         <?php else: ?>
-                            <div class="w-24 h-24 rounded-full bg-accent text-black flex items-center justify-center text-3xl font-bold font-display mx-auto mb-4"><?= e(mb_strtoupper(mb_substr($a->prenom, 0, 1))) ?></div>
+                            <div class="w-24 h-24 rounded-full bg-accent text-black flex items-center justify-center text-3xl font-bold font-display mx-auto mb-4"><?= e(mb_strtoupper(mb_substr($displayName, 0, 1))) ?></div>
                         <?php endif; ?>
-                        <h2 class="font-display font-semibold text-white text-base mb-1"><?= e($a->nom_plume ?: $a->prenom . ' ' . $a->nom) ?></h2>
-                        <?php if ($a->nom_plume): ?>
-                            <p class="text-text-dim text-xs">alias <?= e($a->prenom . ' ' . $a->nom) ?></p>
+                        <h2 class="font-display font-semibold text-white text-base mb-1"><?= e($displayName) ?></h2>
+                        <?php if ($a->nom_plume && $hasUserName): ?>
+                            <p class="text-text-dim text-xs">alias <?= e(trim(($a->prenom ?? '') . ' ' . ($a->nom ?? ''))) ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($a->is_classic)): ?>
+                            <p class="text-amber-400 text-[10px] uppercase tracking-wider font-semibold mt-1">Classique</p>
                         <?php endif; ?>
                         <?php if (!empty($a->pays_origine)): ?>
                             <p class="text-text-muted text-xs mt-1"><?= e($a->pays_origine) ?></p>

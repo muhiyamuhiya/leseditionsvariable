@@ -102,7 +102,8 @@ CREATE TABLE user_deletion_tokens (
 -- Table: authors
 CREATE TABLE authors (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED UNIQUE NOT NULL,
+    user_id INT UNSIGNED UNIQUE NULL,
+    is_classic TINYINT(1) NOT NULL DEFAULT 0,
     slug VARCHAR(150) UNIQUE NOT NULL,
     nom_plume VARCHAR(200),
     biographie_courte TEXT,
@@ -717,5 +718,22 @@ CREATE TABLE email_log (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (sequence_id) REFERENCES email_sequences(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =============================================================================
+-- Migration 011 — Seed des 11 auteurs classiques (sans compte user)
+-- =============================================================================
+
+INSERT IGNORE INTO authors (user_id, slug, nom_plume, biographie_courte, pays_origine, statut_validation, is_classic, created_at) VALUES
+(NULL, 'emile-zola',         'Émile Zola',          'Chef de file du naturalisme français — Les Rougon-Macquart, Germinal, L''Assommoir.',                  'FR', 'valide', 1, NOW()),
+(NULL, 'guy-de-maupassant',  'Guy de Maupassant',   'Maître de la nouvelle réaliste — Bel-Ami, Boule de Suif, Le Horla.',                                  'FR', 'valide', 1, NOW()),
+(NULL, 'honore-de-balzac',   'Honoré de Balzac',    'Architecte de La Comédie humaine — Le Père Goriot, Eugénie Grandet, Illusions perdues.',              'FR', 'valide', 1, NOW()),
+(NULL, 'jules-verne',        'Jules Verne',         'Pionnier du roman d''aventure scientifique — Vingt mille lieues sous les mers, Le Tour du monde en 80 jours.', 'FR', 'valide', 1, NOW()),
+(NULL, 'stendhal',           'Stendhal',            'Romantisme et psychologie amoureuse — Le Rouge et le Noir, La Chartreuse de Parme.',                  'FR', 'valide', 1, NOW()),
+(NULL, 'charles-baudelaire', 'Charles Baudelaire',  'Précurseur du symbolisme — Les Fleurs du mal, Le Spleen de Paris.',                                   'FR', 'valide', 1, NOW()),
+(NULL, 'arthur-rimbaud',     'Arthur Rimbaud',      'Génie précoce de la poésie symboliste — Une saison en enfer, Illuminations.',                         'FR', 'valide', 1, NOW()),
+(NULL, 'edmond-rostand',     'Edmond Rostand',      'Théâtre néo-romantique en vers — Cyrano de Bergerac, L''Aiglon.',                                     'FR', 'valide', 1, NOW()),
+(NULL, 'jean-racine',        'Jean Racine',         'Tragédie classique du XVIIe — Phèdre, Andromaque, Britannicus.',                                      'FR', 'valide', 1, NOW()),
+(NULL, 'moliere',            'Molière',             'Maître de la comédie classique — Le Misanthrope, Tartuffe, L''Avare, Le Bourgeois gentilhomme.',       'FR', 'valide', 1, NOW()),
+(NULL, 'victor-hugo',        'Victor Hugo',         'Figure majeure du romantisme français — Les Misérables, Notre-Dame de Paris, Les Contemplations.',    'FR', 'valide', 1, NOW());
 
 SET FOREIGN_KEY_CHECKS=1;

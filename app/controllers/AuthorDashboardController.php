@@ -56,9 +56,14 @@ class AuthorDashboardController extends BaseController
         $db = $this->db();
         $user = Auth::user();
 
-        $slug = trim($_POST['slug'] ?? '');
-        if (!$slug) {
-            $slug = strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $user->prenom . ' ' . $user->nom)));
+        // Slug : on en génère un unique à partir du nom de plume saisi (ou prenom+nom).
+        // Si l'auteur a déjà un row (re-soumission), on conserve son slug existant.
+        $existing = $db->fetch("SELECT id, slug FROM authors WHERE user_id = ?", [$user->id]);
+        if ($existing) {
+            $slug = (string) $existing->slug;
+        } else {
+            $base = trim($_POST['nom_plume'] ?? '') ?: ($user->prenom . ' ' . $user->nom);
+            $slug = \App\Models\Author::createUniqueSlug($base);
         }
 
         $data = [

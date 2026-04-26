@@ -68,14 +68,14 @@ class PageController extends BaseController
         $db = Database::getInstance();
         $auteurs = $db->fetchAll(
             "SELECT a.id, a.slug, a.nom_plume, a.biographie_courte, a.pays_origine, a.photo_auteur,
-                    u.prenom, u.nom,
+                    a.is_classic, u.prenom, u.nom,
                     (SELECT COUNT(*) FROM books WHERE author_id = a.id AND statut = 'publie') AS nb_livres
              FROM authors a
-             JOIN users u ON u.id = a.user_id
+             LEFT JOIN users u ON u.id = a.user_id
              WHERE a.statut_validation = 'valide'
-               AND (u.statut = 'actif' OR u.statut IS NULL)
+               AND (u.statut = 'actif' OR u.statut IS NULL OR a.is_classic = 1)
              HAVING nb_livres > 0
-             ORDER BY a.created_at DESC"
+             ORDER BY a.is_classic DESC, a.created_at DESC"
         );
         $this->view('pages/auteurs', [
             'titre'   => 'Nos auteurs',

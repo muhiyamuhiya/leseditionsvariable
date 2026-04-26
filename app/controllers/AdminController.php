@@ -193,9 +193,82 @@ class AdminController extends BaseController
     {
         Auth::requireAdmin();
         $db = $this->db();
-        $authors = $db->fetchAll("SELECT a.id, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as name FROM authors a JOIN users u ON a.user_id=u.id WHERE a.statut_validation='valide' ORDER BY name");
+        // LEFT JOIN car les auteurs classiques (is_classic=1) n'ont pas de user_id.
+        // On retourne aussi is_classic pour différencier visuellement dans le dropdown.
+        $authors = $db->fetchAll(
+            "SELECT a.id,
+                    a.is_classic,
+                    COALESCE(a.nom_plume, CONCAT(u.prenom, ' ', u.nom)) AS name
+               FROM authors a
+          LEFT JOIN users u ON a.user_id = u.id
+              WHERE a.statut_validation = 'valide'
+              ORDER BY a.is_classic DESC, name ASC"
+        );
         $categories = $db->fetchAll("SELECT id, nom FROM categories WHERE actif=1 ORDER BY ordre_affichage");
         $this->adminView('livres/create', ['titre' => 'Nouveau livre', 'authors' => $authors, 'categories' => $categories]);
+    }
+
+    /**
+     * POST /admin/auteurs/ajax-create
+     * Crée un nouvel auteur (typiquement classique) depuis le modal du form livre.
+     * Retourne JSON {id, name, is_classic} pour réinjection dans le dropdown.
+     */
+    public function authorAjaxCreate(): void
+    {
+        Auth::requireAdmin();
+        CSRF::check();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $nomPlume = trim($_POST['nom_plume'] ?? '');
+        if ($nomPlume === '') {
+            http_response_code(422);
+            echo json_encode(['error' => 'Le nom de plume est obligatoire.']);
+            return;
+        }
+
+        $isClassic   = !empty($_POST['is_classic']) ? 1 : 0;
+        $bioCourte   = trim($_POST['biographie_courte'] ?? '') ?: null;
+        $paysOrigine = trim($_POST['pays_origine'] ?? '') ?: null;
+
+        $db = $this->db();
+        $slug = \App\Models\Author::createUniqueSlug($nomPlume);
+
+        $data = [
+            'user_id'           => null,
+            'is_classic'        => $isClassic,
+            'slug'              => $slug,
+            'nom_plume'         => $nomPlume,
+            'biographie_courte' => $bioCourte,
+            'pays_origine'      => $paysOrigine,
+            'statut_validation' => 'valide',
+        ];
+
+        // Upload photo (optionnel)
+        if (!empty($_FILES['photo_auteur']['tmp_name'])) {
+            $file = $_FILES['photo_auteur'];
+            if (in_array($file['type'], ['image/jpeg','image/png','image/webp']) && $file['size'] <= 2 * 1024 * 1024) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $filename = $slug . '-' . time() . '.' . $ext;
+                $absPath = BASE_PATH . '/storage/authors/' . $filename;
+                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
+                if (move_uploaded_file($file['tmp_name'], $absPath)) {
+                    $data['photo_auteur'] = '/image/authors/' . $filename;
+                }
+            }
+        }
+
+        try {
+            $id = $db->insert('authors', $data);
+            audit('author_create', 'authors', (int) $id);
+            echo json_encode([
+                'id'         => (int) $id,
+                'name'       => $nomPlume,
+                'is_classic' => (bool) $isClassic,
+            ]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Erreur serveur : ' . $e->getMessage()]);
+        }
     }
 
     public function bookStore(): void
@@ -204,10 +277,11 @@ class AdminController extends BaseController
         CSRF::check();
         $db = $this->db();
 
-        $slug = trim($_POST['slug']) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', trim($_POST['titre']))));
+        $titreRaw = trim((string) ($_POST['titre'] ?? ''));
+        $slug = trim((string) ($_POST['slug'] ?? '')) ?: strtolower(preg_replace('/[^a-z0-9]+/', '-', transliterator_transliterate('Any-Latin; Latin-ASCII; Lower()', $titreRaw)));
 
         $bookData = [
-            'titre' => trim($_POST['titre']),
+            'titre' => $titreRaw,
             'slug' => $slug,
             'sous_titre' => trim($_POST['sous_titre'] ?? '') ?: null,
             'author_id' => (int) $_POST['author_id'],
