@@ -157,5 +157,6 @@
 
 </div><!-- fin x-data -->
 
+<?php require BASE_PATH . '/app/views/partials/tawk.php'; ?>
 </body>
 </html>

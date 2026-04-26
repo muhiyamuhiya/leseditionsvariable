@@ -141,5 +141,7 @@
         <main class="flex-grow p-4 sm:p-6"><?= $content ?></main>
     </div>
 </div>
+
+<?php require BASE_PATH . '/app/views/partials/tawk.php'; ?>
 </body>
 </html>

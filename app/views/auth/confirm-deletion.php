@@ -1,4 +1,4 @@
-<?php $error = flash('error'); ?>
+<?php $hide_chat = true; $error = flash('error'); ?>
 <section class="py-12 sm:py-16">
     <div class="max-w-[560px] mx-auto px-4 sm:px-6">
 

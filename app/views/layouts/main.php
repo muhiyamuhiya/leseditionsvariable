@@ -186,5 +186,7 @@
         }
     }
     </script>
+
+    <?php require BASE_PATH . '/app/views/partials/tawk.php'; ?>
 </body>
 </html>
