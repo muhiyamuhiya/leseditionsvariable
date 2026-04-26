@@ -2,6 +2,8 @@
 /** @var string $template */
 /** @var array  $tpl           Définition du template courant (label, fixtures, has_pdf) */
 /** @var array  $allTemplates  Catalogue complet — pour le sélecteur */
+$current = 'templates';
+require __DIR__ . '/_tabs.php';
 ?>
 <?php $s = flash('success'); if ($s): ?><div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($s) ?></div><?php endif; ?>
 <?php $err = flash('error'); if ($err): ?><div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($err) ?></div><?php endif; ?>

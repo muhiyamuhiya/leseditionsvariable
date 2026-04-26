@@ -8,6 +8,8 @@ $labels = [
     'admin'      => '🔔 Notifs admin',
     'autre'      => 'Autre',
 ];
+$current = 'templates';
+require __DIR__ . '/_tabs.php';
 ?>
 <?php $s = flash('success'); if ($s): ?><div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($s) ?></div><?php endif; ?>
 <?php $e = flash('error');   if ($e): ?><div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm"><?= e($e) ?></div><?php endif; ?>

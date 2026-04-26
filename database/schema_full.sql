@@ -693,4 +693,29 @@ INSERT INTO email_sequence_steps (sequence_id, sort_order, day_offset, template,
 ((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 4, 14, 'drip_day14',  'Les nouveautés Variable'),
 ((SELECT id FROM email_sequences WHERE slug='welcome_drip'), 5, 30, 'drip_day30',  "On t''a oublié ? Tiens, -20% pour revenir.");
 
+-- =============================================================================
+-- Migration 010 — Historique envois emails
+-- =============================================================================
+
+CREATE TABLE email_log (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED DEFAULT NULL,
+    to_email VARCHAR(255) NOT NULL,
+    template VARCHAR(80) DEFAULT NULL,
+    subject VARCHAR(300),
+    sequence_id INT UNSIGNED DEFAULT NULL,
+    sequence_step TINYINT UNSIGNED DEFAULT NULL,
+    result ENUM('sent', 'error') NOT NULL DEFAULT 'sent',
+    error_message TEXT DEFAULT NULL,
+    provider_id VARCHAR(100) DEFAULT NULL,
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    INDEX idx_template (template),
+    INDEX idx_sent_at (sent_at),
+    INDEX idx_result (result),
+    INDEX idx_sequence (sequence_id, sequence_step),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (sequence_id) REFERENCES email_sequences(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS=1;

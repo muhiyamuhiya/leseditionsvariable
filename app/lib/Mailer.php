@@ -22,17 +22,51 @@ class Mailer
      * $attachments : tableau de pièces jointes au format
      *   [['filename' => 'recu.pdf', 'content' => '<binaire ou base64>', 'content_type' => 'application/pdf']]
      * Si la valeur de 'content' est binaire brute, elle sera encodée en base64 pour Resend.
+     *
+     * $context : contexte facultatif pour le tracking en DB (table email_log) :
+     *   ['template' => 'welcome', 'user_id' => 1, 'sequence_id' => 1, 'sequence_step' => 2]
      */
-    public static function send(string $to, string $subject, string $body, array $attachments = []): bool
+    public static function send(string $to, string $subject, string $body, array $attachments = [], array $context = []): bool
     {
         $env = function_exists('env') ? env('APP_ENV', 'development') : 'development';
         $bcc = self::adminBccEmail();
 
         if ($env === 'production') {
-            return self::sendViaResend($to, $subject, $body, $bcc, $attachments);
+            $providerId = '';
+            $errMsg = null;
+            $ok = self::sendViaResend($to, $subject, $body, $bcc, $attachments, $providerId, $errMsg);
+            self::logToDb($to, $subject, $context, $ok ? 'sent' : 'error', $providerId, $errMsg);
+            return $ok;
         }
 
-        return self::sendToLogFile($to, $subject, $body, $bcc, $attachments);
+        $ok = self::sendToLogFile($to, $subject, $body, $bcc, $attachments);
+        // En dev on logge aussi pour pouvoir tester l'historique admin
+        self::logToDb($to, $subject, $context, $ok ? 'sent' : 'error', '', null);
+        return $ok;
+    }
+
+    /**
+     * Persiste une entrée dans email_log (best-effort : un échec d'INSERT
+     * ne fait pas crasher l'envoi).
+     */
+    private static function logToDb(string $to, string $subject, array $context, string $result, string $providerId = '', ?string $errMsg = null): void
+    {
+        try {
+            \App\Lib\Database::getInstance()->insert('email_log', [
+                'user_id'       => $context['user_id'] ?? null,
+                'to_email'      => $to,
+                'template'      => $context['template'] ?? null,
+                'subject'       => mb_substr($subject, 0, 300),
+                'sequence_id'   => $context['sequence_id'] ?? null,
+                'sequence_step' => $context['sequence_step'] ?? null,
+                'result'        => $result === 'sent' ? 'sent' : 'error',
+                'error_message' => $errMsg,
+                'provider_id'   => $providerId ?: null,
+                'sent_at'       => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Mailer::logToDb — ' . $e->getMessage());
+        }
     }
 
     /**
@@ -60,10 +94,11 @@ class Mailer
     /**
      * Envoi réel via Resend API (production), avec BCC admin.
      */
-    private static function sendViaResend(string $to, string $subject, string $html, string $bcc = '', array $attachments = []): bool
+    private static function sendViaResend(string $to, string $subject, string $html, string $bcc = '', array $attachments = [], string &$providerId = '', ?string &$errMsg = null): bool
     {
         $apiKey = env('RESEND_API_KEY', '');
         if ($apiKey === '') {
+            $errMsg = 'RESEND_API_KEY manquante';
             error_log('Resend non configuré : RESEND_API_KEY manquante. Email vers ' . $to . ' non envoyé.');
             return self::sendToLogFile($to, $subject, $html, $bcc, $attachments);
         }
@@ -116,9 +151,14 @@ class Mailer
         curl_close($ch);
 
         if ($httpCode >= 200 && $httpCode < 300) {
+            $decoded = json_decode((string) $response, true);
+            if (is_array($decoded) && !empty($decoded['id'])) {
+                $providerId = (string) $decoded['id'];
+            }
             return true;
         }
 
+        $errMsg = "HTTP {$httpCode} — " . mb_substr((string) $response, 0, 250);
         error_log("Resend a échoué (HTTP {$httpCode}) pour {$to} — {$subject} : " . $response);
         return false;
     }
@@ -199,63 +239,63 @@ class Mailer
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('verification', compact('user', 'token'));
-        return self::send($user->email, "Vérifie ton adresse — {$appName}", $html);
+        return self::send($user->email, "Vérifie ton adresse — {$appName}", $html, [], ['template' => 'verification', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendPasswordResetEmail(object $user, string $token): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('password_reset', compact('user', 'token'));
-        return self::send($user->email, "Nouveau mot de passe — {$appName}", $html);
+        return self::send($user->email, "Nouveau mot de passe — {$appName}", $html, [], ['template' => 'password_reset', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendWelcomeEmail(object $user): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('welcome', compact('user'));
-        return self::send($user->email, "Bienvenue sur {$appName} !", $html);
+        return self::send($user->email, "Bienvenue sur {$appName} !", $html, [], ['template' => 'welcome', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendSubscriptionCancellation(object $user, string $dateFin): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('subscription_cancellation', compact('user', 'dateFin'));
-        return self::send($user->email, "Annulation de ton abonnement — {$appName}", $html);
+        return self::send($user->email, "Annulation de ton abonnement — {$appName}", $html, [], ['template' => 'subscription_cancellation', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendDeletionRequest(object $user, string $token): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('deletion_request', compact('user', 'token'));
-        return self::send($user->email, "Confirmation de suppression de compte — {$appName}", $html);
+        return self::send($user->email, "Confirmation de suppression de compte — {$appName}", $html, [], ['template' => 'deletion_request', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendDeletionFinal(string $email, string $prenom): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('deletion_final', compact('email', 'prenom'));
-        return self::send($email, "Ton compte a été supprimé — {$appName}", $html);
+        return self::send($email, "Ton compte a été supprimé — {$appName}", $html, [], ['template' => 'deletion_final', 'user_id' => null]);
     }
 
     public static function sendNewsletterWelcome(string $email, string $prenom = ''): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('newsletter_welcome', compact('prenom'));
-        return self::send($email, "Bienvenue dans la newsletter — {$appName}", $html);
+        return self::send($email, "Bienvenue dans la newsletter — {$appName}", $html, [], ['template' => 'newsletter_welcome', 'user_id' => null]);
     }
 
     public static function sendAuthorCandidatureReceived(object $user): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('author_candidature_received', compact('user'));
-        return self::send($user->email, "Candidature reçue — {$appName}", $html);
+        return self::send($user->email, "Candidature reçue — {$appName}", $html, [], ['template' => 'author_candidature_received', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     public static function sendBookSubmitted(object $user, string $titreLivre): bool
     {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('book_submitted', compact('user', 'titreLivre'));
-        return self::send($user->email, "Livre soumis — {$appName}", $html);
+        return self::send($user->email, "Livre soumis — {$appName}", $html, [], ['template' => 'book_submitted', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -266,7 +306,7 @@ class Mailer
     {
         $to = function_exists('env') ? env('MAIL_FROM_EMAIL', 'contact@leseditionsvariable.com') : 'contact@leseditionsvariable.com';
         $html = self::renderTemplate('admin_new_candidature', compact('user'));
-        return self::send($to, '🆕 Nouvelle candidature auteur — ' . trim(($user->prenom ?? '') . ' ' . ($user->nom ?? '')), $html);
+        return self::send($to, '🆕 Nouvelle candidature auteur — ' . trim(($user->prenom ?? '') . ' ' . ($user->nom ?? '')), $html, [], ['template' => 'admin_new_candidature', 'user_id' => null]);
     }
 
     /**
@@ -276,7 +316,7 @@ class Mailer
     {
         $to = function_exists('env') ? env('MAIL_FROM_EMAIL', 'contact@leseditionsvariable.com') : 'contact@leseditionsvariable.com';
         $html = self::renderTemplate('admin_new_book', compact('user', 'titreLivre'));
-        return self::send($to, '📚 Nouveau livre soumis — ' . $titreLivre, $html);
+        return self::send($to, '📚 Nouveau livre soumis — ' . $titreLivre, $html, [], ['template' => 'admin_new_book', 'user_id' => null]);
     }
 
     // =====================================================================
@@ -327,7 +367,7 @@ class Mailer
             ? "Reçu — Abonnement {$itemLabel} | {$appName}"
             : "Reçu — Achat « {$itemLabel} » | {$appName}";
 
-        return self::send($user->email, $subject, $html, $attachments);
+        return self::send($user->email, $subject, $html, $attachments, ['template' => 'payment_receipt', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -342,7 +382,7 @@ class Mailer
     ): bool {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('subscription_renewal_reminder', compact('user', 'planLabel', 'amount', 'currency', 'dateRenewIso'));
-        return self::send($user->email, "Ton abonnement se renouvelle dans 3 jours — {$appName}", $html);
+        return self::send($user->email, "Ton abonnement se renouvelle dans 3 jours — {$appName}", $html, [], ['template' => 'subscription_renewal_reminder', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -358,7 +398,7 @@ class Mailer
     ): bool {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('subscription_renewed', compact('user', 'planLabel', 'amount', 'currency', 'dateNextRenewIso', 'transactionId'));
-        return self::send($user->email, "Abonnement renouvelé — {$appName}", $html);
+        return self::send($user->email, "Abonnement renouvelé — {$appName}", $html, [], ['template' => 'subscription_renewed', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -374,7 +414,7 @@ class Mailer
     ): bool {
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('payment_failed', compact('user', 'planLabel', 'amount', 'currency', 'dateRetryIso', 'attemptsRemaining'));
-        return self::send($user->email, "⚠️ Échec du paiement de ton abonnement — {$appName}", $html);
+        return self::send($user->email, "⚠️ Échec du paiement de ton abonnement — {$appName}", $html, [], ['template' => 'payment_failed', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     // =====================================================================
@@ -416,7 +456,7 @@ class Mailer
 
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('drip_day2', compact('user', 'books'));
-        return self::send($user->email, "3 livres qui marchent fort sur Variable | {$appName}", $html);
+        return self::send($user->email, "3 livres qui marchent fort sur Variable | {$appName}", $html, [], ['template' => 'drip_day2', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -435,7 +475,7 @@ class Mailer
 
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('drip_day7', compact('user'));
-        return self::send($user->email, "Et si tu lisais sans limite pour 3\$/mois ? | {$appName}", $html);
+        return self::send($user->email, "Et si tu lisais sans limite pour 3\$/mois ? | {$appName}", $html, [], ['template' => 'drip_day7', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -459,7 +499,7 @@ class Mailer
 
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('drip_day14', compact('user', 'books'));
-        return self::send($user->email, "Nouveautés Variable | {$appName}", $html);
+        return self::send($user->email, "Nouveautés Variable | {$appName}", $html, [], ['template' => 'drip_day14', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 
     /**
@@ -496,6 +536,6 @@ class Mailer
 
         $appName = function_exists('env') ? env('APP_NAME', 'Les éditions Variable') : 'Les éditions Variable';
         $html = self::renderTemplate('drip_day30', compact('user', 'promoCode', 'discountPct', 'validUntilIso'));
-        return self::send($user->email, "On t'a oublié ? Tiens, -{$discountPct}% pour revenir | {$appName}", $html);
+        return self::send($user->email, "On t'a oublié ? Tiens, -{$discountPct}% pour revenir | {$appName}", $html, [], ['template' => 'drip_day30', 'user_id' => (int) ($user->id ?? 0) ?: null]);
     }
 }
