@@ -12,7 +12,7 @@
     <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-1">Prix USD</label><input type="number" step="0.01" name="prix_unitaire_usd" value="<?= $book->prix_unitaire_usd ?>" class="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-white outline-none focus:border-accent max-w-[200px]"></div>
     <div><label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Changer la couverture</label>
         <?php if (!empty($book->couverture_url_web)): ?><div class="mb-3"><img src="<?= e($book->couverture_url_web) ?>" class="h-24 rounded"></div><?php endif; ?>
-        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp" class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
     </div>
     <div class="flex flex-wrap gap-6">
         <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer"><input type="checkbox" name="accessible_abonnement_essentiel" value="1" <?= $book->accessible_abonnement_essentiel ? 'checked' : '' ?> class="accent-accent"> Inclus dans Essentiel</label>

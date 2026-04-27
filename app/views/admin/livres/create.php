@@ -55,9 +55,9 @@
     <!-- Couverture -->
     <div>
         <label class="block text-xs text-text-dim uppercase tracking-wider mb-2">Couverture du livre</label>
-        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp"
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
-        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
+        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG, WebP ou HEIC. Max 5 Mo. Recommandé : 600x900px.</p>
     </div>
 
     <!-- Manuscrit PDF -->

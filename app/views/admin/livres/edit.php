@@ -66,9 +66,9 @@
         <?php if (!empty($book->couverture_url_web)): ?>
             <div class="mb-3"><img src="<?= e($book->couverture_url_web) ?>" alt="Couverture" class="h-32 rounded"></div>
         <?php endif; ?>
-        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp"
+        <input type="file" name="couverture" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                class="text-sm text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:bg-surface-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-accent/20">
-        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG ou WebP. Max 2 Mo. Recommandé : 600x900px.</p>
+        <p class="text-text-dim text-xs mt-1">Format : JPEG, PNG, WebP ou HEIC. Max 5 Mo. Recommandé : 600x900px.</p>
     </div>
 
     <div>

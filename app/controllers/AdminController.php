@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Lib\Auth;
+use App\Lib\CoverUpload;
 use App\Lib\CSRF;
 use App\Lib\Database;
 use App\Lib\Mailer;
@@ -178,19 +179,12 @@ class AdminController extends BaseController
             }
         }
 
-        // Upload couverture
-        if (!empty($_FILES['couverture']['tmp_name'])) {
-            $file = $_FILES['couverture'];
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            if (in_array($file['type'], $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $filename = ($data['slug'] ?? 'book-' . $id) . '-' . time() . '.' . $ext;
-                $absPath = BASE_PATH . '/storage/covers/' . $filename;
-                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
-                move_uploaded_file($file['tmp_name'], $absPath);
-                $data['couverture_path'] = 'storage/covers/' . $filename;
-                $data['couverture_url_web'] = '/image/covers/' . $filename;
-            }
+        // Upload couverture — helper unique : la DB n'est touchée que si le
+        // fichier a vraiment été écrit sur disque (cf. App\Lib\CoverUpload).
+        $coverPaths = CoverUpload::store($_FILES['couverture'] ?? null, $data['slug'] ?? '', $id);
+        if ($coverPaths !== null) {
+            $data['couverture_path']    = $coverPaths['couverture_path'];
+            $data['couverture_url_web'] = $coverPaths['couverture_url_web'];
         }
 
         $db->update('books', $data, 'id = ?', [$id]);
@@ -336,20 +330,11 @@ class AdminController extends BaseController
 
         $id = $db->insert('books', $bookData);
 
-        // Upload couverture après création
-        if ($id && !empty($_FILES['couverture']['tmp_name'])) {
-            $file = $_FILES['couverture'];
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            if (in_array($file['type'], $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $filename = $slug . '-' . time() . '.' . $ext;
-                $absPath = BASE_PATH . '/storage/covers/' . $filename;
-                if (!is_dir(dirname($absPath))) mkdir(dirname($absPath), 0755, true);
-                move_uploaded_file($file['tmp_name'], $absPath);
-                $db->update('books', [
-                    'couverture_path'    => 'storage/covers/' . $filename,
-                    'couverture_url_web' => '/image/covers/' . $filename,
-                ], 'id = ?', [$id]);
+        // Upload couverture après création — helper unique (cf. App\Lib\CoverUpload).
+        if ($id) {
+            $coverPaths = CoverUpload::store($_FILES['couverture'] ?? null, $slug, (int) $id);
+            if ($coverPaths !== null) {
+                $db->update('books', $coverPaths, 'id = ?', [$id]);
             }
         }
 
