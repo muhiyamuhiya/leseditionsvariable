@@ -171,39 +171,55 @@ class Book extends BaseModel
 
     /**
      * Livres similaires (même catégorie, sauf le livre courant)
+     *
+     * On évite ORDER BY RAND() (anti-pattern MySQL : full scan + temp table
+     * sur la table entière). À la place : on récupère les N derniers livres
+     * de la catégorie et on shuffle côté PHP. Avec un cap à 50, le coût SQL
+     * reste constant (index idx_category) et le jeu d'aléatoire reste
+     * suffisant pour 4 livres affichés.
      */
     public static function findSimilar(int $bookId, ?int $categoryId, int $limit = 4): array
     {
         $db = Database::getInstance();
         if (!$categoryId) return [];
 
-        return $db->fetchAll(
-            self::baseSelect() . " WHERE b.statut = 'publie' AND b.category_id = ? AND b.id != ? ORDER BY RAND() LIMIT ?",
-            [$categoryId, $bookId, $limit]
+        $pool = $db->fetchAll(
+            self::baseSelect() . " WHERE b.statut = 'publie' AND b.category_id = ? AND b.id != ? ORDER BY b.date_publication DESC LIMIT 50",
+            [$categoryId, $bookId]
         );
+        shuffle($pool);
+        return array_slice($pool, 0, $limit);
     }
 
     /**
-     * Livres recommandés (mis en avant, sinon aléatoire)
+     * Livres recommandés (mis en avant en priorité, complétés par d'autres
+     * publiés si pas assez).
+     *
+     * Même logique que findSimilar : pool capé puis shuffle PHP, plutôt que
+     * ORDER BY RAND() qui coûte cher dès que la table grossit. Cette méthode
+     * est appelée 1-2 fois sur la home, donc c'était le hot path #1.
      */
     public static function findRecommandes(int $limit = 10): array
     {
         $db = Database::getInstance();
-        $results = $db->fetchAll(
-            self::baseSelect() . " WHERE b.statut = 'publie' AND b.mis_en_avant = 1 ORDER BY RAND() LIMIT ?",
-            [$limit]
+
+        $featured = $db->fetchAll(
+            self::baseSelect() . " WHERE b.statut = 'publie' AND b.mis_en_avant = 1 ORDER BY b.date_publication DESC LIMIT 50",
+            []
         );
+        shuffle($featured);
+        $results = array_slice($featured, 0, $limit);
 
         if (count($results) < $limit) {
             $ids = array_map(fn($r) => $r->id, $results);
             $exclude = $ids ? 'AND b.id NOT IN (' . implode(',', array_fill(0, count($ids), '?')) . ')' : '';
             $remaining = $limit - count($results);
-            $params = array_merge($ids, [$remaining]);
             $extra = $db->fetchAll(
-                self::baseSelect() . " WHERE b.statut = 'publie' {$exclude} ORDER BY RAND() LIMIT ?",
-                $params
+                self::baseSelect() . " WHERE b.statut = 'publie' {$exclude} ORDER BY b.date_publication DESC LIMIT 50",
+                $ids
             );
-            $results = array_merge($results, $extra);
+            shuffle($extra);
+            $results = array_merge($results, array_slice($extra, 0, $remaining));
         }
 
         return $results;
