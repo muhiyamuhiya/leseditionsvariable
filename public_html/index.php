@@ -33,11 +33,13 @@ $router->post('/livre/:slug/favori', 'BookController@toggleFavorite');
 // Paiements — achat livre
 $router->get('/achat/livre/:id/stripe', 'PaymentController@payWithStripe');
 $router->get('/achat/livre/:id/moneyfusion', 'PaymentController@payWithMoneyFusion');
+$router->get('/achat/livre/:id/cinetpay', 'PaymentController@payWithCinetPay');
 $router->get('/achat/livre/:id', 'PaymentController@choosePaymentMethod');
 
 // Paiements — abonnement
 $router->get('/abonnement/souscrire/:plan/stripe', 'PaymentController@subscriptionStripe');
 $router->get('/abonnement/souscrire/:plan/moneyfusion', 'PaymentController@subscriptionMoneyFusion');
+$router->get('/abonnement/souscrire/:plan/cinetpay', 'PaymentController@subscriptionCinetPay');
 $router->get('/abonnement/souscrire/:plan', 'PaymentController@subscriptionChoose');
 $router->get('/abonnement/succes', 'PaymentController@subscriptionSuccess');
 
@@ -45,8 +47,11 @@ $router->get('/abonnement/succes', 'PaymentController@subscriptionSuccess');
 $router->get('/paiement/succes', 'PaymentController@success');
 $router->get('/paiement/echec', 'PaymentController@failed');
 $router->get('/paiement/moneyfusion/retour', 'PaymentController@moneyFusionReturn');
+$router->get('/paiement/cinetpay/retour', 'PaymentController@cinetPayReturn');
+$router->post('/paiement/cinetpay/retour', 'PaymentController@cinetPayReturn');
 $router->post('/webhook/stripe', 'PaymentController@stripeWebhook');
 $router->post('/webhook/moneyfusion', 'PaymentController@moneyFusionWebhook');
+$router->post('/webhook/cinetpay', 'PaymentController@cinetPayWebhook');
 
 // Liseuse PDF (ordre important : routes spécifiques en premier)
 $router->post('/lire/progress', 'ReaderController@saveProgress');
@@ -102,6 +107,7 @@ $router->get('/auteur/mes-commandes-editoriales/:id', 'EditorialController@order
 // Paiement commandes éditoriales
 $router->get('/paiement/editorial/:id/stripe', 'PaymentController@payEditorialStripe');
 $router->get('/paiement/editorial/:id/moneyfusion', 'PaymentController@payEditorialMoneyFusion');
+$router->get('/paiement/editorial/:id/cinetpay', 'PaymentController@payEditorialCinetPay');
 
 // Téléchargement sécurisé fichiers éditoriaux
 $router->get('/editorial/file/:type/:filename', 'EditorialController@serveFile');

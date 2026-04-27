@@ -27,16 +27,21 @@
 
         <!-- Choix -->
         <?php
+        $isCinetPayActive = \App\Lib\CinetPayService::isActive();
         if ($type === 'book' && $book) {
-            $stripeUrl = '/achat/livre/' . $book->id . '/stripe';
-            $mfUrl = '/achat/livre/' . $book->id . '/moneyfusion';
+            $stripeUrl   = '/achat/livre/' . $book->id . '/stripe';
+            $mfUrl       = '/achat/livre/' . $book->id . '/moneyfusion';
+            $cinetpayUrl = '/achat/livre/' . $book->id . '/cinetpay';
         } else {
-            $stripeUrl = '/abonnement/souscrire/' . ($plan ?? 'mensuel') . '/stripe';
-            $mfUrl = '/abonnement/souscrire/' . ($plan ?? 'mensuel') . '/moneyfusion';
+            $stripeUrl   = '/abonnement/souscrire/' . ($plan ?? 'mensuel') . '/stripe';
+            $mfUrl       = '/abonnement/souscrire/' . ($plan ?? 'mensuel') . '/moneyfusion';
+            $cinetpayUrl = '/abonnement/souscrire/' . ($plan ?? 'mensuel') . '/cinetpay';
         }
+        // 2 colonnes par défaut, 3 si CinetPay activé (sinon trop large pour 2 sur sm)
+        $gridCols = $isCinetPayActive ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
         ?>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 <?= $gridCols ?> gap-5">
             <!-- Stripe -->
             <a href="<?= $stripeUrl ?>" class="group block p-6 sm:p-8 border-2 border-border rounded-xl hover:border-accent transition-all">
                 <div class="flex items-start justify-between mb-5">
@@ -58,6 +63,19 @@
                 <p class="text-text-dim text-sm mb-4">Airtel Money, Orange Money, M-Pesa, MTN. RDC, Sénégal, Côte d'Ivoire...</p>
                 <span class="text-accent group-hover:text-accent-hover font-medium text-sm">Payer avec Mobile Money &rarr;</span>
             </a>
+
+            <?php if ($isCinetPayActive): ?>
+            <!-- CinetPay (RDC USD natif — Mobile Money + carte) -->
+            <a href="<?= $cinetpayUrl ?>" class="group block p-6 sm:p-8 border-2 border-border rounded-xl hover:border-accent transition-all">
+                <div class="flex items-start justify-between mb-5">
+                    <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+                    <span class="text-[10px] text-text-dim uppercase tracking-wider">RDC</span>
+                </div>
+                <h3 class="text-white font-display font-bold text-lg mb-1">CinetPay</h3>
+                <p class="text-text-dim text-sm mb-4">Orange Money, Airtel Money, M-Pesa + carte Visa/Mastercard. RDC en USD natif.</p>
+                <span class="text-accent group-hover:text-accent-hover font-medium text-sm">Payer via CinetPay &rarr;</span>
+            </a>
+            <?php endif; ?>
         </div>
 
         <p class="text-text-dim text-xs text-center mt-6">Paiement 100% sécurisé. Tes données bancaires ne sont jamais stockées sur nos serveurs.</p>

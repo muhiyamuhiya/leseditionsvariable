@@ -352,6 +352,200 @@ class PaymentController extends BaseController
     }
 
     // =====================================================================
+    // CINETPAY — INIT PAIEMENTS (livre / abonnement / éditorial)
+    // =====================================================================
+
+    /**
+     * Garde-barrière commun aux 3 méthodes init CinetPay : refuse poliment
+     * si le service n'est pas configuré (.env vide) ou désactivé via le
+     * toggle admin (settings.cinetpay_active = '0').
+     */
+    private function ensureCinetPayActive(string $fallbackUrl): bool
+    {
+        if (!CinetPayService::isActive()) {
+            Session::flash('error', 'Mobile Money + carte (CinetPay) temporairement indisponible.');
+            redirect($fallbackUrl);
+            return false;
+        }
+        return true;
+    }
+
+    public function payWithCinetPay(string $id): void
+    {
+        Auth::requireLogin();
+        $book = $this->getPublishedBook((int) $id);
+        if (!$book) { redirect('/catalogue'); return; }
+        if ($this->alreadyBought($book->id)) { redirect('/livre/' . $book->slug); return; }
+
+        if (!$this->ensureCinetPayActive('/livre/' . $book->slug)) return;
+
+        $user = Auth::user();
+        $result = CinetPayService::initBookPurchase($user, $book);
+
+        if ($result['url'] && $result['transactionId']) {
+            $this->logTransaction(
+                'vente',
+                $user->id,
+                $book->id,
+                'books',
+                'cinetpay',
+                $result['transactionId'],
+                (float) $book->prix_unitaire_usd,
+                'USD'
+            );
+            header('Location: ' . $result['url']);
+            exit;
+        }
+
+        Session::flash('error', $result['error'] ?? 'Erreur CinetPay. Réessaie ou choisis un autre moyen de paiement.');
+        redirect('/achat/livre/' . $book->id);
+    }
+
+    public function subscriptionCinetPay(string $plan): void
+    {
+        Auth::requireLogin();
+        if (!isset(self::PLANS[$plan])) { redirect('/abonnement'); return; }
+
+        if (!$this->ensureCinetPayActive('/abonnement')) return;
+
+        $planData = self::PLANS[$plan];
+        $user = Auth::user();
+        $result = CinetPayService::initSubscription($user, $plan, (float) $planData['prix']);
+
+        if ($result['url'] && $result['transactionId']) {
+            $this->logTransaction(
+                'abonnement',
+                $user->id,
+                null,
+                null,
+                'cinetpay',
+                $result['transactionId'],
+                (float) $planData['prix'],
+                'USD'
+            );
+            header('Location: ' . $result['url']);
+            exit;
+        }
+
+        Session::flash('error', $result['error'] ?? 'Erreur CinetPay.');
+        redirect('/abonnement/souscrire/' . $plan);
+    }
+
+    public function payEditorialCinetPay(string $id): void
+    {
+        Auth::requireLogin();
+        $user = Auth::user();
+        $order = $this->findEditorialOrder((int) $id, $user->id);
+        if (!$order || $order->statut !== 'accepte' || $order->montant_propose === null) {
+            Session::flash('error', 'Commande indisponible pour le paiement.');
+            redirect('/auteur/mes-commandes-editoriales');
+            return;
+        }
+
+        if (!$this->ensureCinetPayActive('/auteur/mes-commandes-editoriales/' . $order->id)) return;
+
+        // Le service CinetPay attend un objet avec id/nom/prix_usd. On passe
+        // l'order avec un alias prix_usd pour matcher la signature.
+        $service = (object) [
+            'id'       => (int) $order->service_id,
+            'nom'      => $order->service_nom ?? 'Service éditorial',
+            'prix_usd' => (float) $order->montant_propose,
+        ];
+        $result = CinetPayService::initEditorialOrder($user, $service, (int) $order->id);
+
+        if ($result['url'] && $result['transactionId']) {
+            $this->logTransaction(
+                'autre',
+                $user->id,
+                (int) $order->id,
+                'editorial_orders',
+                'cinetpay',
+                $result['transactionId'],
+                (float) $order->montant_propose,
+                $order->devise ?? 'USD'
+            );
+            header('Location: ' . $result['url']);
+            exit;
+        }
+
+        Session::flash('error', $result['error'] ?? 'Erreur CinetPay.');
+        redirect('/auteur/mes-commandes-editoriales/' . $order->id);
+    }
+
+    /**
+     * Page de retour utilisateur après un paiement CinetPay. Symétrique de
+     * moneyFusionReturn : on re-query l'API check pour obtenir le statut
+     * authentique, on reconstruit le contexte (livre / plan / commande)
+     * depuis transactions_log pour afficher la bonne UX (succès / pending /
+     * échec). Le fulfillment lui-même se fait dans le webhook (pas ici) pour
+     * garantir l'idempotence même si l'utilisateur ferme l'onglet de retour.
+     */
+    public function cinetPayReturn(): void
+    {
+        Auth::requireLogin();
+
+        $transactionId = $_GET['transaction_id']
+            ?? $_GET['cpm_trans_id']
+            ?? $_POST['transaction_id']
+            ?? $_POST['cpm_trans_id']
+            ?? null;
+
+        if (!$transactionId) {
+            $this->view('payment/cinetpay-return', [
+                'titre'            => 'Paiement CinetPay',
+                'status'           => 'unknown',
+                'transactionId'    => null,
+                'book'             => null,
+                'subscriptionInfo' => null,
+            ]);
+            return;
+        }
+
+        $verified = $this->verifyCinetPayStatus((string) $transactionId);
+        $status = $verified ? strtoupper((string) ($verified['status'] ?? 'PENDING')) : 'PENDING';
+
+        // Reconstruire le contexte depuis transactions_log
+        $db = Database::getInstance();
+        $transaction = $db->fetch(
+            "SELECT * FROM transactions_log WHERE provider = 'cinetpay' AND provider_transaction_id = ?",
+            [$transactionId]
+        );
+
+        $book = null;
+        $subscriptionInfo = null;
+
+        if ($transaction) {
+            if ($transaction->reference_type === 'books' && !empty($transaction->reference_id)) {
+                $book = $db->fetch(
+                    "SELECT b.*, COALESCE(a.nom_plume, CONCAT(u.prenom,' ',u.nom)) as author_display
+                       FROM books b
+                       JOIN authors a ON b.author_id = a.id
+                  LEFT JOIN users u ON a.user_id = u.id
+                      WHERE b.id = ?",
+                    [(int) $transaction->reference_id]
+                );
+            } elseif ($transaction->type === 'abonnement') {
+                $sub = $db->fetch("SELECT type FROM subscriptions WHERE cinetpay_transaction_id = ?", [$transactionId]);
+                $planLabel = null;
+                if ($sub) {
+                    foreach (self::PLANS as $p) {
+                        if ($p['type_db'] === $sub->type) { $planLabel = $p['label']; break; }
+                    }
+                }
+                $subscriptionInfo = ['plan' => $planLabel];
+            }
+        }
+
+        $this->view('payment/cinetpay-return', [
+            'titre'            => 'Paiement CinetPay',
+            'status'           => $status,
+            'transactionId'    => $transactionId,
+            'book'             => $book ?: null,
+            'subscriptionInfo' => $subscriptionInfo,
+        ]);
+    }
+
+    // =====================================================================
     // PAGES RETOUR
     // =====================================================================
     public function success(): void
