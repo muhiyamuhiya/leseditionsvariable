@@ -529,19 +529,74 @@ class PaymentController extends BaseController
         exit;
     }
 
+    /**
+     * Webhook Money Fusion — vérification d'origine renforcée.
+     *
+     * SÉCURITÉ : on ne fait JAMAIS confiance au payload reçu en POST.
+     * Avant tout fulfill, on re-query l'API MF /paiementNotif/{token} pour
+     * récupérer le statut authentique et le `personal_Info` officiel.
+     * Sans cette re-query, n'importe qui peut envoyer un POST forgé pour
+     * déclencher un fulfillBookPurchase et obtenir un livre gratuitement.
+     *
+     * Tout webhook qui ne passe pas la vérification est loggé via
+     * error_log avec l'IP source — utile pour détecter des tentatives
+     * d'attaque (reconnaissance de l'endpoint).
+     *
+     * On répond 200 (au lieu de 403) sur les payloads invalides pour
+     * éviter de divulguer aux attaquants quels tokens existent.
+     */
     public function moneyFusionWebhook(): void
     {
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!$payload) { http_response_code(400); exit; }
+        $rawBody = file_get_contents('php://input');
+        $payload = json_decode((string) $rawBody, true);
 
-        $token = $payload['tokenPay'] ?? $payload['token'] ?? '';
-        $statut = $payload['statut'] ?? $payload['status'] ?? '';
-        $info = $payload['personal_Info'][0] ?? $payload['personalInfo'][0] ?? [];
-        $type = $info['type'] ?? '';
+        // Token présent ? (premier pré-filtre cheap)
+        $token = '';
+        if (is_array($payload)) {
+            $token = (string) ($payload['tokenPay'] ?? $payload['token'] ?? '');
+        }
+
+        $clientIp  = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '-';
+
+        if ($token === '') {
+            error_log("MF webhook REFUSÉ — token absent | IP={$clientIp} | UA={$userAgent} | body=" . mb_substr((string) $rawBody, 0, 200));
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // Vérification d'origine : on re-query l'API MF avec le token reçu.
+        // Si le token n'existe pas chez MF, c'est forcément une tentative
+        // d'attaque ou un payload corrompu — on refuse.
+        $verified = $this->verifyMoneyFusionStatus($token);
+        if ($verified === null) {
+            error_log("MF webhook REFUSÉ — verify failed pour token={$token} | IP={$clientIp} | UA={$userAgent}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // À partir d'ici, $verified vient de l'API MF authentique. On ignore
+        // complètement le payload reçu en POST et on travaille avec les
+        // données officielles.
+        $statut = (string) ($verified['statut'] ?? '');
+        $info   = $verified['personal_Info'][0] ?? [];
+        $type   = $info['type'] ?? '';
 
         $db = Database::getInstance();
 
-        if (in_array($statut, ['paid', 'success', 'completed'])) {
+        if (in_array($statut, ['paid', 'success', 'completed', 'pending succes', 'no paid'], true)) {
+            // Note : MF retourne parfois 'pending succes' (sic) pour un
+            // paiement Mobile Money en cours de validation côté opérateur.
+            // On reste strict et on ne fulfill que sur succès confirmé.
+            if (!in_array($statut, ['paid', 'success', 'completed'], true)) {
+                // Pending : on attend, le webhook sera rappelé
+                http_response_code(200);
+                echo 'OK';
+                exit;
+            }
+
             if ($type === 'book_purchase' && !empty($info['userId']) && !empty($info['bookId'])) {
                 $this->fulfillBookPurchase((int) $info['userId'], (int) $info['bookId'], $token);
             } elseif ($type === 'subscription' && !empty($info['userId']) && !empty($info['plan'])) {
@@ -550,13 +605,58 @@ class PaymentController extends BaseController
                 $this->fulfillEditorialOrder((int) $info['editorial_order_id'], $token);
             }
             $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$token]);
-        } elseif (in_array($statut, ['failed', 'cancelled', 'expired'])) {
+        } elseif (in_array($statut, ['failed', 'cancelled', 'expired', 'echec'], true)) {
             $db->update('transactions_log', ['statut' => 'echoue'], 'provider_transaction_id = ?', [$token]);
         }
 
         http_response_code(200);
         echo 'OK';
         exit;
+    }
+
+    /**
+     * Re-query l'API Money Fusion pour récupérer le statut AUTHENTIQUE
+     * d'une transaction à partir de son tokenPay. Utilisé à 2 endroits :
+     *   - moneyFusionReturn (page de retour utilisateur, déjà avant)
+     *   - moneyFusionWebhook (vérification d'origine, ajouté pour fix sécu)
+     *
+     * Retourne ['statut' => ..., 'personal_Info' => [...]] si OK, null sinon.
+     */
+    private function verifyMoneyFusionStatus(string $tokenPay): ?array
+    {
+        if ($tokenPay === '') return null;
+
+        $checkUrl = 'https://www.pay.moneyfusion.net/paiementNotif/' . urlencode($tokenPay);
+        $ch = curl_init($checkUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || $response === false || $response === '') {
+            return null;
+        }
+
+        $data = json_decode((string) $response, true);
+        if (!is_array($data) || empty($data['data'])) {
+            return null;
+        }
+
+        $core = $data['data'];
+        $statut = $core['statut'] ?? $core['status'] ?? null;
+        if ($statut === null) {
+            // Pas de statut dans la réponse → réponse invalide
+            return null;
+        }
+
+        return [
+            'statut'        => (string) $statut,
+            'personal_Info' => $core['personal_Info'] ?? $core['personalInfo'] ?? [],
+        ];
     }
 
     // =====================================================================
