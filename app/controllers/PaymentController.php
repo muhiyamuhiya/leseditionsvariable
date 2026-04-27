@@ -111,33 +111,24 @@ class PaymentController extends BaseController
             return;
         }
 
-        // Money Fusion travaille en FCFA (XOF). Convertir AVANT envoi sinon
-        // l'API rejette "Montant doit être supérieur à 200 F". On stocke
-        // toujours $price en USD côté DB (cf. logTransaction + sales).
-        $priceXof = PaymentConfig::convertUsdToXof($price);
+        // Money Fusion : multi-devise selon le pays de l'utilisateur.
+        // Variable affiche les prix en USD ; on convertit vers la devise MF
+        // appropriée (USD natif RDC / XOF / XAF / GNF) avant envoi. Le champ
+        // `currency` est ajouté pour que MF affiche les opérateurs corrects.
+        $mf = PaymentConfig::moneyFusionAmountForUser($price, $user);
 
         $payload = [
-            'totalPrice'    => $priceXof,
-            'article'       => [['livre' => $priceXof]],
+            'totalPrice'    => $mf['amount'],
+            'currency'      => $mf['currency'],
+            'article'       => [['livre' => $mf['amount']]],
             'personal_Info' => [['userId' => $user->id, 'bookId' => $book->id, 'type' => 'book_purchase']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
             'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
         ];
 
-        $ch = curl_init($apiUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-        ]);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        $data = json_decode($response);
+        [$response, $httpCode, $curlErr] = $this->callMoneyFusionApi($apiUrl, $payload);
+        $data = json_decode((string) $response);
 
         if ($data && !empty($data->url)) {
             $token = $data->token ?? $data->tokenPay ?? uniqid('mf_');
@@ -145,6 +136,9 @@ class PaymentController extends BaseController
             header('Location: ' . $data->url);
             exit;
         }
+
+        // Log diagnostic : sans ça, échec MF = page figée sans aucune trace.
+        $this->logMoneyFusionFailure('book', $user->id, $book->id, $payload, $httpCode, $response, $curlErr);
 
         Session::flash('error', 'Erreur Money Fusion. Réessaie ou choisis un autre moyen de paiement.');
         redirect('/achat/livre/' . $book->id);
@@ -224,23 +218,21 @@ class PaymentController extends BaseController
             return;
         }
 
-        // Conversion USD → XOF avant envoi (cf. payWithMoneyFusion).
-        $priceXof = PaymentConfig::convertUsdToXof((float) $planData['prix']);
+        // Multi-devise selon pays user (cf. payWithMoneyFusion).
+        $mf = PaymentConfig::moneyFusionAmountForUser((float) $planData['prix'], $user);
 
         $payload = [
-            'totalPrice'    => $priceXof,
-            'article'       => [['abonnement' => $priceXof]],
+            'totalPrice'    => $mf['amount'],
+            'currency'      => $mf['currency'],
+            'article'       => [['abonnement' => $mf['amount']]],
             'personal_Info' => [['userId' => $user->id, 'plan' => $plan, 'duree_jours' => $planData['duree_jours'], 'type' => 'subscription']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
             'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
         ];
 
-        $ch = curl_init($apiUrl);
-        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($payload), CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30]);
-        $response = curl_exec($ch);
-        curl_close($ch);
-        $data = json_decode($response);
+        [$response, $httpCode, $curlErr] = $this->callMoneyFusionApi($apiUrl, $payload);
+        $data = json_decode((string) $response);
 
         if ($data && !empty($data->url)) {
             $token = $data->token ?? $data->tokenPay ?? uniqid('mf_');
@@ -248,6 +240,8 @@ class PaymentController extends BaseController
             header('Location: ' . $data->url);
             exit;
         }
+
+        $this->logMoneyFusionFailure('subscription', $user->id, null, $payload, $httpCode, $response, $curlErr);
 
         Session::flash('error', 'Erreur Money Fusion.');
         redirect('/abonnement');
@@ -326,27 +320,22 @@ class PaymentController extends BaseController
             return;
         }
 
-        // Conversion USD → XOF avant envoi (cf. payWithMoneyFusion).
-        // NB : si à terme un service éditorial était libellé directement en
-        // EUR/CAD/CDF, il faudra ajuster — pour l'instant tous les services
-        // sont à $order->devise = 'USD'.
+        // Multi-devise selon pays user (cf. payWithMoneyFusion).
         $priceUsd = (float) $order->montant_propose;
-        $priceXof = PaymentConfig::convertUsdToXof($priceUsd);
+        $mf = PaymentConfig::moneyFusionAmountForUser($priceUsd, $user);
 
         $payload = [
-            'totalPrice'    => $priceXof,
-            'article'       => [['service_editorial' => $priceXof]],
+            'totalPrice'    => $mf['amount'],
+            'currency'      => $mf['currency'],
+            'article'       => [['service_editorial' => $mf['amount']]],
             'personal_Info' => [['userId' => $user->id, 'editorial_order_id' => (int) $order->id, 'type' => 'editorial_order']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
             'return_url'    => PaymentConfig::publicAppUrl() . '/paiement/moneyfusion/retour',
         ];
 
-        $ch = curl_init($apiUrl);
-        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($payload), CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30]);
-        $response = curl_exec($ch);
-        curl_close($ch);
-        $data = json_decode($response);
+        [$response, $httpCode, $curlErr] = $this->callMoneyFusionApi($apiUrl, $payload);
+        $data = json_decode((string) $response);
 
         if ($data && !empty($data->url)) {
             $token = $data->token ?? $data->tokenPay ?? uniqid('mf_');
@@ -354,6 +343,8 @@ class PaymentController extends BaseController
             header('Location: ' . $data->url);
             exit;
         }
+
+        $this->logMoneyFusionFailure('editorial_order', $user->id, (int) $order->id, $payload, $httpCode, $response, $curlErr);
 
         Session::flash('error', 'Erreur Money Fusion.');
         redirect('/auteur/mes-commandes-editoriales/' . $order->id);
@@ -1046,5 +1037,55 @@ class PaymentController extends BaseController
             'provider_transaction_id' => $providerTxId, 'montant' => $montant, 'devise' => $devise,
             'statut' => 'en_attente', 'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
+    }
+
+    /**
+     * POST le payload à l'API Money Fusion. Retourne [response, httpCode, curlError].
+     * Factorisé pour éviter la duplication entre les 3 méthodes MF et garantir
+     * un timeout cohérent.
+     */
+    private function callMoneyFusionApi(string $apiUrl, array $payload): array
+    {
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json'],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = (string) curl_error($ch);
+        curl_close($ch);
+
+        return [$response, $httpCode, $curlErr];
+    }
+
+    /**
+     * Log standardisé d'un échec Money Fusion. Capture HTTP code, body brut
+     * (tronqué à 500 chars), erreur curl éventuelle, et le payload envoyé.
+     * Sans ce log, le user voyait juste une page figée et on n'avait aucune
+     * trace côté serveur — diagnostic impossible.
+     */
+    private function logMoneyFusionFailure(string $kind, int $userId, ?int $refId, array $payload, int $httpCode, mixed $response, string $curlErr): void
+    {
+        $body = is_string($response) ? $response : (string) $response;
+        $bodyShort = mb_substr($body, 0, 500);
+        $payloadJson = (string) json_encode($payload, JSON_UNESCAPED_UNICODE);
+
+        error_log(sprintf(
+            'MF FAIL [%s] user=%d ref=%s http=%d curl_err=%s currency=%s amount=%s body=%s payload=%s',
+            $kind,
+            $userId,
+            $refId ?? '-',
+            $httpCode,
+            $curlErr ?: 'none',
+            (string) ($payload['currency'] ?? '?'),
+            (string) ($payload['totalPrice'] ?? '?'),
+            $bodyShort !== '' ? $bodyShort : '(empty)',
+            mb_substr($payloadJson, 0, 300)
+        ));
     }
 }

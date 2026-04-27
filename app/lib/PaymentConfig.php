@@ -66,32 +66,81 @@ class PaymentConfig
     }
 
     /**
-     * Convertit un montant USD en FCFA Ouest (XOF) pour l'envoi à Money Fusion.
+     * Calcule le montant + la devise à envoyer à Money Fusion selon le
+     * pays de l'utilisateur (users.pays au format ISO 3166 alpha-2).
      *
-     * Le taux est lu depuis settings.taux_conversion_usd_xof (configurable
-     * sans redeploy) avec fallback à 750 XOF/USD si le setting est absent.
+     * Mapping :
+     *   CD                              → USD       (×1)        — RDC supporte USD natif chez MF, tranche 1-3000 USD
+     *   CI / SN / ML / BF / BJ / TG     → XOF       (×750)      — FCFA Ouest, tranche 100-1.5M
+     *   CM                              → XAF       (×750)      — FCFA Centrale, tranche 100-1.5M
+     *   GN                              → GNF       (×8500)     — Franc guinéen, tranche 1000-15M
+     *   Diaspora ou pays inconnu        → USD       (×1)        — fallback ; le widget MF affiche les opérateurs USD disponibles, à défaut l'utilisateur peut choisir Stripe
      *
-     * Cache statique en mémoire pour éviter une requête DB par paiement
-     * (la valeur ne change qu'à la main par l'admin via /admin/parametres).
+     * Les taux sont configurables via settings (taux_conversion_usd_xof,
+     * _xaf, _gnf), ajustables sans redeploy depuis /admin/parametres.
      *
-     * Retourne un INT car le FCFA n'a pas de centimes et MF arrondit de
-     * toute façon. Exemple : 2.00 USD → 1500 XOF, 8.99 USD → 6743 XOF.
+     * Retourne ['amount' => int, 'currency' => string]. Le montant est un
+     * INT car les devises africaines n'ont pas de centimes côté MF.
+     */
+    public static function moneyFusionAmountForUser(float $usd, ?object $user = null): array
+    {
+        $pays = strtoupper((string) ($user->pays ?? '')) ?: 'CD';
+
+        // Devises XOF (Afrique de l'Ouest)
+        $xofCountries = ['CI', 'SN', 'ML', 'BF', 'BJ', 'TG'];
+
+        if ($pays === 'CD') {
+            // RDC : USD direct, pas de conversion
+            return ['amount' => (int) round($usd), 'currency' => 'USD'];
+        }
+        if (in_array($pays, $xofCountries, true)) {
+            return ['amount' => (int) round($usd * self::moneyFusionRate('xof', 750.0)), 'currency' => 'XOF'];
+        }
+        if ($pays === 'CM') {
+            return ['amount' => (int) round($usd * self::moneyFusionRate('xaf', 750.0)), 'currency' => 'XAF'];
+        }
+        if ($pays === 'GN') {
+            return ['amount' => (int) round($usd * self::moneyFusionRate('gnf', 8500.0)), 'currency' => 'GNF'];
+        }
+
+        // Diaspora ou pays non couvert : on tente USD (le widget MF gère
+        // les opérateurs USD disponibles, sinon l'utilisateur a Stripe en
+        // alternative dans le sélecteur de moyen de paiement).
+        return ['amount' => (int) round($usd), 'currency' => 'USD'];
+    }
+
+    /**
+     * Lit un taux de conversion USD→devise dans settings (cache statique).
+     * Fallback sur la valeur par défaut si setting absent ou DB inaccessible.
+     */
+    private static function moneyFusionRate(string $currencyKey, float $default): float
+    {
+        static $cache = [];
+        if (!isset($cache[$currencyKey])) {
+            try {
+                $row = Database::getInstance()->fetch(
+                    "SELECT `value` FROM settings WHERE `key` = ?",
+                    ['taux_conversion_usd_' . $currencyKey]
+                );
+                $rate = $row ? (float) $row->value : $default;
+                if ($rate <= 0) { $rate = $default; }
+                $cache[$currencyKey] = $rate;
+            } catch (\Throwable $e) {
+                error_log("PaymentConfig::moneyFusionRate({$currencyKey}) — DB read failed: " . $e->getMessage());
+                $cache[$currencyKey] = $default;
+            }
+        }
+        return $cache[$currencyKey];
+    }
+
+    /**
+     * Convertit USD → XOF (FCFA Ouest) pour Money Fusion.
+     * Conservé pour rétro-compat ; nouveau code utilise moneyFusionAmountForUser().
+     *
+     * @deprecated Utiliser moneyFusionAmountForUser($usd, $user) à la place.
      */
     public static function convertUsdToXof(float $usd): int
     {
-        static $rate = null;
-        if ($rate === null) {
-            try {
-                $row = Database::getInstance()->fetch(
-                    "SELECT `value` FROM settings WHERE `key` = 'taux_conversion_usd_xof'"
-                );
-                $rate = $row ? (float) $row->value : 750.0;
-                if ($rate <= 0) { $rate = 750.0; }
-            } catch (\Throwable $e) {
-                error_log('PaymentConfig::convertUsdToXof — read setting failed: ' . $e->getMessage());
-                $rate = 750.0;
-            }
-        }
-        return (int) round($usd * $rate);
+        return (int) round($usd * self::moneyFusionRate('xof', 750.0));
     }
 }
