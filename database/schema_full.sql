@@ -433,6 +433,7 @@ INSERT INTO settings (`key`, `value`, description) VALUES
 ('pourcentage_pool_redistribution', '50', 'Pourcentage des revenus abonnement redistribué aux auteurs'),
 ('seuil_minimum_versement_usd', '10', 'Montant minimum pour déclencher un versement auteur'),
 ('taux_conversion_usd_cdf', '2800', 'Taux USD vers Franc Congolais'),
+('taux_conversion_usd_xof', '750', 'Taux USD vers FCFA Ouest (XOF) — utilisé pour les paiements Money Fusion'),
 ('email_support', 'support@leseditionsvariable.com', 'Email de contact support'),
 ('email_contact', 'contact@leseditionsvariable.com', 'Email de contact général'),
 ('email_auteurs', 'auteurs@leseditionsvariable.com', 'Email pour les auteurs'),

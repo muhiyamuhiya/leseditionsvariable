@@ -111,9 +111,14 @@ class PaymentController extends BaseController
             return;
         }
 
+        // Money Fusion travaille en FCFA (XOF). Convertir AVANT envoi sinon
+        // l'API rejette "Montant doit être supérieur à 200 F". On stocke
+        // toujours $price en USD côté DB (cf. logTransaction + sales).
+        $priceXof = PaymentConfig::convertUsdToXof($price);
+
         $payload = [
-            'totalPrice'    => $price,
-            'article'       => [['livre' => $price]],
+            'totalPrice'    => $priceXof,
+            'article'       => [['livre' => $priceXof]],
             'personal_Info' => [['userId' => $user->id, 'bookId' => $book->id, 'type' => 'book_purchase']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
@@ -219,9 +224,12 @@ class PaymentController extends BaseController
             return;
         }
 
+        // Conversion USD → XOF avant envoi (cf. payWithMoneyFusion).
+        $priceXof = PaymentConfig::convertUsdToXof((float) $planData['prix']);
+
         $payload = [
-            'totalPrice'    => $planData['prix'],
-            'article'       => [['abonnement' => $planData['prix']]],
+            'totalPrice'    => $priceXof,
+            'article'       => [['abonnement' => $priceXof]],
             'personal_Info' => [['userId' => $user->id, 'plan' => $plan, 'duree_jours' => $planData['duree_jours'], 'type' => 'subscription']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
@@ -318,9 +326,16 @@ class PaymentController extends BaseController
             return;
         }
 
+        // Conversion USD → XOF avant envoi (cf. payWithMoneyFusion).
+        // NB : si à terme un service éditorial était libellé directement en
+        // EUR/CAD/CDF, il faudra ajuster — pour l'instant tous les services
+        // sont à $order->devise = 'USD'.
+        $priceUsd = (float) $order->montant_propose;
+        $priceXof = PaymentConfig::convertUsdToXof($priceUsd);
+
         $payload = [
-            'totalPrice'    => (float) $order->montant_propose,
-            'article'       => [['service_editorial' => (float) $order->montant_propose]],
+            'totalPrice'    => $priceXof,
+            'article'       => [['service_editorial' => $priceXof]],
             'personal_Info' => [['userId' => $user->id, 'editorial_order_id' => (int) $order->id, 'type' => 'editorial_order']],
             'numeroSend'    => $user->telephone ?? '',
             'nomclient'     => $user->prenom . ' ' . $user->nom,
