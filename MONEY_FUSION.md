@@ -22,7 +22,7 @@ L'intégration Money Fusion est **déjà codée** côté Variable (cf. audit du 
 |---|---|
 | **URL de retour utilisateur** | `https://leseditionsvariable.com/paiement/moneyfusion/retour` |
 | **URL de notification (webhook)** | `https://leseditionsvariable.com/webhook/moneyfusion` |
-| **IP serveur à whitelister** | `95.217.84.107` (Hetzner Turquie — serveur cPanel NitroHost) |
+| **IP serveur à whitelister** | `95.217.84.98` (Hetzner — serveur cPanel NitroHost, vérifiée le 2026-04-27) |
 
 > Si Money Fusion ne te demande pas d'IP : ignore ce champ. Si oui : la valeur est l'IP publique de ton hébergement cPanel. Pour la vérifier, en SSH : `curl -s https://api.ipify.org`
 
