@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Lib\Auth;
+use App\Lib\CinetPayService;
 use App\Lib\Database;
 use App\Lib\Mailer;
 use App\Lib\Notification;
@@ -10,7 +11,7 @@ use App\Lib\Session;
 use App\Models\Book;
 
 /**
- * Paiements : achat livre (Stripe + Money Fusion) + abonnement
+ * Paiements : achat livre (Stripe + Money Fusion + CinetPay) + abonnement
  */
 class PaymentController extends BaseController
 {
@@ -707,13 +708,18 @@ class PaymentController extends BaseController
         } else {
             $db->insert('user_books', ['user_id' => $userId, 'book_id' => $bookId, 'source' => 'achat_unitaire', 'date_ajout' => date('Y-m-d H:i:s')]);
         }
-        $db->insert('sales', [
+        $methode = $this->paymentMethodFromTxId($txId);
+        $sale = [
             'user_id' => $userId, 'book_id' => $bookId, 'author_id' => $book->author_id,
             'prix_paye' => $prix, 'devise' => 'USD', 'prix_paye_usd' => $prix,
             'commission_variable' => $commission, 'revenu_auteur' => $revenu,
-            'methode_paiement' => 'stripe', 'transaction_id' => $txId, 'statut' => 'payee',
+            'methode_paiement' => $methode, 'transaction_id' => $txId, 'statut' => 'payee',
             'date_vente' => date('Y-m-d H:i:s'), 'date_paiement_confirme' => date('Y-m-d H:i:s'),
-        ]);
+        ];
+        if ($methode === 'cinetpay') {
+            $sale['cinetpay_transaction_id'] = $txId;
+        }
+        $db->insert('sales', $sale);
         $db->update('books', ['total_ventes' => (int) $book->total_ventes + 1, 'revenus_cumul' => (float) $book->revenus_cumul + $prix], 'id = ?', [$bookId]);
 
         if ($txId) { $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$txId]); }
@@ -737,7 +743,7 @@ class PaymentController extends BaseController
                     (string) $book->titre,
                     $prix,
                     'USD',
-                    $txId && str_starts_with((string) $txId, 'cs_') ? 'stripe' : 'money_fusion',
+                    $this->paymentMethodFromTxId($txId),
                     (string) ($txId ?? ''),
                     date('Y-m-d H:i:s')
                 );
@@ -804,17 +810,22 @@ class PaymentController extends BaseController
         $dateDebut = date('Y-m-d H:i:s');
         $dateFin = date('Y-m-d H:i:s', strtotime("+{$planData['duree_jours']} days"));
 
-        $db->insert('subscriptions', [
+        $methode = $this->paymentMethodFromTxId($txId);
+        $sub = [
             'user_id'       => $userId,
             'type'          => $planData['type_db'],
             'date_debut'    => $dateDebut,
             'date_fin'      => $dateFin,
             'prix_paye'     => $planData['prix'],
             'devise'        => 'USD',
-            'methode_paiement' => 'stripe',
+            'methode_paiement' => $methode,
             'transaction_id' => $txId,
             'statut'        => 'actif',
-        ]);
+        ];
+        if ($methode === 'cinetpay') {
+            $sub['cinetpay_transaction_id'] = $txId;
+        }
+        $db->insert('subscriptions', $sub);
 
         if ($txId) { $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$txId]); }
 
@@ -837,7 +848,7 @@ class PaymentController extends BaseController
                     $planData['label'],
                     (float) $planData['prix'],
                     'USD',
-                    $txId && str_starts_with((string) $txId, 'cs_') ? 'stripe' : 'money_fusion',
+                    $this->paymentMethodFromTxId($txId),
                     (string) ($txId ?? ''),
                     $dateDebut
                 );
@@ -1087,5 +1098,218 @@ class PaymentController extends BaseController
             $bodyShort !== '' ? $bodyShort : '(empty)',
             mb_substr($payloadJson, 0, 300)
         ));
+    }
+
+    /**
+     * Identifie le provider à partir d'un transaction_id, pour stocker la
+     * bonne valeur dans sales.methode_paiement / subscriptions.methode_paiement
+     * sans avoir à passer le provider en paramètre à chaque fulfill.
+     *
+     *   "cs_..."           -> stripe       (Checkout Session ID)
+     *   "in_..."           -> stripe       (Invoice ID, abos récurrents)
+     *   "LV-..."           -> cinetpay     (livre)
+     *   "SUB-..."          -> cinetpay     (abonnement)
+     *   "ED-..."           -> cinetpay     (éditorial)
+     *   tout autre format  -> money_fusion (token MF)
+     */
+    private function paymentMethodFromTxId(?string $txId): string
+    {
+        if (!$txId) return 'stripe';
+        if (str_starts_with($txId, 'cs_') || str_starts_with($txId, 'in_')) return 'stripe';
+        if (preg_match('#^(LV|SUB|ED)-#', $txId)) return 'cinetpay';
+        return 'money_fusion';
+    }
+
+    // =====================================================================
+    // CINETPAY — WEBHOOK + RETURN + VERIFY
+    // =====================================================================
+
+    /**
+     * Webhook CinetPay : POST x-www-form-urlencoded depuis les serveurs CinetPay
+     * après un paiement. SÉCURITÉ TRIPLE :
+     *   1. HMAC SHA256 du payload comparé au header X-TOKEN avec hash_equals.
+     *      Sans cette vérification, n'importe qui peut forger un POST.
+     *   2. Re-query /v2/payment/check pour obtenir le statut AUTHENTIQUE
+     *      (l'attaquant pourrait théoriquement avoir le HMAC valide d'un
+     *      ancien paiement REFUSED -> on ne se base que sur le statut renvoyé
+     *      par l'API à l'instant T).
+     *   3. Fulfillment idempotent (les 3 helpers fulfillBookPurchase /
+     *      fulfillSubscription / fulfillEditorialOrder skippent silencieusement
+     *      si déjà appliqué).
+     *
+     * On répond toujours HTTP 200 même sur refus (pour ne pas divulguer aux
+     * attaquants quels transaction_id existent et éviter que CinetPay ne
+     * retente indéfiniment sur un faux endpoint).
+     */
+    public function cinetPayWebhook(): void
+    {
+        $clientIp  = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '-';
+
+        // 1. Récupération du payload (CinetPay POSTe en form-urlencoded)
+        $cpm_site_id          = (string) ($_POST['cpm_site_id'] ?? '');
+        $cpm_trans_id         = (string) ($_POST['cpm_trans_id'] ?? '');
+        $cpm_trans_date       = (string) ($_POST['cpm_trans_date'] ?? '');
+        $cpm_amount           = (string) ($_POST['cpm_amount'] ?? '');
+        $cpm_currency         = (string) ($_POST['cpm_currency'] ?? '');
+        $signature            = (string) ($_POST['signature'] ?? '');
+        $payment_method       = (string) ($_POST['payment_method'] ?? '');
+        $cel_phone_num        = (string) ($_POST['cel_phone_num'] ?? '');
+        $cpm_phone_prefixe    = (string) ($_POST['cpm_phone_prefixe'] ?? '');
+        $cpm_language         = (string) ($_POST['cpm_language'] ?? '');
+        $cpm_version          = (string) ($_POST['cpm_version'] ?? '');
+        $cpm_payment_config   = (string) ($_POST['cpm_payment_config'] ?? '');
+        $cpm_page_action      = (string) ($_POST['cpm_page_action'] ?? '');
+        $cpm_custom           = (string) ($_POST['cpm_custom'] ?? '');
+        $cpm_designation      = (string) ($_POST['cpm_designation'] ?? '');
+        $cpm_error_message    = (string) ($_POST['cpm_error_message'] ?? '');
+
+        if ($cpm_trans_id === '' || $cpm_site_id === '') {
+            error_log("CINETPAY webhook REFUSÉ — payload incomplet | IP={$clientIp} | UA={$userAgent}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // 2. Vérification HMAC SHA256 (header X-TOKEN renvoyé par CinetPay)
+        $headerToken = $_SERVER['HTTP_X_TOKEN'] ?? '';
+        $secretKey   = (string) env('CINETPAY_SECRET_KEY', '');
+        if ($secretKey === '') {
+            error_log("CINETPAY webhook REFUSÉ — CINETPAY_SECRET_KEY non configurée | tx={$cpm_trans_id}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // Concaténation dans l'ordre exact défini par la doc CinetPay
+        $concat = $cpm_site_id
+                . $cpm_trans_id
+                . $cpm_trans_date
+                . $cpm_amount
+                . $cpm_currency
+                . $signature
+                . $payment_method
+                . $cel_phone_num
+                . $cpm_phone_prefixe
+                . $cpm_language
+                . $cpm_version
+                . $cpm_payment_config
+                . $cpm_page_action
+                . $cpm_custom
+                . $cpm_designation
+                . $cpm_error_message;
+
+        $expected = hash_hmac('sha256', $concat, $secretKey);
+
+        if ($headerToken === '' || !hash_equals($expected, $headerToken)) {
+            error_log("CINETPAY webhook REFUSÉ — HMAC invalide tx={$cpm_trans_id} | IP={$clientIp} | UA={$userAgent}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // 3. Re-query API pour le statut AUTHENTIQUE
+        $verified = $this->verifyCinetPayStatus($cpm_trans_id);
+        if ($verified === null) {
+            error_log("CINETPAY webhook REFUSÉ — verify failed tx={$cpm_trans_id} | IP={$clientIp}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        $status = strtoupper((string) ($verified['status'] ?? ''));
+        $db = Database::getInstance();
+
+        if ($status === 'WAITING') {
+            // Paiement en attente côté opérateur, le webhook sera rappelé.
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        if ($status === 'REFUSED') {
+            $db->update('transactions_log', ['statut' => 'echoue'], 'provider_transaction_id = ?', [$cpm_trans_id]);
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        if ($status !== 'ACCEPTED') {
+            error_log("CINETPAY webhook IGNORÉ — statut inattendu={$status} tx={$cpm_trans_id}");
+            http_response_code(200);
+            echo 'OK';
+            exit;
+        }
+
+        // ACCEPTED -> fulfill via metadata (parsée du JSON renvoyé par CinetPay,
+        // qui a réécho ce qu'on a envoyé en init via le champ metadata).
+        $metaRaw = $verified['metadata'] ?? $cpm_custom ?? '';
+        $meta = is_string($metaRaw) ? json_decode($metaRaw, true) : [];
+        if (!is_array($meta)) $meta = [];
+
+        $type = (string) ($meta['type'] ?? '');
+
+        if ($type === 'book_purchase' && !empty($meta['user_id']) && !empty($meta['book_id'])) {
+            $this->fulfillBookPurchase((int) $meta['user_id'], (int) $meta['book_id'], $cpm_trans_id);
+        } elseif ($type === 'subscription' && !empty($meta['user_id']) && !empty($meta['plan'])) {
+            $this->fulfillSubscription((int) $meta['user_id'], (string) $meta['plan'], $cpm_trans_id);
+        } elseif ($type === 'editorial' && !empty($meta['order_id'])) {
+            $this->fulfillEditorialOrder((int) $meta['order_id'], $cpm_trans_id);
+        } else {
+            error_log("CINETPAY webhook ACCEPTED mais metadata invalide tx={$cpm_trans_id} meta=" . mb_substr((string) $metaRaw, 0, 200));
+        }
+
+        $db->update('transactions_log', ['statut' => 'reussi'], 'provider_transaction_id = ?', [$cpm_trans_id]);
+
+        http_response_code(200);
+        echo 'OK';
+        exit;
+    }
+
+    /**
+     * Re-query l'API CinetPay /v2/payment/check pour récupérer le statut
+     * AUTHENTIQUE d'une transaction. Utilisé par le webhook avant fulfill et
+     * (commit suivant) par la page de retour utilisateur.
+     *
+     * Retourne le tableau ['status' => ..., 'amount' => ..., 'metadata' => ...]
+     * tel que renvoyé par CinetPay, ou null si erreur réseau / réponse invalide.
+     */
+    private function verifyCinetPayStatus(string $transactionId): ?array
+    {
+        if ($transactionId === '') return null;
+
+        $checkUrl = (string) env('CINETPAY_CHECK_URL', '');
+        if ($checkUrl === '') return null;
+
+        $payload = [
+            'apikey'         => (string) env('CINETPAY_API_KEY', ''),
+            'site_id'        => (string) env('CINETPAY_SITE_ID', ''),
+            'transaction_id' => $transactionId,
+        ];
+
+        $ch = curl_init($checkUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json'],
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT        => 15,
+        ]);
+        $body     = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || $body === false || $body === '') {
+            error_log("CINETPAY check FAIL http={$httpCode} tx={$transactionId}");
+            return null;
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (!is_array($decoded) || empty($decoded['data'])) {
+            return null;
+        }
+
+        return is_array($decoded['data']) ? $decoded['data'] : null;
     }
 }
